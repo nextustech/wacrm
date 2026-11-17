@@ -329,9 +329,9 @@ function CompaniesPage() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                      className="opacity-0 group-hover:opacity-100"
                     >
                       <MoreHorizontal className="w-4 h-4" />
                     </Button>

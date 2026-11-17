@@ -314,7 +314,7 @@ function ConditionRow({
 
       <ConditionInputs condition={condition} onChange={onChange} />
 
-      <Button variant="ghost" size="icon" className="ml-auto h-8 w-8" onClick={onRemove} type="button">
+      <Button variant="outline" size="icon" className="ml-auto" onClick={onRemove} type="button">
         <Trash2 className="h-3.5 w-3.5" />
       </Button>
     </div>

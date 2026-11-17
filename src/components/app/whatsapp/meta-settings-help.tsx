@@ -131,7 +131,7 @@ function HelpRow({ item, onJump }: { item: HelpItem; onJump?: MetaHelpJumpHandle
             type="button"
             variant="outline"
             size="sm"
-            className="h-6 gap-1 px-2 text-[11px]"
+            className="gap-1 text-[11px]"
             onClick={() => onJump(item.target)}
           >
             <Target className="w-3 h-3" />

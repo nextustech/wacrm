@@ -7,15 +7,26 @@
  * every search term must be neutralized first.
  */
 
-/** Strip PostgREST grammar characters and LIKE wildcards from a search term. */
+/**
+ * Strip PostgREST grammar characters and LIKE wildcards from a search term.
+ *
+ * `.` is intentionally NOT stripped: every `.or(...)` call site here uses
+ * flat, non-embedded column names, and PostgREST's or-filter grammar only
+ * splits a condition on its first two dots (`column.operator.value`) — any
+ * further dots are part of the value, not re-parsed. Stripping them broke
+ * every search for an email address or domain (e.g. "name@gmail.com"
+ * became "name@gmail com", which can never match the stored value).
+ */
 export function sanitizeSearchTerm(input: string, maxLength = 100): string {
-  return input
-    .replace(/[,.()":*%\\]/g, " ")
-    // Control characters have no place in a filter string either.
-    .replace(/[\u0000-\u001f\u007f]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, maxLength);
+  return (
+    input
+      .replace(/[,()":*%\\]/g, " ")
+      // Control characters have no place in a filter string either.
+      .replace(/[\u0000-\u001f\u007f]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, maxLength)
+  );
 }
 
 /** Build a safe `ilike` pattern (`%term%`) for use inside `.or()`. */

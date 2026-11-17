@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { useZonedDateFormatter, useZonedDayLabel } from "@/hooks/use-timezone";
 import {
   Check,
@@ -25,6 +26,7 @@ import {
   StickyNote,
   CalendarDays,
   MoreHorizontal,
+  Smartphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/currency/format";
@@ -65,7 +67,15 @@ import { describeMessengerError, readMessengerDeliveryError } from "@/lib/messen
 import { parseEventIcs, type ParsedEventIcs } from "@/lib/inbox/event-ics";
 import { downloadRemoteFile, isSafeDownloadUrl } from "@/lib/files/download-file";
 import { FormattedText } from "@/components/app/inbox/formatted-text";
-import { stripFormatting } from "@/lib/inbox/rich-text";
+import {
+  LinkPreviewCard,
+  type LinkPreviewData,
+  type LinkPreviewFetcher,
+} from "@/components/app/inbox/link-preview-card";
+import { splitEmailReply } from "@/lib/email/quoted-text";
+import { cleanEmailPlainText, splitEmailFooter } from "@/lib/email/plain-text";
+import { extractFirstUrl, stripFormatting } from "@/lib/inbox/rich-text";
+import { getLinkPreview } from "@/lib/link-preview/link-preview.functions";
 import type { AppTimeFormat } from "@/lib/i18n/time-format";
 
 const REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
@@ -84,6 +94,7 @@ type Props = {
   onForward: (m: MessageRow) => void;
   onAssignTask: (m: MessageRow) => void;
   onAddNote: (m: MessageRow) => void;
+  onScrollToMessage?: (messageId: string) => void;
 };
 
 export function MessageBubble({
@@ -97,6 +108,7 @@ export function MessageBubble({
   onForward,
   onAssignTask,
   onAddNote,
+  onScrollToMessage,
 }: Props) {
   const react = useReactToMessage();
   const del = useDeleteMessage();
@@ -105,6 +117,13 @@ export function MessageBubble({
   const zonedTime = useZonedDateFormatter();
 
   const isDeleted = !!m.deleted_at;
+  // Mail is read by date as much as by time, and a thread can span months —
+  // the day separator alone is not enough once you scroll.
+  const isEmail = Boolean(m.from_address?.includes("@") || m.to_address?.includes("@"));
+  // WhatsApp Coexistence: the agent typed this in the phone's own WhatsApp
+  // app and Meta echoed it to us. It is outbound, but nobody sent it from
+  // here — say so, otherwise the team cannot tell the two apart.
+  const fromPhoneApp = m.metadata?.source === "whatsapp_app_coexistence";
   const hasUnresolvedReply = !m.reply_to && typeof m.metadata?.context_message_id === "string";
   const reactions = m.metadata.reactions ?? {};
   const hasReactions = Object.keys(reactions).length > 0;
@@ -171,6 +190,7 @@ export function MessageBubble({
 
   return (
     <div
+      data-message-id={m.id}
       className={cn(
         "group flex items-end gap-2 animate-fade-in",
         isOwn ? "justify-end" : "justify-start",
@@ -191,7 +211,7 @@ export function MessageBubble({
 
       <div
         className={cn(
-          "relative max-w-[75%] sm:max-w-[65%] min-w-0",
+          "relative max-w-[80%] sm:max-w-[55%] min-w-0",
           isOwn ? "items-end" : "items-start",
         )}
       >
@@ -208,7 +228,7 @@ export function MessageBubble({
 
         <div
           className={cn(
-            "relative rounded-control px-4 py-2.5 shadow-sm break-words transition-transform",
+            "relative rounded-control px-4 py-2.5 shadow-[1px_1px_2px_0px_#50505030] break-words transition-transform",
             m.is_internal
               ? "bg-amber-50 text-amber-950 border border-amber-300 dark:bg-amber-950/30 dark:text-amber-100 dark:border-amber-500/40 rounded-control"
               : isOwn
@@ -225,21 +245,38 @@ export function MessageBubble({
           )}
           {/* Reply preview */}
           {(m.reply_to || hasUnresolvedReply) && !isDeleted && (
-            <div
+            <button
+              type="button"
+              onClick={() => {
+                const targetId =
+                  m.reply_to?.id ?? (m.metadata?.context_message_id as string | undefined);
+                if (targetId) onScrollToMessage?.(targetId);
+              }}
               className={cn(
-                "text-xs mb-1.5 pl-2 border-l-2 rounded-control py-1 pr-2 truncate",
+                "text-xs mb-1.5 pl-2 border-l-2 rounded-control py-1 pr-2 truncate w-full text-left transition-opacity",
+                onScrollToMessage && (m.reply_to?.id ?? m.metadata?.context_message_id)
+                  ? "cursor-pointer hover:opacity-70"
+                  : "cursor-default",
                 isOwn
                   ? "border-primary-foreground/60 bg-primary-foreground/10"
                   : "border-primary bg-muted",
               )}
             >
               <div className="font-medium opacity-80 truncate">
-                {m.reply_to ? (m.reply_to.direction === "outbound" ? "You" : "Contact") : "Reply to a message"}
+                {m.reply_to
+                  ? m.reply_to.direction === "outbound"
+                    ? "You"
+                    : "Contact"
+                  : "Reply to a message"}
               </div>
               <div className="opacity-75 truncate">
-                {m.reply_to ? (m.reply_to.body ? stripFormatting(m.reply_to.body) : m.reply_to.message_type) : "Original message unavailable"}
+                {m.reply_to
+                  ? m.reply_to.body
+                    ? stripFormatting(m.reply_to.body)
+                    : m.reply_to.message_type
+                  : "Original message unavailable"}
               </div>
-            </div>
+            </button>
           )}
 
           {isDeleted ? (
@@ -259,11 +296,21 @@ export function MessageBubble({
             {m.edited_at && !isDeleted && <span>edited</span>}
             <span data-time-format={timeFormat}>
               {zonedTime(m.created_at, {
+                ...(isEmail ? { day: "numeric", month: "short", year: "numeric" } : {}),
                 hour: "numeric",
                 minute: "2-digit",
                 hour12: timeFormat === "12h",
               })}
             </span>
+            {fromPhoneApp && !isDeleted && (
+              <span
+                className="inline-flex items-center gap-0.5"
+                title="Sent from the WhatsApp app on the linked phone"
+              >
+                <Smartphone className="h-3 w-3" />
+                <span className="hidden sm:inline">from phone</span>
+              </span>
+            )}
             {isOwn && !isDeleted && <StatusIcon status={m.status} />}
           </div>
 
@@ -308,10 +355,15 @@ export function MessageBubble({
             {deliveryFailure.retryable ? (
               <button
                 type="button"
-                onClick={() => retry.mutate(
-                  { id: m.id, conversationId: m.conversation_id },
-                  { onError: (error) => toast.error(error instanceof Error ? error.message : "Retry failed") },
-                )}
+                onClick={() =>
+                  retry.mutate(
+                    { id: m.id, conversationId: m.conversation_id },
+                    {
+                      onError: (error) =>
+                        toast.error(error instanceof Error ? error.message : "Retry failed"),
+                    },
+                  )
+                }
                 disabled={retry.isPending}
                 className="flex items-center gap-1 hover:underline"
               >
@@ -354,8 +406,8 @@ export function MessageBubble({
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground"
+                  size="iconSM"
+                  className="rounded-full text-muted-foreground hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground"
                   aria-label="Add reaction"
                 >
                   <Smile className="h-4 w-4" />
@@ -393,8 +445,8 @@ export function MessageBubble({
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 rounded-full text-muted-foreground hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground"
+                  size="iconSM"
+                  className="rounded-full text-muted-foreground hover:text-foreground data-[state=open]:bg-muted data-[state=open]:text-foreground"
                   aria-label="Message actions"
                 >
                   <MoreHorizontal className="h-4 w-4" />
@@ -573,8 +625,30 @@ function useMessageAttachment(m: MessageRow) {
       ? storedName
       : m.message_type === "document" && m.body?.trim()
         ? m.body
-        : "Attachment";
+        : inferMediaName(m.message_type, m.media_type);
   return { downloadUrl: isSafeDownloadUrl(mediaUrl) ? mediaUrl : null, mediaName };
+}
+
+function mimeToExt(mime: string): string | null {
+  const map: Record<string, string> = {
+    "image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png",
+    "image/gif": "gif", "image/webp": "webp", "image/heic": "heic",
+    "video/mp4": "mp4", "video/3gpp": "3gp", "video/quicktime": "mov",
+    "audio/ogg": "ogg", "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/aac": "aac",
+    "application/pdf": "pdf",
+  };
+  return map[mime.toLowerCase()] ?? mime.split("/")[1] ?? null;
+}
+
+function inferMediaName(messageType: string, mimeType: string | null | undefined): string {
+  const ext = mimeType ? mimeToExt(mimeType) : null;
+  switch (messageType) {
+    case "image":   return ext ? `photo.${ext}` : "photo";
+    case "video":   return ext ? `video.${ext}` : "video";
+    case "audio":   return ext ? `audio.${ext}` : "voice-note";
+    case "sticker": return "sticker.webp";
+    default:        return ext ? `attachment.${ext}` : "attachment";
+  }
 }
 
 export function MessageContent({ message: m, isOwn }: { message: MessageRow; isOwn: boolean }) {
@@ -583,6 +657,11 @@ export function MessageContent({ message: m, isOwn }: { message: MessageRow; isO
   const [selectedContactIdx, setSelectedContactIdx] = useState<number | null>(null);
   const [contactSearch, setContactSearch] = useState("");
   const lightbox = useMediaLightbox();
+  const fetchLinkPreview = useServerFn(getLinkPreview);
+  const linkPreviewFetcher = useCallback(
+    (url: string) => fetchLinkPreview({ data: { url } }) as Promise<LinkPreviewData>,
+    [fetchLinkPreview],
+  );
   const isCalendarFile =
     m.message_type === "document" &&
     (m.media_type?.toLowerCase().includes("text/calendar") ||
@@ -1162,13 +1241,79 @@ export function MessageContent({ message: m, isOwn }: { message: MessageRow; isO
       return <div className="text-xs opacity-70">{m.body}</div>;
     case "template":
     case "text":
-    default:
+    default: {
+      // Only mail carries a quoted thread; other channels are left untouched.
+      const isEmail = Boolean(m.from_address?.includes("@") || m.to_address?.includes("@"));
+      if (isEmail) {
+        return <EmailTextBody m={m} isOwn={isOwn} linkPreviewFetcher={linkPreviewFetcher} />;
+      }
       return (
         <div className="space-y-1">
           <FormattedText text={m.body} className="text-sm" />
+          <LinkPreviewCard url={extractFirstUrl(m.body ?? "")} fetcher={linkPreviewFetcher} />
         </div>
       );
+    }
   }
+}
+
+/**
+ * An email reply carries the whole prior thread below it. Show what was
+ * actually written and keep the quote one click away, the way mail clients do.
+ */
+function EmailTextBody({
+  m,
+  isOwn,
+  linkPreviewFetcher,
+}: {
+  m: MessageRow;
+  isOwn: boolean;
+  linkPreviewFetcher: LinkPreviewFetcher;
+}) {
+  const [showExtra, setShowExtra] = useState(false);
+  // Undo the 78-column hard wrapping and strip `[image: …]` placeholders,
+  // then peel off the quoted thread and the legal/unsubscribe footer so the
+  // bubble shows what was actually written.
+  const { message, extra } = useMemo(() => {
+    const cleaned = cleanEmailPlainText(m.body);
+    const { reply, quoted } = splitEmailReply(cleaned);
+    const { body, footer } = splitEmailFooter(reply);
+    const rest = [footer, quoted].filter(Boolean).join("\n\n").trim();
+    return { message: body, extra: rest || null };
+  }, [m.body]);
+
+  return (
+    <div className="space-y-1.5">
+      <FormattedText text={message} className="text-sm leading-relaxed" />
+      {extra && (
+        <button
+          type="button"
+          onClick={() => setShowExtra((v) => !v)}
+          aria-expanded={showExtra}
+          className={cn(
+            "inline-flex items-center gap-1 rounded-control px-1.5 py-0.5 text-[11px] leading-none transition-colors",
+            isOwn
+              ? "bg-primary-foreground/15 hover:bg-primary-foreground/25"
+              : "bg-muted hover:bg-muted/80",
+          )}
+        >
+          <MoreHorizontal className="h-3 w-3" />
+          {showExtra ? "Hide details" : "Show full email"}
+        </button>
+      )}
+      {extra && showExtra && (
+        <div
+          className={cn(
+            "border-l-2 pl-2 opacity-70",
+            isOwn ? "border-primary-foreground/30" : "border-border",
+          )}
+        >
+          <FormattedText text={extra} className="text-xs" />
+        </div>
+      )}
+      <LinkPreviewCard url={extractFirstUrl(message)} fetcher={linkPreviewFetcher} />
+    </div>
+  );
 }
 
 function StatusIcon({ status }: { status: MessageRow["status"] }) {

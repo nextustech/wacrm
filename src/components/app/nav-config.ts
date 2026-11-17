@@ -656,15 +656,6 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   {
-    to: "/ai-studio",
-    label: "AI Studio",
-    icon: Sparkles,
-    group: "marketing",
-    category: "Content & AI",
-    shortcut: "G A",
-    permission: "page.ai_studio",
-  },
-  {
     to: "/social",
     label: "Social Studio",
     icon: Share2,
@@ -716,13 +707,6 @@ export const NAV_ITEMS: NavItem[] = [
     category: "Social Studio",
     hash: "channels",
     permission: "page.campaigns",
-  },
-  {
-    to: "/knowledge",
-    label: "Knowledge Base",
-    icon: BookOpen,
-    group: "marketing",
-    category: "Content & AI",
   },
 
   // ── Automation & Bots ───────────────────────────────────────
@@ -882,6 +866,24 @@ export const NAV_ITEMS: NavItem[] = [
   },
 
   // ── Settings ────────────────────────────────────────────────
+  // Knowledge Base and AI Studio sit here rather than under Marketing: they
+  // ground every AI feature in the app, not just campaigns.
+  {
+    to: "/ai-studio",
+    label: "AI Studio",
+    icon: Sparkles,
+    group: "settings",
+    category: "Content & AI",
+    shortcut: "G A",
+    permission: "page.ai_studio",
+  },
+  {
+    to: "/knowledge",
+    label: "Knowledge Base",
+    icon: BookOpen,
+    group: "settings",
+    category: "Content & AI",
+  },
   { to: "/profile", label: "My Profile", icon: UserCircle, group: "settings", category: "Account" },
   {
     to: "/notifications",
@@ -1149,7 +1151,7 @@ const API_CONFIG_GROUPS: { label: string; sections: string[] }[] = [
   { label: "Telegram", sections: ["telegram"] },
   { label: "Email & SMS", sections: ["email", "sms"] },
   { label: "Meta Platform", sections: ["meta-app"] },
-  { label: "Platform", sections: ["ai", "sync", "provider", "api"] },
+  { label: "AI Setup", sections: ["ai", "sync", "provider", "api"] },
 ];
 
 function sectionNode(id: string): NestedNavNode | null {

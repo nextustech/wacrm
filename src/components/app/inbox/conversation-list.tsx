@@ -19,6 +19,7 @@ import {
   Check,
   Settings2,
   Info,
+  Plus,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useZonedDateFormatter } from "@/hooks/use-timezone";
@@ -45,21 +46,34 @@ import {
   mergeAccountSources,
   type SyncedChannelAccount,
 } from "@/lib/inbox/account-sync";
-import { useLiveChatAccounts } from "@/hooks/use-livechat-accounts";
+import { useLiveChatAccounts, liveChatAccountId } from "@/hooks/use-livechat-accounts";
+import { externalAccountKeyForConversation } from "@/lib/inbox/external-account-ids";
 import { useInboxChannelRefresh } from "@/hooks/use-inbox-channel-refresh";
 import { useExternalChannelAccounts } from "@/hooks/use-external-accounts";
 
 import { ChannelIcon } from "./channel-icon";
-import { useCurrentWorkspace } from "@/hooks/use-workspace";
+import { useCurrentWorkspace, useWorkspaceMembers } from "@/hooks/use-workspace";
 import { useChannelAccounts, type ChannelAccountRow } from "@/hooks/use-channel-accounts";
 
-import { ConversationListItem, ConversationListItemSkeleton, type ConversationListAction } from "./conversation-list-item";
+import {
+  ConversationListItem,
+  ConversationListItemSkeleton,
+  type ConversationListAction,
+} from "./conversation-list-item";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LabelManagerDialog } from "./label-manager";
 import { AdvancedSearchDialog } from "./advanced-search";
 import { BulkActionsBar } from "./bulk-actions-bar";
+import { BulkLinkContactDialog } from "./bulk-link-contact-dialog";
+import { toast } from "sonner";
+import {
+  useSetConversationLabels,
+  useBulkUpdateConversations,
+  useExportConversations,
+  useLabels,
+} from "@/hooks/use-inbox-organization";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -268,12 +282,81 @@ export function ConversationList({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [labelsOpen, setLabelsOpen] = useState(false);
   const [accountId, setAccountIdState] = useState<string | null>(null);
+
+  // A selection made under one filter/channel/account/search must not survive
+  // into a different view — otherwise rows picked earlier can silently ride
+  // along into a later bulk action (e.g. Delete) on a view the user can no
+  // longer see them in.
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [filter, channels, accountId, debouncedSearch]);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [accountSearch, setAccountSearch] = useState("");
   const isMobile = useIsMobile();
   const [expandedChannel, setExpandedChannel] = useState<string | null>(null);
   const accountSearchRef = useRef<HTMLInputElement>(null);
   const { active: workspace } = useCurrentWorkspace();
+
+  // Quick per-item actions (Assign / Label / Link contact / Export) in each
+  // row's own menu — these used to require bulk-select, which made them
+  // unusable for the common case of acting on a single conversation.
+  const { data: quickActionMembers = [] } = useWorkspaceMembers(workspace?.id);
+  const { data: quickActionLabels = [] } = useLabels();
+  const quickAssign = useBulkUpdateConversations();
+  const setConversationLabels = useSetConversationLabels();
+  const quickExport = useExportConversations();
+  const [linkContactId, setLinkContactId] = useState<string | null>(null);
+
+  const handleQuickAssign = async (conversationId: string, userId: string | null) => {
+    try {
+      await quickAssign.mutateAsync({
+        ids: [conversationId],
+        patch: { assigned_to: userId ?? "" },
+      });
+      toast.success(userId ? "Assigned" : "Unassigned");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const handleQuickApplyLabels = async (conversationId: string, labelIds: string[]) => {
+    // The submenu is a checkbox list seeded from the conversation's own
+    // labels, so unchecking one has to take it off — not just skip adding it.
+    const current = (conversations ?? [])
+      .find((c) => c.id === conversationId)
+      ?.labels?.map((l) => l.id);
+    try {
+      const { added, removed } = await setConversationLabels.mutateAsync({
+        conversationId,
+        labelIds,
+        currentLabelIds: current ?? [],
+      });
+      if (added || removed) toast.success("Labels updated");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const handleQuickExport = async (conversationId: string) => {
+    try {
+      await quickExport.mutateAsync([conversationId]);
+      toast.success("Export downloaded");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const handleQuickDelete = async (conversationId: string) => {
+    if (!window.confirm("Delete this conversation? This cannot be undone.")) return;
+    try {
+      // Same patch + mutation as the bulk "Delete" action, scoped to one id.
+      await quickAssign.mutateAsync({ ids: [conversationId], patch: { delete: true } });
+      toast.success("Deleted");
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
   const {
     data: accountsData,
     isError: accountsError,
@@ -305,6 +388,34 @@ export function ConversationList({
   );
 
   const selectedAccount = accounts.find((a) => a.id === accountId) ?? null;
+
+  // "Which mailbox / number did this land on?" — with several accounts on one
+  // channel the contact name alone doesn't say. Keyed by the same synthetic
+  // ids the selector uses, so provider-table and Live Chat accounts match too.
+  const accountLabelById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const a of accounts) {
+      const label = (a.phone_number ?? a.display_name ?? "").trim();
+      if (label) map.set(a.id, label);
+    }
+    return map;
+  }, [accounts]);
+
+  /** The account label to show on a row, or undefined when it adds nothing. */
+  const rowAccountLabel = (c: ConversationRow): string | undefined => {
+    // Filtered to one account already — the header says which.
+    if (accountId || accountLabelById.size < 2) return undefined;
+    const meta = (c.metadata ?? {}) as Record<string, unknown>;
+    const botId = typeof meta.chatbot_id === "string" ? meta.chatbot_id : null;
+    const key =
+      (botId ? liveChatAccountId(botId) : null) ??
+      externalAccountKeyForConversation(
+        c.channel,
+        typeof meta.account_id === "string" ? meta.account_id : null,
+      ) ??
+      c.channel_account_id;
+    return key ? accountLabelById.get(key) : undefined;
+  };
 
   // Switching channel/account force-fetches the list, folder counts and unread
   // badges so a stale cached page never survives the switch.
@@ -880,7 +991,7 @@ export function ConversationList({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="h-7 px-2 text-xs"
+                      className="text-xs"
                       disabled={accountsFetching}
                       onClick={(e) => {
                         e.preventDefault();
@@ -954,6 +1065,7 @@ export function ConversationList({
                   )}
                   {visibleChannels.map((c) => {
                     const chAccounts = accountsByChannel(c);
+                    const setupTo = channelSetupPath(c);
                     const unread = channelUnread?.[c] ?? 0;
                     const isActive = channels.length === 1 && channels[0] === c;
                     const row = (
@@ -982,7 +1094,6 @@ export function ConversationList({
                     );
 
                     if (chAccounts.length === 0) {
-                      const setupTo = channelSetupPath(c);
                       return (
                         <div key={c} className="mx-1 flex items-center gap-1">
                           <button
@@ -1060,6 +1171,15 @@ export function ConversationList({
                                   )}
                                 </button>
                               ))}
+                              <Link
+                                to={setupTo.to}
+                                params={setupTo.params}
+                                onClick={() => setAccountMenuOpen(false)}
+                                className="mt-1 flex min-h-11 w-full items-center gap-2 rounded border-t border-border px-2 pt-2 text-sm font-normal text-foreground hover:bg-muted hover:text-accent focus-visible:text-accent cursor-pointer"
+                              >
+                                <Plus className="h-3.5 w-3.5 shrink-0" />
+                                Connect another account
+                              </Link>
                             </div>
                           )}
                         </div>
@@ -1113,6 +1233,18 @@ export function ConversationList({
                               {accountId === a.id && <Check className="h-3.5 w-3.5 text-accent" />}
                             </DropdownMenuItem>
                           ))}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem asChild className="gap-2">
+                            <Link
+                              to={setupTo.to}
+                              params={setupTo.params}
+                              onClick={() => setAccountMenuOpen(false)}
+                              className="font-normal text-foreground hover:text-accent focus:text-accent data-[highlighted]:text-accent cursor-pointer"
+                            >
+                              <Plus className="h-3.5 w-3.5 shrink-0" />
+                              <span className="flex-1">Connect another account</span>
+                            </Link>
+                          </DropdownMenuItem>
                         </DropdownMenuSubContent>
                       </DropdownMenuSub>
                     );
@@ -1155,8 +1287,19 @@ export function ConversationList({
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button type="button" variant="outline" size="icon" className="h-9 w-9 shrink-0" aria-label="Conversation list options" title="Conversation list options">
-                {syncFailed ? <AlertTriangle className="h-4 w-4 text-destructive" /> : <SlidersHorizontal className="h-4 w-4" />}
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+                aria-label="Conversation list options"
+                title="Conversation list options"
+              >
+                {syncFailed ? (
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                ) : (
+                  <SlidersHorizontal className="h-4 w-4" />
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-60">
@@ -1168,7 +1311,10 @@ export function ConversationList({
                   Sort: {sortLabel(sort)}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-44">
-                  <DropdownMenuRadioGroup value={sort} onValueChange={(value) => setSort(value as ConversationSort)}>
+                  <DropdownMenuRadioGroup
+                    value={sort}
+                    onValueChange={(value) => setSort(value as ConversationSort)}
+                  >
                     <DropdownMenuRadioItem value="recent">Most recent</DropdownMenuRadioItem>
                     <DropdownMenuRadioItem value="oldest">Oldest first</DropdownMenuRadioItem>
                     <DropdownMenuRadioItem value="priority">Priority</DropdownMenuRadioItem>
@@ -1176,16 +1322,19 @@ export function ConversationList({
                   </DropdownMenuRadioGroup>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
-              <DropdownMenuCheckboxItem
-                checked={selectMode}
-                onCheckedChange={(checked) => {
-                  setSelectMode(Boolean(checked));
+              {/* A checkbox item reserves an indicator slot on the left, which
+                * pushed this row's icon out of line with every other item in
+                * the menu. Plain item + a trailing tick keeps the column. */}
+              <DropdownMenuItem
+                onSelect={() => {
+                  setSelectMode(!selectMode);
                   setSelectedIds(new Set());
                 }}
               >
                 <CheckSquare className="mr-2 h-4 w-4" />
                 Bulk select
-              </DropdownMenuCheckboxItem>
+                {selectMode && <Check className="ml-auto h-4 w-4" />}
+              </DropdownMenuItem>
               <DropdownMenuItem onSelect={() => setLabelsOpen(true)}>
                 <Tag className="mr-2 h-4 w-4" />
                 Manage labels
@@ -1207,16 +1356,28 @@ export function ConversationList({
                   Sync settings
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-56">
-                  <DropdownMenuCheckboxItem checked={syncSettings.realtimeEnabled} onCheckedChange={(checked) => updateSyncSettings({ realtimeEnabled: Boolean(checked) })}>
+                  <DropdownMenuCheckboxItem
+                    checked={syncSettings.realtimeEnabled}
+                    onCheckedChange={(checked) =>
+                      updateSyncSettings({ realtimeEnabled: Boolean(checked) })
+                    }
+                  >
                     Live updates
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>Background refresh</DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="w-44">
-                      <DropdownMenuRadioGroup value={String(syncSettings.refetchIntervalMs)} onValueChange={(value) => updateSyncSettings({ refetchIntervalMs: Number(value) })}>
+                      <DropdownMenuRadioGroup
+                        value={String(syncSettings.refetchIntervalMs)}
+                        onValueChange={(value) =>
+                          updateSyncSettings({ refetchIntervalMs: Number(value) })
+                        }
+                      >
                         {SYNC_INTERVAL_OPTIONS.map((option) => (
-                          <DropdownMenuRadioItem key={option.value} value={String(option.value)}>{option.label}</DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem key={option.value} value={String(option.value)}>
+                            {option.label}
+                          </DropdownMenuRadioItem>
                         ))}
                       </DropdownMenuRadioGroup>
                     </DropdownMenuSubContent>
@@ -1224,9 +1385,18 @@ export function ConversationList({
                   <DropdownMenuSub>
                     <DropdownMenuSubTrigger>Manual sync button</DropdownMenuSubTrigger>
                     <DropdownMenuSubContent className="w-44">
-                      <DropdownMenuRadioGroup value={syncSettings.syncButtonMode} onValueChange={(value) => updateSyncSettings({ syncButtonMode: value as typeof syncSettings.syncButtonMode })}>
+                      <DropdownMenuRadioGroup
+                        value={syncSettings.syncButtonMode}
+                        onValueChange={(value) =>
+                          updateSyncSettings({
+                            syncButtonMode: value as typeof syncSettings.syncButtonMode,
+                          })
+                        }
+                      >
                         {SYNC_BUTTON_OPTIONS.map((option) => (
-                          <DropdownMenuRadioItem key={option.value} value={option.value}>{option.label}</DropdownMenuRadioItem>
+                          <DropdownMenuRadioItem key={option.value} value={option.value}>
+                            {option.label}
+                          </DropdownMenuRadioItem>
                         ))}
                       </DropdownMenuRadioGroup>
                     </DropdownMenuSubContent>
@@ -1239,14 +1409,18 @@ export function ConversationList({
                   Sync details
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-64">
-                  <DropdownMenuLabel>Status: {isFetching ? "Syncing" : syncFailed ? "Failed" : "Healthy"}</DropdownMenuLabel>
+                  <DropdownMenuLabel>
+                    Status: {isFetching ? "Syncing" : syncFailed ? "Failed" : "Healthy"}
+                  </DropdownMenuLabel>
                   <div className="space-y-1 px-2 py-1 text-xs text-muted-foreground">
                     <div>Last synced: {lastSyncedLabel}</div>
                     <div>Duration: {formatSyncDuration(lastSyncMs)}</div>
                     <div>Conversations: {conversations.length}</div>
                     {syncFailed && (
                       <>
-                        <div className="break-words text-destructive">Last error: {lastErrorMsg ?? "Unknown sync error"}</div>
+                        <div className="break-words text-destructive">
+                          Last error: {lastErrorMsg ?? "Unknown sync error"}
+                        </div>
                         <div className="text-destructive">Next retry: {nextRetryLabel}</div>
                       </>
                     )}
@@ -1255,23 +1429,28 @@ export function ConversationList({
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel>Recent syncs</DropdownMenuLabel>
-                        <div className="max-h-32 space-y-1 overflow-y-auto px-2 pb-1 text-xs text-muted-foreground">
-                          {syncRuns.map((run) => (
-                            <div key={run.at}>
-                              <div className="flex justify-between gap-2">
-                                <span className={cn(!run.ok && "text-destructive")}>
-                                  {formatZoned(new Date(run.at), { hour: "numeric", minute: "2-digit", second: "2-digit" })}
-                                </span>
-                                <span>
-                                  {formatSyncDuration(run.ms)} · {run.count} {run.count === 1 ? "item" : "items"}
-                                </span>
-                              </div>
-                              {!run.ok && run.error && (
-                                <div className="break-words text-destructive">{run.error}</div>
-                              )}
+                      <div className="max-h-32 space-y-1 overflow-y-auto px-2 pb-1 text-xs text-muted-foreground">
+                        {syncRuns.map((run) => (
+                          <div key={run.at}>
+                            <div className="flex justify-between gap-2">
+                              <span className={cn(!run.ok && "text-destructive")}>
+                                {formatZoned(new Date(run.at), {
+                                  hour: "numeric",
+                                  minute: "2-digit",
+                                  second: "2-digit",
+                                })}
+                              </span>
+                              <span>
+                                {formatSyncDuration(run.ms)} · {run.count}{" "}
+                                {run.count === 1 ? "item" : "items"}
+                              </span>
                             </div>
-                          ))}
-                        </div>
+                            {!run.ok && run.error && (
+                              <div className="break-words text-destructive">{run.error}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </>
                   )}
                   <DropdownMenuSeparator />
@@ -1401,6 +1580,7 @@ export function ConversationList({
                     <ConversationListItem
                       conversation={c}
                       isActive={c.id === selectedId}
+                      accountLabel={rowAccountLabel(c)}
                       typingUserIds={typingByConversation[c.id]}
                       openTaskCount={openTaskCounts?.[c.id] ?? 0}
                       onSelect={() =>
@@ -1414,6 +1594,14 @@ export function ConversationList({
                           : onSelect(c)
                       }
                       onAction={onItemAction}
+                      members={quickActionMembers}
+                      labels={quickActionLabels}
+                      onAssign={handleQuickAssign}
+                      onApplyLabels={handleQuickApplyLabels}
+                      onManageLabels={() => setLabelsOpen(true)}
+                      onLinkContact={(id) => setLinkContactId(id)}
+                      onExport={handleQuickExport}
+                      onDelete={handleQuickDelete}
                     />
                   </div>
                 </div>
@@ -1437,6 +1625,14 @@ export function ConversationList({
       )}
 
       <LabelManagerDialog open={labelsOpen} onOpenChange={setLabelsOpen} />
+      <BulkLinkContactDialog
+        open={linkContactId !== null}
+        onOpenChange={(v) => {
+          if (!v) setLinkContactId(null);
+        }}
+        conversationIds={linkContactId ? [linkContactId] : []}
+        onLinked={() => setLinkContactId(null)}
+      />
       <AdvancedSearchDialog
         open={advOpen}
         onOpenChange={setAdvOpen}

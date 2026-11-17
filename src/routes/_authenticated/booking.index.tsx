@@ -694,7 +694,7 @@ function AvailabilityTab() {
                         value={r.end_time.slice(0, 5)}
                         onChange={(v) => updateDay(day, i, "end_time", v ?? "")}
                       />
-                      <Button size="icon" variant="ghost" onClick={() => removeRow(day, i)}>
+                      <Button size="icon" variant="outline" onClick={() => removeRow(day, i)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

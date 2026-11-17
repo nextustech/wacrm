@@ -344,7 +344,7 @@ export function WhatsAppSetupWizard({ workspaceId, onDone }: WizardProps) {
                 type="button"
                 size="sm"
                 variant="ghost"
-                className="h-7 gap-1.5 text-xs"
+                className="gap-1.5 text-xs"
                 onClick={() => { setVerifyToken(generateVerifyToken()); setTokenRegistered(false); }}
               >
                 <RefreshCw className="w-3 h-3" /> Regenerate

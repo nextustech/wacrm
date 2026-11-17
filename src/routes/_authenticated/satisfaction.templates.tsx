@@ -47,7 +47,7 @@ function TemplatesPage() {
                 {t.category && <Badge variant="outline" className="text-xs">{t.category}</Badge>}
                 <span className="text-xs text-muted-foreground">Used {t.usage_count} ×</span>
               </div>
-              <Button size="sm" className="h-9 w-full" onClick={() => use.mutate(t.id)}>Use template</Button>
+              <Button size="sm" className="w-full" onClick={() => use.mutate(t.id)}>Use template</Button>
             </CardContent>
           </Card>
         ))}

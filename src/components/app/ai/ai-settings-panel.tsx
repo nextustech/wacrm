@@ -76,6 +76,10 @@ export function AiSettingsPanel() {
   const quotaQ = useAiQuotaUsage(workspaceId);
   const auditQ = useAiAuditLogs(workspaceId);
   const mutation = useAiSettingsMutation(workspaceId);
+  // `ai_settings` is readable by every member but writable only by owners and
+  // admins, so a member must be told that here rather than at save time.
+  const roleQ = useWorkspaceRole(workspaceId);
+  const canManage = roleQ.data === "owner" || roleQ.data === "admin";
 
   const [form, setForm] = useState<AiSettings | null>(null);
   useEffect(() => {
@@ -489,10 +493,19 @@ export function AiSettingsPanel() {
       </Tabs>
 
       <div className="flex items-center justify-end gap-2 border-t border-border pt-4">
+        {!canManage && roleQ.data && (
+          <p className="mr-auto text-xs text-muted-foreground">
+            Only workspace owners and admins can change these settings.
+          </p>
+        )}
         <Button variant="ghost" size="sm" onClick={onReset} disabled={!dirty || mutation.isPending}>
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Reset
         </Button>
-        <Button size="sm" onClick={onSave} disabled={!dirty || mutation.isPending}>
+        <Button
+          size="sm"
+          onClick={onSave}
+          disabled={!dirty || mutation.isPending || !canManage}
+        >
           {mutation.isPending ? (
             <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
           ) : (
@@ -567,8 +580,8 @@ function ProviderManagerCard({ workspaceId }: { workspaceId: string | undefined 
                 <Button
                   type="button"
                   size="icon"
-                  variant="ghost"
-                  className="ml-auto h-7 w-7 text-destructive"
+                  variant="outline"
+                  className="ml-auto text-destructive"
                   aria-label={`Remove ${provider.name}`}
                   disabled={deleteByok.isPending}
                   onClick={() => {

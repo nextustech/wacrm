@@ -167,7 +167,7 @@ export function WizardSteps({
                   )}
                 </span>
                 {step.description && (
-                  <span className="block truncate text-xs text-muted-foreground">{step.description}</span>
+                  <span className="block truncate text-sm text-muted-foreground">{step.description}</span>
                 )}
               </span>
             </button>

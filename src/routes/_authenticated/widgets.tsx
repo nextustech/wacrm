@@ -198,7 +198,7 @@ function WidgetsListPage() {
                   </Button>
                 </Link>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
                   aria-label="Delete"
                   onClick={() => setConfirmDelete(r)}

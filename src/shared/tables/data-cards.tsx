@@ -90,7 +90,7 @@ export function DataCards<T>({
                     {primary(row)}
                   </div>
                   {secondary && (
-                    <div className="truncate text-xs text-muted-foreground">{secondary(row)}</div>
+                    <div className="truncate text-sm text-muted-foreground">{secondary(row)}</div>
                   )}
                 </div>
                 {actions && <div className="shrink-0">{actions(row)}</div>}

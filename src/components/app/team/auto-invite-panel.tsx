@@ -238,7 +238,7 @@ export function AutoInvitePanel({
                 {canManage && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" aria-label="Delete rule">
+                      <Button variant="outline" size="icon" aria-label="Delete rule">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>

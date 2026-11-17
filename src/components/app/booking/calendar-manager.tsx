@@ -219,18 +219,16 @@ export function CalendarManager() {
               Today
             </Button>
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="h-9 w-9"
               onClick={() => navigate(-1)}
               aria-label="Previous"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="h-9 w-9"
               onClick={() => navigate(1)}
               aria-label="Next"
             >
@@ -644,7 +642,7 @@ function AgendaView({
                   <Icon className="h-4 w-4 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{e.title}</div>
-                    <div className="truncate text-xs text-muted-foreground">
+                    <div className="truncate text-sm text-muted-foreground">
                       {e.all_day
                         ? "All day"
                         : `${format(new Date(e.start_at), "p")} – ${format(new Date(e.end_at), "p")}`}{" "}
@@ -983,7 +981,7 @@ function SearchDialog({
                   <Icon className="h-4 w-4 text-muted-foreground" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{r.title}</div>
-                    <div className="truncate text-xs text-muted-foreground">
+                    <div className="truncate text-sm text-muted-foreground">
                       {format(new Date(r.start_at), "MMM d, yyyy p")} · {KIND_META[r.kind].label}
                     </div>
                   </div>

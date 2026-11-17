@@ -11,11 +11,13 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import type {
   AIMessage,
+  AIProviderKind,
   AIProviderRecord,
   AIModelRecord,
   AIFeatureConfig,
   ChatRequest,
   ChatResponse,
+  TokenUsage,
 } from "./types";
 import { getAIProvider, resolveProviderCredentials } from "./registry.server";
 import { geminiChatModel, GEMINI_DEFAULT_CHAT_MODEL } from "@/lib/ai/gemini.server";
@@ -30,7 +32,48 @@ import { appChatModelIds, providerChatModelId } from "./model-kind";
 
 // ---------- Record loaders ----------
 
+/**
+ * Short-lived cache for AI *configuration* rows (providers, models, settings).
+ *
+ * One reply used to spend six round trips just deciding which model to call,
+ * and read ai_settings three separate times with identical arguments:
+ * resolveDefaultModel loads the default provider (2 queries) and then reads
+ * ai_settings and ai_models again, after which runChat loads the default
+ * provider a second time. None of that changes between calls.
+ *
+ * Only configuration is cached. AIProviderRecord holds no secret material —
+ * the API key lives in the vault and is fetched per call in callWithProvider —
+ * so nothing sensitive is held here. The TTL is deliberately short: a provider
+ * that is disabled, re-pointed or re-keyed takes effect within it.
+ */
+const CONFIG_TTL_MS = 20_000;
+const configCache = new Map<string, { at: number; value: unknown }>();
+
+async function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
+  const hit = configCache.get(key);
+  if (hit && Date.now() - hit.at < CONFIG_TTL_MS) return hit.value as T;
+  const value = await load();
+  configCache.set(key, { at: Date.now(), value });
+  // The map is keyed by workspace/provider/model and a Worker isolate is
+  // short-lived, but a long-running Node process would grow it forever.
+  if (configCache.size > 500) {
+    for (const [k, v] of configCache) {
+      if (Date.now() - v.at >= CONFIG_TTL_MS) configCache.delete(k);
+    }
+  }
+  return value;
+}
+
+/** Drops cached configuration so a settings change applies immediately. */
+export function invalidateAIConfigCache(): void {
+  configCache.clear();
+}
+
 async function loadProvider(providerId: string): Promise<AIProviderRecord | null> {
+  return cached("provider:" + providerId, () => loadProviderUncached(providerId));
+}
+
+async function loadProviderUncached(providerId: string): Promise<AIProviderRecord | null> {
   const { supabaseAdmin } = await import("@/lib/demo/admin-write-guard.server");
   const { data } = await sbAny(supabaseAdmin)
     .from("ai_providers" as never)
@@ -41,6 +84,25 @@ async function loadProvider(providerId: string): Promise<AIProviderRecord | null
 }
 
 async function loadDefaultProvider(workspaceId: string): Promise<AIProviderRecord | null> {
+  return cached("default-provider:" + workspaceId, () => loadDefaultProviderUncached(workspaceId));
+}
+
+/**
+ * The kind of provider a workspace will actually call.
+ *
+ * Callers need this before building a request so they can decide whether an
+ * attachment is worth reading off disk at all: handing a base64 image to a
+ * provider with no vision support costs upload time and prompt tokens and
+ * yields nothing. Cached with everything else in this module.
+ */
+export async function resolveDefaultProviderKind(
+  workspaceId: string,
+): Promise<AIProviderKind | null> {
+  const p = await loadDefaultProvider(workspaceId);
+  return p && p.enabled ? p.kind : null;
+}
+
+async function loadDefaultProviderUncached(workspaceId: string): Promise<AIProviderRecord | null> {
   const { supabaseAdmin } = await import("@/lib/demo/admin-write-guard.server");
   const { data: settings } = await sbAny(supabaseAdmin)
     .from("ai_settings" as never)
@@ -75,6 +137,10 @@ async function loadDefaultProvider(workspaceId: string): Promise<AIProviderRecor
 }
 
 async function loadModel(providerId: string, modelId: string): Promise<AIModelRecord | null> {
+  return cached("model:" + providerId + ":" + modelId, () => loadModelUncached(providerId, modelId));
+}
+
+async function loadModelUncached(providerId: string, modelId: string): Promise<AIModelRecord | null> {
   const { supabaseAdmin } = await import("@/lib/demo/admin-write-guard.server");
   const { data } = await sbAny(supabaseAdmin)
     .from("ai_models" as never)
@@ -98,6 +164,17 @@ async function loadModel(providerId: string, modelId: string): Promise<AIModelRe
 // completions endpoint with "This is not a chat model". `capabilities`
 // isn't reliably populated by model-discovery, so filter by id pattern.
 export async function resolveDefaultModel(
+  workspaceId: string,
+  providerId?: string | null,
+): Promise<string> {
+  // Same reasoning as the loaders above: this reads ai_settings and ai_models
+  // on every call to answer a question whose answer is a workspace setting.
+  return cached("default-model:" + workspaceId + ":" + (providerId ?? ""), () =>
+    resolveDefaultModelUncached(workspaceId, providerId),
+  );
+}
+
+async function resolveDefaultModelUncached(
   workspaceId: string,
   providerId?: string | null,
 ): Promise<string> {
@@ -220,6 +297,145 @@ async function callWithProvider(
   if (provider.kind === "lovable") req = { ...req, model: geminiChatModel(req.model) };
   const creds = await resolveProviderCredentials(provider);
   return impl.chat(req, creds);
+}
+
+/** One piece of a streamed answer, or the summary that closes it. */
+export type RunStreamEvent =
+  | { type: "delta"; text: string }
+  | {
+      type: "done";
+      content: string;
+      model: string;
+      providerId: string;
+      providerKind: string;
+      finishReason: ChatResponse["finish_reason"];
+      usage: TokenUsage;
+    };
+
+/**
+ * Streaming sibling of runChat.
+ *
+ * Same provider resolution, rate limiting, usage accounting and request
+ * logging — the difference is that tokens reach the caller as they arrive
+ * instead of after the last one. That is the whole point: generation is not
+ * faster, but the agent stops staring at a spinner for the length of it.
+ *
+ * Two deliberate differences from runChat:
+ *  - No cross-provider fallback once bytes are out. runChat can quietly retry
+ *    a different provider because nobody has seen the answer yet; here the
+ *    caller may already be rendering it, so a mid-stream failure is reported
+ *    rather than papered over. Failures *before* the first token still throw
+ *    cleanly, and the caller can fall back to runChat.
+ *  - Providers that implement no stream() fall back to one buffered call,
+ *    emitted as a single delta, so every provider keeps working.
+ */
+export async function* runChatStream(opts: RunOpts): AsyncGenerator<RunStreamEvent> {
+  const providerId =
+    opts.primaryProviderId ?? (await loadDefaultProvider(opts.workspaceId))?.id ?? null;
+  if (!providerId) throw new AIError("not_found", "No AI provider configured for this workspace");
+  const provider = await loadProvider(providerId);
+  if (!provider || !provider.enabled || provider.workspaceId !== opts.workspaceId) {
+    throw new AIError("not_found", "AI provider is not available in this workspace");
+  }
+
+  await enforceAIRateLimit({
+    workspaceId: opts.workspaceId,
+    userId: opts.userId ?? null,
+    providerId: provider.id,
+    feature: opts.feature ?? null,
+    limit: opts.rateLimitPerMin ?? 120,
+  });
+
+  const impl = getAIProvider(provider.kind);
+  const req =
+    provider.kind === "lovable"
+      ? { ...opts.request, model: geminiChatModel(opts.request.model) }
+      : opts.request;
+  const start = Date.now();
+
+  let content = "";
+  let finishReason: ChatResponse["finish_reason"] = "stop";
+  let streamUsage: TokenUsage | undefined;
+
+  try {
+    if (!impl.stream) {
+      const res = await callWithProvider(provider, req);
+      content = res.content ?? "";
+      finishReason = res.finish_reason;
+      streamUsage = res.usage;
+      if (content) yield { type: "delta", text: content };
+    } else {
+      const creds = await resolveProviderCredentials(provider);
+      for await (const chunk of impl.stream(req, creds)) {
+        if (chunk.delta) {
+          content += chunk.delta;
+          yield { type: "delta", text: chunk.delta };
+        }
+        if (chunk.finish_reason) finishReason = chunk.finish_reason;
+        if (chunk.usage) streamUsage = chunk.usage;
+      }
+    }
+  } catch (e) {
+    const err = e as AIError | Error;
+    const aiErr = err instanceof AIError ? err : null;
+    await logAIRequest({
+      workspaceId: opts.workspaceId,
+      userId: opts.userId,
+      providerId: provider.id,
+      providerKind: provider.kind,
+      model: req.model,
+      operation: "chat",
+      feature: opts.feature,
+      status:
+        aiErr?.type === "rate_limit"
+          ? "rate_limited"
+          : aiErr?.type === "timeout"
+            ? "timeout"
+            : "error",
+      httpStatus: aiErr?.httpStatus,
+      latencyMs: Date.now() - start,
+      errorType: aiErr?.type,
+      errorMessage: err.message,
+    });
+    throw err;
+  }
+
+  // Most providers do not report usage on a stream, so fall back to the same
+  // estimate runChat uses when a provider omits it — otherwise streamed
+  // replies would silently vanish from cost reporting.
+  const usage: TokenUsage = streamUsage ?? {
+    prompt_tokens: estimateMessageTokens(req.messages),
+    completion_tokens: Math.ceil(content.length / 4),
+    total_tokens: 0,
+  };
+  usage.total_tokens = usage.prompt_tokens + usage.completion_tokens;
+
+  const model = await loadModel(provider.id, req.model).catch(() => null);
+  await logAIRequest({
+    workspaceId: opts.workspaceId,
+    userId: opts.userId,
+    providerId: provider.id,
+    providerKind: provider.kind,
+    model: req.model,
+    operation: "chat",
+    feature: opts.feature,
+    status: "success",
+    latencyMs: Date.now() - start,
+    usage,
+    costUsd: computeCost(model, usage),
+    requestPreview: { messages: req.messages.slice(-3) },
+    responsePreview: { content: content.slice(0, 800) },
+  });
+
+  yield {
+    type: "done",
+    content,
+    model: req.model,
+    providerId: provider.id,
+    providerKind: provider.kind,
+    finishReason,
+    usage,
+  };
 }
 
 export async function runChat(

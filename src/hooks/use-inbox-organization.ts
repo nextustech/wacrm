@@ -11,7 +11,6 @@ const anyFrom = (t: string) => sbAny(supabase).from(t as any) as any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const rpc = (name: string, args: Record<string, unknown>) => (supabase.rpc as any)(name, args);
 
-
 /* --------------------------------- Labels --------------------------------- */
 
 export type Label = {
@@ -25,10 +24,16 @@ export type Label = {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  /** How many conversations currently carry this label. */
+  usage_count: number;
 };
 
 const slugify = (s: string) =>
-  s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  s
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
 
 export function useLabels() {
   const { active: workspace } = useCurrentWorkspace();
@@ -38,13 +43,22 @@ export function useLabels() {
     queryKey: ["labels", workspaceId],
     enabled: !!workspaceId,
     queryFn: async () => {
+      // The embedded `count` aggregate does the tally in Postgres, so the
+      // usage number costs one extra column rather than fetching every
+      // assignment row and counting them in the browser.
       const { data, error } = await anyFrom("conversation_labels")
-        .select("*")
+        .select("*, conversation_label_assignments(count)")
         .eq("workspace_id", workspaceId)
         .order("sort_order", { ascending: true })
         .order("name", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as Label[];
+      type Row = Omit<Label, "usage_count"> & {
+        conversation_label_assignments?: Array<{ count: number }> | null;
+      };
+      return ((data ?? []) as Row[]).map(({ conversation_label_assignments, ...label }): Label => ({
+        ...label,
+        usage_count: conversation_label_assignments?.[0]?.count ?? 0,
+      }));
     },
   });
   useRealtimeSubscription({
@@ -140,8 +154,7 @@ export function useSavedFilters() {
         filter: workspaceId ? `workspace_id=eq.${workspaceId}` : undefined,
       },
     ],
-    onChange: () =>
-      qc.invalidateQueries({ queryKey: ["saved_filters", workspaceId] }),
+    onChange: () => qc.invalidateQueries({ queryKey: ["saved_filters", workspaceId] }),
   });
 
   return q;
@@ -238,6 +251,53 @@ export function useBulkUpdateConversations() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["conversations"] });
       qc.invalidateQueries({ queryKey: ["conversation-counts"] });
+    },
+  });
+}
+
+/**
+ * Makes a conversation's labels match `labelIds` exactly.
+ *
+ * `bulk_tag_conversations` only ever adds, so a checkbox list backed by it
+ * could never take a label off. Removals go straight at the assignment rows,
+ * which workspace members may delete under the table's RLS policy.
+ */
+export function useSetConversationLabels() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      conversationId,
+      labelIds,
+      currentLabelIds,
+    }: {
+      conversationId: string;
+      labelIds: string[];
+      currentLabelIds: string[];
+    }) => {
+      const next = new Set(labelIds);
+      const current = new Set(currentLabelIds);
+      const added = labelIds.filter((id) => !current.has(id));
+      const removed = currentLabelIds.filter((id) => !next.has(id));
+
+      if (added.length > 0) {
+        const { error } = await rpc("bulk_tag_conversations", {
+          _ids: [conversationId],
+          _label_ids: added,
+        });
+        if (error) throw error;
+      }
+      if (removed.length > 0) {
+        const { error } = await anyFrom("conversation_label_assignments")
+          .delete()
+          .eq("conversation_id", conversationId)
+          .in("label_id", removed);
+        if (error) throw error;
+      }
+      return { added: added.length, removed: removed.length };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["conversations"] });
+      qc.invalidateQueries({ queryKey: ["labels"] });
     },
   });
 }

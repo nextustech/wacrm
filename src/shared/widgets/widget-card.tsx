@@ -53,7 +53,7 @@ export function WidgetCard({
                 <h3 className="truncate text-sm font-semibold text-foreground">{title}</h3>
               )}
               {description && (
-                <p className="truncate text-xs text-muted-foreground">{description}</p>
+                <p className="truncate text-sm text-muted-foreground">{description}</p>
               )}
             </div>
           </div>
@@ -61,7 +61,7 @@ export function WidgetCard({
             <div className="shrink-0">{action}</div>
           ) : (
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
               className="shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
               aria-label="Widget options"

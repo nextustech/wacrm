@@ -1,9 +1,11 @@
+import { BRAND_NAME } from "@/lib/branding/brand";
 import { createFileRoute, useLocation, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AppTopbar } from "@/components/app/app-topbar";
 import { MessageSquare, Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useShareQuoteLink, copyText } from "@/hooks/use-quote-share";
@@ -18,13 +20,13 @@ export const Route = createFileRoute("/_authenticated/crm")({
   loader: ({ context }) => context.queryClient.ensureQueryData(platformBrandingQueryOptions()),
   head: ({ loaderData: brand }) => ({
     meta: [
-      { title: `CRM — Contacts, Leads & Messaging | ${brand.name}` },
+      { title: `CRM — Contacts, Leads & Messaging | ${brand?.platformName ?? BRAND_NAME}` },
       {
         name: "description",
         content:
           "One CRM workspace for contacts, leads and customer messaging, with social leads landing straight in your inbox.",
       },
-      { property: "og:title", content: `CRM — Contacts, Leads & Messaging | ${brand.name}` },
+      { property: "og:title", content: `CRM — Contacts, Leads & Messaging | ${brand?.platformName ?? BRAND_NAME}` },
       {
         property: "og:description",
         content: "Manage contacts, qualify leads and reply to conversations from a single CRM tab.",
@@ -54,29 +56,24 @@ function CrmPage() {
     navigate({ to: "/crm", hash: value, replace: true });
   };
 
+  const tabsNode = (
+    <TabsList>
+      <TabsTrigger value="contacts">Contacts</TabsTrigger>
+      <TabsTrigger value="leads">Leads</TabsTrigger>
+      <TabsTrigger value="messaging">Messaging</TabsTrigger>
+    </TabsList>
+  );
+
   return (
     <Tabs value={tab} onValueChange={onTabChange} className="w-full">
-      <div className="px-4 pt-4 md:px-6">
-        <h1 className="text-xl font-semibold tracking-tight">CRM</h1>
-        <p className="text-sm text-muted-foreground">
-          Contacts, leads and messaging in one place — social leads land in your inbox
-          automatically.
-        </p>
-        <TabsList className="mt-3">
-          <TabsTrigger value="contacts">Contacts</TabsTrigger>
-          <TabsTrigger value="leads">Leads</TabsTrigger>
-          <TabsTrigger value="messaging">Messaging</TabsTrigger>
-        </TabsList>
-      </div>
-
       <TabsContent value="contacts" className="mt-0">
-        <ContactsPage />
+        <ContactsPage topbarTabs={tabsNode} />
       </TabsContent>
       <TabsContent value="leads" className="mt-0">
-        <LeadsPage />
+        <LeadsPage topbarTabs={tabsNode} />
       </TabsContent>
       <TabsContent value="messaging" className="mt-0">
-        <CrmMessaging />
+        <CrmMessaging tabsNode={tabsNode} />
       </TabsContent>
     </Tabs>
   );
@@ -84,7 +81,7 @@ function CrmPage() {
 
 const SOCIAL_CHANNELS = new Set(["instagram", "messenger", "telegram", "webchat"]);
 
-function CrmMessaging() {
+function CrmMessaging({ tabsNode }: { tabsNode: ReactNode }) {
   const { data, isLoading } = useConversations({ filter: "all", sort: "recent" });
   const rows = (data?.pages ?? []).flat().slice(0, 25);
   const [socialOnly, setSocialOnly] = useState(false);
@@ -136,7 +133,13 @@ function CrmMessaging() {
   };
 
   return (
-    <div className="p-4 md:p-6">
+    <>
+      <AppTopbar
+        title="Messaging"
+        subtitle="Every channel, including leads captured from Social Studio"
+        tabs={tabsNode}
+      />
+      <div className="p-4 md:p-6">
       <Card className="divide-y">
         <div className="flex flex-wrap items-center justify-between gap-2 p-4">
           <div>
@@ -199,6 +202,7 @@ function CrmMessaging() {
           ))
         )}
       </Card>
-    </div>
+      </div>
+    </>
   );
 }

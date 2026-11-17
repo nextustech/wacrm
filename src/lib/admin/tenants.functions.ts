@@ -48,6 +48,88 @@ async function logAudit(
     });
 }
 
+/** Searchable owner picker for the "Create tenant" dialog. */
+export const searchTenantOwnerCandidates = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: { search: string }) => input)
+  .handler(async ({ data, context }) => {
+    await assertPlatformStaff(context.supabase, context.userId);
+    const q = data.search.trim();
+    if (q.length < 2) return [];
+    const { supabaseAdmin } = await import("@/lib/demo/admin-write-guard.server");
+
+    // `profiles.email` is never populated in this DB (it's not synced from
+    // auth) — every row has it as null. The real email lives on the auth
+    // user, so matching it needs the admin API, not a `profiles` column
+    // query. Name matches still come straight from `profiles`.
+    const term = `%${sanitizeSearchTerm(q)}%`;
+    const needle = q.toLowerCase();
+    const [profilesRes, authRes] = await Promise.all([
+      sbAny(supabaseAdmin)
+        .from("profiles")
+        .select("id, display_name, full_name")
+        .or(`display_name.ilike.${term},full_name.ilike.${term}`)
+        .limit(8),
+      supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 }),
+    ]);
+    if (profilesRes.error) throw new Error(profilesRes.error.message);
+    if (authRes.error) throw new Error(authRes.error.message);
+
+    const authUsers = Array.isArray(authRes.data?.users) ? authRes.data.users : [];
+    const emailMap = new Map(authUsers.map((u) => [u.id, u.email ?? null]));
+    const emailMatchIds = authUsers
+      .filter((u) => (u.email ?? "").toLowerCase().includes(needle))
+      .map((u) => u.id);
+
+    const nameMatches = (
+      (profilesRes.data ?? []) as Array<{
+        id: string;
+        display_name: string | null;
+        full_name: string | null;
+      }>
+    ).map((p) => p.id);
+
+    const matchedIds = Array.from(new Set([...nameMatches, ...emailMatchIds])).slice(0, 8);
+    if (matchedIds.length === 0) return [];
+
+    const profileById = new Map(
+      (
+        (profilesRes.data ?? []) as Array<{
+          id: string;
+          display_name: string | null;
+          full_name: string | null;
+        }>
+      ).map((p) => [p.id, p]),
+    );
+
+    // Fetch display names for any email-matched ids not already covered above.
+    const missingIds = matchedIds.filter((id) => !profileById.has(id));
+    if (missingIds.length > 0) {
+      const { data: extra, error: extraErr } = await sbAny(supabaseAdmin)
+        .from("profiles")
+        .select("id, display_name, full_name")
+        .in("id", missingIds);
+      if (extraErr) throw new Error(extraErr.message);
+      (
+        (extra ?? []) as Array<{
+          id: string;
+          display_name: string | null;
+          full_name: string | null;
+        }>
+      ).forEach((p) => profileById.set(p.id, p));
+    }
+
+    return matchedIds.map((id): { id: string; email: string; name: string } => {
+      const p = profileById.get(id);
+      const email = emailMap.get(id) ?? "";
+      return {
+        id,
+        email,
+        name: (p?.display_name?.trim() || p?.full_name?.trim() || email || "Unnamed user") as string,
+      };
+    });
+  });
+
 export const listTenants = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth, requireTenantAccess])
   .validator(
@@ -207,7 +289,7 @@ function slugify(name: string) {
 }
 
 export const createTenant = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth, requireTenantAccess])
+  .middleware([requireSupabaseAuth])
   .validator(
     (input: { name: string; ownerEmail: string; workspaceName?: string; billingEmail?: string }) =>
       input,
@@ -221,12 +303,24 @@ export const createTenant = createServerFn({ method: "POST" })
     if (!name) throw new Error("Tenant name is required");
     if (!ownerEmail) throw new Error("Owner email is required");
 
+    let ownerId: string | null = null;
     const { data: owner } = await sbAny(supabaseAdmin)
       .from("profiles")
       .select("id")
       .eq("email", ownerEmail)
       .maybeSingle();
-    if (!owner) {
+    if (owner?.id) {
+      ownerId = owner.id;
+    } else {
+      // profiles.email is null in this DB; resolve from auth.admin
+      const authList = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
+      const authUser = (authList.data?.users ?? []).find(
+        (u) => (u.email ?? "").toLowerCase() === ownerEmail,
+      );
+      if (authUser) ownerId = authUser.id;
+    }
+
+    if (!ownerId) {
       throw new Error(
         "No user found with that email. Ask them to create an account first, then try again.",
       );
@@ -238,7 +332,7 @@ export const createTenant = createServerFn({ method: "POST" })
       .insert({
         name,
         slug,
-        owner_id: owner.id,
+        owner_id: ownerId,
         billing_email: data.billingEmail?.trim() || ownerEmail,
       })
       .select("id")
@@ -247,7 +341,7 @@ export const createTenant = createServerFn({ method: "POST" })
 
     const { error: memberError } = await sbAny(supabaseAdmin)
       .from("organization_members")
-      .insert({ organization_id: org.id, user_id: owner.id, role: "owner" });
+      .insert({ organization_id: org.id, user_id: ownerId, role: "owner" });
     if (memberError) {
       await sbAny(supabaseAdmin).from("organizations").delete().eq("id", org.id);
       throw new Error(memberError.message);
@@ -260,7 +354,7 @@ export const createTenant = createServerFn({ method: "POST" })
         name: data.workspaceName?.trim() || name,
         slug: workspaceSlug,
         organization_id: org.id,
-        owner_id: owner.id,
+        owner_id: ownerId,
         plan: "free",
       })
       .select("id")
@@ -272,8 +366,11 @@ export const createTenant = createServerFn({ method: "POST" })
 
     const { error: wsMemberError } = await sbAny(supabaseAdmin)
       .from("workspace_members")
-      .insert({ workspace_id: ws.id, user_id: owner.id, role: "owner" });
-    if (wsMemberError) throw new Error(wsMemberError.message);
+      .insert({ workspace_id: ws.id, user_id: ownerId, role: "owner" });
+    if (wsMemberError) {
+      await sbAny(supabaseAdmin).from("organizations").delete().eq("id", org.id);
+      throw new Error(wsMemberError.message);
+    }
 
     await logAudit(supabaseAdmin, context.userId, org.id, "tenant.create", {
       owner_email: ownerEmail,

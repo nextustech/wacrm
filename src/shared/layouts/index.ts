@@ -1,5 +1,5 @@
 /**
- * Reusable layouts for WACRM v6.8.9.
+ * Reusable layouts for WACRM v7.3.4.
  *
  * Every layout is composed from tokens defined in `src/styles.css` — never
  * hardcode widths, gutters, heights, or z-index outside of a token.

@@ -57,7 +57,7 @@ function WishlistPage() {
                   <Button size="sm" className="flex-1" onClick={() => addM.mutate(p.id)}>
                     <ShoppingCart className="w-3 h-3 " /> Add to cart
                   </Button>
-                  <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => removeM.mutate(p.id)}>
+                  <Button size="icon" variant="outline" onClick={() => removeM.mutate(p.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>

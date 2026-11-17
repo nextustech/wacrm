@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { sbAny } from "@/lib/supabase/untyped";
+import { deleteMyAccount } from "@/lib/profile/account.functions";
 
 export type NotificationPrefs = {
   email_marketing: boolean;
@@ -100,7 +101,10 @@ export function useUploadAvatar() {
         .createSignedUrl(path, 60 * 60 * 24 * 365);
       if (sErr) throw sErr;
       const url = signed.signedUrl;
-      const { error } = await sbAny(supabase).from("profiles").update({ avatar_url: url }).eq("id", u.user.id);
+      const { error } = await sbAny(supabase)
+        .from("profiles")
+        .update({ avatar_url: url })
+        .eq("id", u.user.id);
       if (error) throw error;
       return url;
     },
@@ -163,17 +167,10 @@ export function useRegisterCurrentSession() {
 export function useDeleteAccount() {
   return useMutation({
     mutationFn: async () => {
-      const { data: u } = await supabase.auth.getUser();
-      if (!u.user) throw new Error("Not authenticated");
-      // Soft delete: mark profile, sign out. Hard delete of auth user
-      // requires admin — we do the safe user-initiated flow.
-      const { error } = await supabase
-        .from("profiles")
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .update({ display_name: "Deleted user", bio: null, phone: null, full_name: null } as any)
-        .eq("id", u.user.id);
-      if (error) throw error;
-      await supabase.auth.signOut({ scope: "global" });
+      await deleteMyAccount({ data: { confirmation: "delete my account" } });
+      // The account is gone; drop the now-orphaned session so the app does not
+      // keep making requests with a token whose user no longer exists.
+      await supabase.auth.signOut({ scope: "local" });
     },
   });
 }

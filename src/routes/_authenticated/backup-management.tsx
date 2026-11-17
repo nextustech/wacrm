@@ -566,7 +566,7 @@ function HistoryPanel({ jobs }: { jobs: BackupJob[] }) {
                     )}
                     <Button
                       size="icon"
-                      variant="ghost"
+                      variant="outline"
                       onClick={() => deleteMut.mutate(j.id)}
                       aria-label="Delete"
                     >
@@ -902,7 +902,7 @@ function SchedulesPanel() {
                     </Button>
                     <Button
                       size="icon"
-                      variant="ghost"
+                      variant="outline"
                       onClick={() => deleteMut.mutate(s.id)}
                       aria-label="Delete"
                     >

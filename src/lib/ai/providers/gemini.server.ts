@@ -8,12 +8,13 @@ import type {
   AIProvider, ChatRequest, ChatResponse, ProviderCapabilities, ProviderCredentials, StreamChunk, TokenUsage,
 } from "../types";
 import { AIError, classifyHttpError } from "../errors";
+import { contentToText, toParts } from "../content";
 
 const DEFAULT_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 /**
  * Callers across the app still pass Lovable-gateway-style provider-prefixed
- * model ids (e.g. "google/gemini-2.5-flash") left over from before this app
+ * model ids (e.g. "google/gemini-3.8-flash") left over from before this app
  * had its own direct Gemini credentials. Google's API only accepts the bare
  * model id. Strip a leading "google/" (or "gemini/") segment here, in one
  * place, rather than touching every call site.
@@ -22,13 +23,30 @@ function normalizeModelId(model: string): string {
   return model.replace(/^(google|gemini)\//, "");
 }
 
+/**
+ * A Gemini part is either text or inline binary data. Images and PDFs use the
+ * same inlineData shape, distinguished only by mimeType, so a PDF needs no
+ * separate handling here.
+ */
+type GeminiPart = { text: string } | { inlineData: { mimeType: string; data: string } };
+
+function toGeminiParts(content: ChatRequest["messages"][number]["content"]): GeminiPart[] {
+  return toParts(content).map((part): GeminiPart =>
+    part.type === "text"
+      ? { text: part.text }
+      : { inlineData: { mimeType: part.mimeType, data: part.dataBase64 } },
+  );
+}
+
 function toGeminiContents(req: ChatRequest) {
   const system: string[] = [];
-  const contents: { role: "user" | "model"; parts: { text: string }[] }[] = [];
+  const contents: { role: "user" | "model"; parts: GeminiPart[] }[] = [];
   for (const m of req.messages) {
-    if (m.role === "system") system.push(m.content);
-    else if (m.role === "user") contents.push({ role: "user", parts: [{ text: m.content }] });
-    else if (m.role === "assistant") contents.push({ role: "model", parts: [{ text: m.content }] });
+    // systemInstruction is text-only, so an attachment there degrades to its
+    // label instead of disappearing.
+    if (m.role === "system") system.push(contentToText(m.content));
+    else if (m.role === "user") contents.push({ role: "user", parts: toGeminiParts(m.content) });
+    else if (m.role === "assistant") contents.push({ role: "model", parts: toGeminiParts(m.content) });
   }
   return { system: system.join("\n\n") || undefined, contents };
 }
@@ -70,7 +88,16 @@ export const geminiProvider: AIProvider = {
 
     const url = `${base}/models/${encodeURIComponent(normalizeModelId(req.model))}:generateContent?key=${encodeURIComponent(creds.apiKey)}`;
     const controller = new AbortController();
-    const to = setTimeout(() => controller.abort(), req.timeout_ms ?? 60_000);
+    const budgetMs = req.timeout_ms ?? 60_000;
+    // An AbortError says nothing about *who* aborted. Our own deadline and a
+    // request the browser dropped (navigation, an HMR reload in dev) look
+    // identical, and reporting both as "the provider was too slow" sent people
+    // hunting for a problem at Google that was not there.
+    let timedOut = false;
+    const to = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, budgetMs);
     let res: Response;
     try {
       res = await fetch(url, {
@@ -80,7 +107,16 @@ export const geminiProvider: AIProvider = {
       });
     } catch (e) {
       const err = e as Error;
-      throw new AIError(err.name === "AbortError" ? "timeout" : "network", err.message, { providerKind: "gemini" });
+      if (err.name === "AbortError") {
+        throw timedOut
+          ? new AIError("timeout", `No response within ${Math.round(budgetMs / 1000)}s`, {
+              providerKind: "gemini",
+            })
+          : new AIError("cancelled", "The request was cancelled before the model answered", {
+              providerKind: "gemini",
+            });
+      }
+      throw new AIError("network", err.message, { providerKind: "gemini" });
     } finally { clearTimeout(to); }
 
     const text = await res.text();

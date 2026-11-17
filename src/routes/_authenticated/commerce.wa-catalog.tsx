@@ -732,7 +732,7 @@ function CollectionsPanel({
                     }}
                   />
                 </Dialog>
-                <Button variant="ghost" size="icon" onClick={() => setDeleting(c)}>
+                <Button variant="outline" size="icon" onClick={() => setDeleting(c)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -1206,8 +1206,7 @@ function PreviewPanel({
                     <TooltipTrigger asChild>
                       <Button
                         size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
+                        variant="outline"
                         disabled={syncing}
                         onClick={() => onSyncOne(p.id)}
                       >

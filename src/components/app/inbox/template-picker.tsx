@@ -138,7 +138,7 @@ export function TemplatePicker({
       <Button
         variant="outline"
         size="sm"
-        className="h-7 shrink-0 text-xs"
+        className="shrink-0 text-xs"
         disabled={!waAccountId || syncTemplates.isPending}
         onClick={runSync}
       >
@@ -428,7 +428,7 @@ export function TemplatePicker({
                       </div>
                     </div>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
                       className="shrink-0"
                       aria-label={`Preview ${t.name}`}
@@ -443,7 +443,7 @@ export function TemplatePicker({
                     </Button>
                     {onPickAndSend && (
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
                         className="shrink-0"
                         aria-label={`Send ${t.name} now`}
@@ -522,7 +522,7 @@ export function TemplatePicker({
         <Button
           variant="ghost"
           size="sm"
-          className="ml-auto h-6 px-2 text-[11px]"
+          className="ml-auto text-[11px]"
           onClick={startCreate}
         >
           <Plus className="h-3 w-3" /> New
@@ -603,7 +603,7 @@ function TemplateRow({
       </div>
       {onPreview && (
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           className="shrink-0"
           aria-label={`Preview ${template.name}`}
@@ -619,7 +619,7 @@ function TemplateRow({
       )}
       {onSend && (
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           className="shrink-0"
           aria-label={`Send ${template.name} now`}

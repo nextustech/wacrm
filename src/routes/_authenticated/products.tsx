@@ -327,8 +327,8 @@ function ProductsPage() {
                         </div>
                         <Button
                           size="icon"
-                          variant="ghost"
-                          className="h-8 w-8 shrink-0"
+                          variant="outline"
+                          className="shrink-0"
                           onClick={() => toggleFav.mutate({ productId: p.id, favored: isFav })}
                         >
                           {isFav ? (
@@ -379,8 +379,7 @@ function ProductsPage() {
                   <div className="mt-3 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
                     <Button
                       size="icon"
-                      variant="ghost"
-                      className="h-9 w-9"
+                      variant="outline"
                       onClick={() => {
                         setEditing(p);
                         setDialogOpen(true);
@@ -390,8 +389,7 @@ function ProductsPage() {
                     </Button>
                     <Button
                       size="icon"
-                      variant="ghost"
-                      className="h-9 w-9"
+                      variant="outline"
                       onClick={() => {
                         if (confirm(`Archive "${p.name}"?`)) del.mutate(p.id);
                       }}

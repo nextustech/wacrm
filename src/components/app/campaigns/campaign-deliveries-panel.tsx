@@ -269,7 +269,7 @@ export function CampaignDeliveriesPanel({ campaignId }: { campaignId: string }) 
               size="sm"
               variant={filter === b ? "default" : "outline"}
               onClick={() => setFilter(b)}
-              className="capitalize rounded-control"
+              className="capitalize"
             >
               {b}
             </Button>
@@ -278,7 +278,6 @@ export function CampaignDeliveriesPanel({ campaignId }: { campaignId: string }) 
         <Button
           size="sm"
           variant="outline"
-          className="rounded-control"
           onClick={() => {
             qc.invalidateQueries({ queryKey: ["campaign-recipients", campaignId] });
             refetch();
@@ -291,7 +290,6 @@ export function CampaignDeliveriesPanel({ campaignId }: { campaignId: string }) 
         <Button
           size="sm"
           variant="outline"
-          className="rounded-control"
           onClick={() => exportCsv(filtered, campaignId)}
           disabled={filtered.length === 0}
         >
@@ -300,7 +298,6 @@ export function CampaignDeliveriesPanel({ campaignId }: { campaignId: string }) 
         <Button
           size="sm"
           variant="destructive"
-          className="rounded-control"
           onClick={() => setRetryOpen(true)}
           disabled={failedCount === 0 || retrying}
           title={failedCount === 0 ? "No failed recipients" : "Resend to failed recipients"}
@@ -308,7 +305,7 @@ export function CampaignDeliveriesPanel({ campaignId }: { campaignId: string }) 
           <RotateCcw className={`mr-1 h-4 w-4 ${retrying ? "animate-spin" : ""}`} />
           Retry failed{failedCount > 0 ? ` (${failedCount})` : ""}
         </Button>
-        <Button asChild size="sm" variant="ghost" className="rounded-control">
+        <Button asChild size="sm" variant="ghost">
           <Link to="/campaigns/$campaignId/status" params={{ campaignId }}>
             <ExternalLink className="mr-1 h-4 w-4" /> Full status view
           </Link>
@@ -331,7 +328,7 @@ export function CampaignDeliveriesPanel({ campaignId }: { campaignId: string }) 
           <Button
             size="sm"
             variant="outline"
-            className="h-7 rounded-control border-destructive/40 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            className="border-destructive/40 text-destructive hover:bg-destructive hover:text-destructive-foreground"
             onClick={() => setRetryOpen(true)}
             disabled={retrying}
           >

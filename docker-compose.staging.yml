@@ -2,7 +2,7 @@
 # Usage: docker compose -f docker-compose.yml -f docker-compose.staging.yml --env-file .env.staging up -d
 services:
   app:
-    image: wacrm/app:${WACRM_VERSION:-6.8.9-staging}
+    image: wacrm/app:${WACRM_VERSION:-7.3.4-staging}
     env_file:
       - .env.staging
     environment:

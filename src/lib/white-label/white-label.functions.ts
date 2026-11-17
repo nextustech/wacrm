@@ -20,7 +20,11 @@ async function activeWorkspaceId(supabase: any, userId: string): Promise<string 
   return (data?.workspace_id as string | undefined) ?? null;
 }
 
-async function requireActiveWorkspaceId(supabase: any, userId: string, requested?: string | null): Promise<string> {
+async function requireActiveWorkspaceId(
+  supabase: any,
+  userId: string,
+  requested?: string | null,
+): Promise<string> {
   if (requested) {
     const { data, error } = await supabase
       .from("workspace_members")
@@ -43,7 +47,11 @@ const brandingImageUrl = z
   .string()
   .max(2000)
   .refine((value) => {
-    if (/^\/api\/public\/branding\/(?:platform|(?:org|workspace)\/[0-9a-f-]{36})\/[\w./-]+$/i.test(value)) {
+    if (
+      /^\/api\/public\/branding\/(?:platform|(?:org|workspace)\/[0-9a-f-]{36})\/[\w./-]+$/i.test(
+        value,
+      )
+    ) {
       return !value.split("/").some((segment) => segment === "." || segment === "..");
     }
     try {
@@ -55,7 +63,7 @@ const brandingImageUrl = z
   .optional()
   .nullable();
 
-const WhiteLabelSchema = z.object({
+export const WhiteLabelSchema = z.object({
   // Brand identity
   brand_name: z.string().max(80).optional().nullable(),
   logo_url: brandingImageUrl,
@@ -80,11 +88,22 @@ const WhiteLabelSchema = z.object({
   dashboard_background: color,
   dashboard_accent: color,
 
+  // Dark-mode layout overrides
+  dark_sidebar_background: color,
+  dark_sidebar_foreground: color,
+  dark_sidebar_accent: color,
+  dark_sidebar_border: color,
+  dark_dashboard_background: color,
+  dark_dashboard_accent: color,
+
   // Typography
   font_family_sans: nStr,
   font_family_heading: nStr,
   font_family_mono: nStr,
   font_size_base: nStr,
+  font_weight_sans: nStr,
+  font_weight_heading: nStr,
+  font_weight_mono: nStr,
 
   // Dark / light mode
   default_color_mode: z.enum(["light", "dark", "system"]).optional().nullable(),
@@ -117,9 +136,17 @@ const WhiteLabelSchema = z.object({
   custom_email_footer: z.string().max(4000).optional().nullable(),
 
   // Custom domain / SEO
-  custom_domain: z.string().trim().toLowerCase().max(200)
-    .regex(/^(?=.{4,200}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/, "Enter a valid domain name")
-    .optional().nullable(),
+  custom_domain: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(200)
+    .regex(
+      /^(?=.{4,200}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/,
+      "Enter a valid domain name",
+    )
+    .optional()
+    .nullable(),
   support_email: z.string().email().optional().nullable(),
   support_url: z.string().url().optional().nullable(),
   meta_title: z.string().max(120).optional().nullable(),
@@ -183,36 +210,63 @@ export const getWhiteLabel = createServerFn({ method: "GET" })
 
 export const upsertWhiteLabel = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => WhiteLabelSchema.extend({ workspaceId: z.string().uuid().optional().nullable() }).parse(input))
+  .validator((input: unknown) =>
+    WhiteLabelSchema.extend({ workspaceId: z.string().uuid().optional().nullable() }).parse(input),
+  )
   .handler(async ({ data, context }) => {
     const { workspaceId: requested, ...changes } = data;
-    const workspaceId = await requireActiveWorkspaceId(sbAny(context.supabase), context.userId, requested);
-    const { data: isAdmin, error: adminError } = await context.supabase.rpc('is_workspace_admin', {
+    const workspaceId = await requireActiveWorkspaceId(
+      sbAny(context.supabase),
+      context.userId,
+      requested,
+    );
+    const { data: isAdmin, error: adminError } = await context.supabase.rpc("is_workspace_admin", {
       _workspace_id: workspaceId,
       _user_id: context.userId,
     });
     if (adminError) throw adminError;
-    if (!isAdmin) throw new Error('Only workspace owners and admins can manage customization');
+    if (!isAdmin) throw new Error("Only workspace owners and admins can manage customization");
     const { data: before } = await sbAny(context.supabase)
       .from("white_label_configs")
       .select("*")
       .eq("workspace_id", workspaceId)
       .maybeSingle();
-    const domainChanged = changes.custom_domain !== undefined && changes.custom_domain !== before?.custom_domain;
+    const domainChanged =
+      changes.custom_domain !== undefined && changes.custom_domain !== before?.custom_domain;
     const pending: Record<string, unknown> = { ...changes };
     let saved: any = null;
     let error: any = null;
     for (let attempt = 0; attempt < 4; attempt++) {
       ({ data: saved, error } = await sbAny(context.supabase)
         .from("white_label_configs")
-        .upsert({ workspace_id: workspaceId, ...pending, ...(domainChanged ? { custom_domain_verified: false } : {}) }, { onConflict: "workspace_id" })
+        .upsert(
+          {
+            workspace_id: workspaceId,
+            ...pending,
+            ...(domainChanged ? { custom_domain_verified: false } : {}),
+          },
+          { onConflict: "workspace_id" },
+        )
         .select("*")
         .maybeSingle());
       if (!error) break;
-      const missing = /Could not find the '([^']+)' column of 'white_label_configs' in the schema cache/i.exec(error.message ?? "")?.[1];
-      if (!missing || !["border_color", "foreground_color", "sidebar_border"].includes(missing)) break;
+      const missing =
+        /Could not find the '([^']+)' column of 'white_label_configs' in the schema cache/i.exec(
+          error.message ?? "",
+        )?.[1];
+      const pendingMigrations: Record<string, string> = {
+        border_color: "20261014130000_white_label_border_colors.sql",
+        foreground_color: "20261014130000_white_label_border_colors.sql",
+        sidebar_border: "20261014130000_white_label_border_colors.sql",
+        font_weight_sans: "20261111120000_white_label_font_weights.sql",
+        font_weight_heading: "20261111120000_white_label_font_weights.sql",
+        font_weight_mono: "20261111120000_white_label_font_weights.sql",
+      };
+      if (!missing || !(missing in pendingMigrations)) break;
       if (pending[missing] != null) {
-        throw new Error(`Database update required before saving ${missing.replaceAll("_", " ")}. Apply migration 20261014130000_white_label_border_colors.sql.`);
+        throw new Error(
+          `Database update required before saving ${missing.replaceAll("_", " ")}. Apply migration ${pendingMigrations[missing]}.`,
+        );
       }
       delete pending[missing];
     }
@@ -237,15 +291,21 @@ export const upsertWhiteLabel = createServerFn({ method: "POST" })
 
 export const verifyCustomDomain = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .validator((input: unknown) => z.object({ workspaceId: z.string().uuid().optional().nullable() }).parse(input ?? {}))
+  .validator((input: unknown) =>
+    z.object({ workspaceId: z.string().uuid().optional().nullable() }).parse(input ?? {}),
+  )
   .handler(async ({ data: input, context }) => {
-    const workspaceId = await requireActiveWorkspaceId(sbAny(context.supabase), context.userId, input.workspaceId);
-    const { data: isAdmin, error: adminError } = await context.supabase.rpc('is_workspace_admin', {
+    const workspaceId = await requireActiveWorkspaceId(
+      sbAny(context.supabase),
+      context.userId,
+      input.workspaceId,
+    );
+    const { data: isAdmin, error: adminError } = await context.supabase.rpc("is_workspace_admin", {
       _workspace_id: workspaceId,
       _user_id: context.userId,
     });
     if (adminError) throw adminError;
-    if (!isAdmin) throw new Error('Only workspace owners and admins can verify domains');
+    if (!isAdmin) throw new Error("Only workspace owners and admins can verify domains");
     const { data: config, error: readError } = await sbAny(context.supabase)
       .from("white_label_configs")
       .select("custom_domain")
@@ -260,7 +320,9 @@ export const verifyCustomDomain = createServerFn({ method: "POST" })
       const { resolveTxt } = await import("node:dns/promises");
       records = await resolveTxt(`_wacrm.${domain}`);
     } catch {
-      throw new Error(`No TXT record found for _wacrm.${domain}. DNS changes may take time to appear.`);
+      throw new Error(
+        `No TXT record found for _wacrm.${domain}. DNS changes may take time to appear.`,
+      );
     }
     if (!records.some((parts) => parts.join("").trim() === expected)) {
       throw new Error(`TXT record _wacrm.${domain} must contain ${expected}`);

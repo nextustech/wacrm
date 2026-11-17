@@ -11,6 +11,8 @@ import {
   MapPin,
   User as UserIcon,
   Mic,
+  AudioLines,
+  Loader2,
   Square,
   X,
   Reply as ReplyIcon,
@@ -43,6 +45,7 @@ import {
   Eye,
   Globe2,
   Lock,
+  Sparkles,
 } from "lucide-react";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useActiveOrganization } from "@/hooks/use-organization";
@@ -136,6 +139,66 @@ import {
 import { normalizePhone } from "@/lib/inbox/contact-display";
 import { digitsOnly } from "@/lib/messaging/phone-matching";
 import { SchedulePicker } from "@/components/app/social/schedule-picker";
+import { webmOpusToOgg } from "@/lib/media/webm-opus-to-ogg";
+import { transcribeSpeech } from "@/lib/ai/transcribe.functions";
+
+/**
+ * Decode the blob to confirm the browser can actually play it. The remuxed
+ * container is built by hand, so this is the check that it is not a dud.
+ */
+async function isPlayableAudio(blob: Blob): Promise<boolean> {
+  const Ctx =
+    window.AudioContext ??
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctx) return true; // cannot check — assume good rather than block the user
+  const ctx = new Ctx();
+  try {
+    const decoded = await ctx.decodeAudioData(await blob.arrayBuffer());
+    return decoded.duration > 0;
+  } catch {
+    return false;
+  } finally {
+    void ctx.close();
+  }
+}
+
+/** Length in seconds, or null when the browser will not tell us. */
+async function audioDuration(blob: Blob): Promise<number | null> {
+  const Ctx =
+    window.AudioContext ??
+    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctx) return null;
+  const ctx = new Ctx();
+  try {
+    return (await ctx.decodeAudioData(await blob.arrayBuffer())).duration;
+  } catch {
+    return null;
+  } finally {
+    void ctx.close();
+  }
+}
+
+/** Base64 body of a blob, without the data: prefix the API does not want. */
+async function blobToBase64(blob: Blob): Promise<string> {
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  let binary = "";
+  // Chunked: spreading a megabyte-sized array into String.fromCharCode
+  // overflows the call stack.
+  const CHUNK = 0x8000;
+  for (let i = 0; i < buf.length; i += CHUNK) {
+    binary += String.fromCharCode(...buf.subarray(i, i + CHUNK));
+  }
+  return btoa(binary);
+}
+
+/** mm:ss for the live recording timer. */
+const formatRecordingTime = (ms: number): string => {
+  const total = Math.floor(ms / 1000);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
+};
+
+/** Longest voice note the composer will record before stopping itself. */
+const MAX_RECORDING_MS = 5 * 60 * 1000;
 
 /* -------------------------------------------------------------------------- */
 
@@ -269,7 +332,15 @@ export function MessageComposer({
   const [text, setText] = useState("");
   const draftUrl = useMemo(() => extractFirstUrl(text), [text]);
   const [isRecording, setIsRecording] = useState(false);
+  const [recordMs, setRecordMs] = useState(0);
+  const [isDictating, setIsDictating] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [moreActionsOpen, setMoreActionsOpen] = useState(false);
+  const [aiAssistOpen, setAiAssistOpen] = useState(false);
+  // When the overflow menu closes it returns focus to its trigger; that focus
+  // move lands outside the AI panel and dismisses it. Skip the restore when
+  // the menu is closing *because* the AI panel is opening.
+  const skipMoreActionsRefocus = useRef(false);
   const [uploading, setUploading] = useState(false);
   const [pendingAttachment, setPendingAttachment] = useState<PendingAttachment | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -333,6 +404,14 @@ export function MessageComposer({
   const stickerInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recordStreamRef = useRef<MediaStream | null>(null);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recordCancelledRef = useRef(false);
+  const dictationRecorderRef = useRef<MediaRecorder | null>(null);
+  const dictationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Dictation appends to whatever was already typed; a ref keeps that base
+  // text stable without re-creating the recognition handlers on every keystroke.
+  const textRef = useRef("");
   const draftLoadedRef = useRef<string | null>(null);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -489,7 +568,7 @@ export function MessageComposer({
         applyTemplate(rendered);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [conversationId, replyTo?.id, send, saveDraft, onClearReply, applyTemplate],
   );
 
@@ -909,39 +988,121 @@ export function MessageComposer({
 
   /* ------------------------------- Recording ------------------------------ */
 
+  /** Shuts the microphone off and clears the timer, whatever happened. */
+  const releaseRecorder = () => {
+    if (recordTimerRef.current) {
+      clearInterval(recordTimerRef.current);
+      recordTimerRef.current = null;
+    }
+    recordStreamRef.current?.getTracks().forEach((t) => t.stop());
+    recordStreamRef.current = null;
+    mediaRecorderRef.current = null;
+    setIsRecording(false);
+    setRecordMs(0);
+  };
+
   const startRecording = async () => {
+    if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      toast.error("This browser cannot record audio", {
+        description: "Use the paperclip to attach an audio file instead.",
+      });
+      return;
+    }
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // WhatsApp accepts ogg/opus but not webm — prefer ogg where the browser
-      // can produce it so voice notes play inline for the recipient.
-      const preferred = ["audio/ogg;codecs=opus", "audio/ogg", "audio/mp4"].find(
-        (m) => typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported?.(m),
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      // Distinguish "blocked" from "no microphone" — the fixes are different.
+      const name = (err as DOMException)?.name;
+      toast.error(
+        name === "NotFoundError" || name === "OverconstrainedError"
+          ? "No microphone found"
+          : "Microphone access denied",
+        {
+          description:
+            name === "NotFoundError" || name === "OverconstrainedError"
+              ? "Connect a microphone, then try again."
+              : "Allow microphone access for this site in your browser's address bar, then try again.",
+        },
+      );
+      return;
+    }
+
+    try {
+      // Chromium cannot produce Ogg, only WebM — and WhatsApp refuses WebM. The
+      // audio inside is already Opus either way, so a WebM recording is
+      // repackaged as Ogg on stop (see webm-opus-to-ogg.ts). Ask for Opus
+      // explicitly so there is something to repackage.
+      const preferred = ["audio/ogg;codecs=opus", "audio/webm;codecs=opus", "audio/mp4"].find((m) =>
+        MediaRecorder.isTypeSupported?.(m),
       );
       const rec = preferred
         ? new MediaRecorder(stream, { mimeType: preferred })
         : new MediaRecorder(stream);
       const recMime = (rec.mimeType || preferred || "audio/webm").split(";")[0]!;
-      const ext = recMime.includes("ogg") ? "ogg" : recMime.includes("mp4") ? "m4a" : "webm";
-      const fileName = `voice-note.${ext}`;
+
       audioChunksRef.current = [];
+      recordCancelledRef.current = false;
+      // A timeslice means data keeps arriving during the recording, so a stop
+      // can never find the buffer empty — the old code relied on one final
+      // blob and produced a 0-byte file if anything interrupted it.
       rec.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
+      rec.onerror = () => {
+        releaseRecorder();
+        toast.error("Recording failed", { description: "The microphone stopped unexpectedly." });
+      };
       rec.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(audioChunksRef.current, { type: recMime });
+        const chunks = audioChunksRef.current;
+        audioChunksRef.current = [];
+        const cancelled = recordCancelledRef.current;
+        releaseRecorder();
+        if (cancelled) return;
+
+        let blob = new Blob(chunks, { type: recMime });
+        if (blob.size === 0) {
+          toast.error("Nothing was recorded", { description: "Hold the button a little longer." });
+          return;
+        }
+
+        let mime = recMime;
+        let ext = mime.includes("ogg") ? "ogg" : mime.includes("mp4") ? "m4a" : "webm";
+        if (mime.includes("webm")) {
+          const original = blob;
+          const remuxed = webmOpusToOgg(new Uint8Array(await blob.arrayBuffer()));
+          // Only swap in the repackaged file if it really decodes. A container
+          // the browser cannot read would upload as a silent 0:00 clip, which
+          // is worse than sending the original.
+          if (remuxed && (await isPlayableAudio(remuxed.blob))) {
+            blob = remuxed.blob;
+            mime = "audio/ogg";
+            ext = "ogg";
+          } else {
+            blob = original;
+          }
+        }
+
+        const seconds = await audioDuration(blob);
+        if (seconds !== null && seconds < 0.3) {
+          toast.error("That recording was too short", {
+            description: "Hold the microphone for at least a second.",
+          });
+          return;
+        }
+
         if (channel) {
-          const check = checkAttachment(channel, { mime: recMime, size: blob.size });
+          const check = checkAttachment(channel, { mime, size: blob.size });
           if (!check.ok || check.kind !== "audio") {
             toast.error("Voice note not supported here", {
               description: check.ok
-                ? `${channelLabel(channel)} can't play ${recMime} voice notes from this browser.`
+                ? `${channelLabel(channel)} can't play ${mime} voice notes from this browser.`
                 : check.reason,
             });
             return;
           }
         }
-        const file = new File([blob], fileName, { type: recMime });
+        const file = new File([blob], `voice-note.${ext}`, { type: mime });
         setPendingAttachment({
           file,
           messageType: "audio",
@@ -949,18 +1110,179 @@ export function MessageComposer({
         });
       };
 
-      rec.start();
+      rec.start(1000);
       mediaRecorderRef.current = rec;
+      recordStreamRef.current = stream;
       setIsRecording(true);
+      setRecordMs(0);
+      const startedAt = Date.now();
+      recordTimerRef.current = setInterval(() => {
+        const elapsed = Date.now() - startedAt;
+        setRecordMs(elapsed);
+        // WhatsApp caps voice notes at 16 MB; five minutes is well inside that
+        // and stops a forgotten recording from running all day.
+        if (elapsed >= MAX_RECORDING_MS) {
+          toast.info("Recording stopped at 5 minutes");
+          mediaRecorderRef.current?.stop();
+        }
+      }, 200);
     } catch {
-      toast.error("Microphone access denied");
+      stream.getTracks().forEach((t) => t.stop());
+      toast.error("Could not start recording");
     }
   };
 
   const stopRecording = () => {
-    mediaRecorderRef.current?.stop();
-    mediaRecorderRef.current = null;
-    setIsRecording(false);
+    recordCancelledRef.current = false;
+    const rec = mediaRecorderRef.current;
+    if (!rec || rec.state === "inactive") {
+      releaseRecorder();
+      return;
+    }
+    rec.stop(); // `onstop` releases the microphone and builds the file
+  };
+
+  /** Throw the recording away — the microphone is still released. */
+  const cancelRecording = () => {
+    recordCancelledRef.current = true;
+    const rec = mediaRecorderRef.current;
+    if (rec && rec.state !== "inactive") rec.stop();
+    else releaseRecorder();
+  };
+
+  // Dictation reads the text that was already typed when it started; keeping a
+  // ref avoids re-binding `onresult` on every keystroke.
+  useEffect(() => {
+    if (!isDictating) textRef.current = text;
+  }, [text, isDictating]);
+
+  // A conversation switch, a route change or a tab close must not leave the
+  // microphone live. Browsers keep the recording indicator on until the track
+  // is stopped, which looks (rightly) alarming.
+  useEffect(() => {
+    return () => {
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+      const rec = mediaRecorderRef.current;
+      if (rec && rec.state !== "inactive") {
+        recordCancelledRef.current = true;
+        try {
+          rec.stop();
+        } catch {
+          /* already gone */
+        }
+      }
+      recordStreamRef.current?.getTracks().forEach((t) => t.stop());
+      if (dictationTimerRef.current) clearTimeout(dictationTimerRef.current);
+      const dict = dictationRecorderRef.current;
+      if (dict && dict.state !== "inactive") {
+        try {
+          dict.stop();
+        } catch {
+          /* already gone */
+        }
+      }
+    };
+  }, []);
+
+  /* ------------------------------ Dictation ------------------------------ */
+
+  /**
+   * Speech-to-text into the message box. Separate from the voice note: this
+   * types what you say, the microphone button records audio to send.
+   * Interim results are shown live and replaced as the engine firms them up,
+   * so the text does not jump around.
+   */
+  const toggleDictation = async () => {
+    if (isDictating) {
+      // Stop: `onstop` below sends what was captured for transcription.
+      dictationRecorderRef.current?.stop();
+      return;
+    }
+    if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      toast.error("This browser cannot record audio");
+      return;
+    }
+
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      toast.error("Microphone access denied", {
+        description: "Allow microphone access for this site, then try again.",
+      });
+      return;
+    }
+
+    try {
+      const preferred = ["audio/ogg;codecs=opus", "audio/webm;codecs=opus"].find((m) =>
+        MediaRecorder.isTypeSupported?.(m),
+      );
+      const rec = preferred
+        ? new MediaRecorder(stream, { mimeType: preferred })
+        : new MediaRecorder(stream);
+      const recMime = (rec.mimeType || preferred || "audio/webm").split(";")[0]!;
+      const chunks: Blob[] = [];
+      const base = textRef.current;
+
+      rec.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data);
+      };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        dictationRecorderRef.current = null;
+        setIsDictating(false);
+
+        let blob = new Blob(chunks, { type: recMime });
+        if (blob.size === 0) {
+          toast.error("Nothing was recorded");
+          return;
+        }
+        // The transcriber does not accept WebM, and Chromium records nothing
+        // else — the same repackaging the voice note uses.
+        let mime = recMime;
+        if (mime.includes("webm")) {
+          const remuxed = webmOpusToOgg(new Uint8Array(await blob.arrayBuffer()));
+          if (!remuxed) {
+            toast.error("Could not prepare the recording for transcription");
+            return;
+          }
+          blob = remuxed.blob;
+          mime = "audio/ogg";
+        }
+
+        setIsTranscribing(true);
+        try {
+          const { text: spoken } = await transcribeSpeech({
+            data: { audioBase64: await blobToBase64(blob), mimeType: mime },
+          });
+          if (!spoken) {
+            toast.info("No speech was recognised in that recording");
+            return;
+          }
+          setText(base ? `${base.replace(/\s+$/, "")} ${spoken}` : spoken);
+          textareaRef.current?.focus();
+        } catch (e) {
+          toast.error(e instanceof Error ? e.message : "Transcription failed");
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      // 15 minutes of audio is far past the inline upload limit; a minute of
+      // speech is the realistic case and keeps the round trip short.
+      rec.start();
+      dictationRecorderRef.current = rec;
+      setIsDictating(true);
+      dictationTimerRef.current = setTimeout(() => {
+        if (dictationRecorderRef.current?.state === "recording") {
+          toast.info("Dictation stopped at 2 minutes");
+          dictationRecorderRef.current.stop();
+        }
+      }, 120_000);
+    } catch {
+      stream.getTracks().forEach((t) => t.stop());
+      toast.error("Could not start dictation");
+    }
   };
 
   /* ------------------------------- Actions -------------------------------- */
@@ -1377,7 +1699,7 @@ export function MessageComposer({
               {replyTo.body ?? replyTo.message_type}
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClearReply} className="h-7 w-7">
+          <Button variant="outline" size="icon" onClick={onClearReply}>
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -1436,9 +1758,9 @@ export function MessageComposer({
 
             <Button
               type="button"
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="h-8 w-8 shrink-0"
+              className="shrink-0"
               onClick={() => setPendingAttachment(null)}
               disabled={uploading}
               aria-label="Remove attachment"
@@ -1590,8 +1912,8 @@ export function MessageComposer({
         */}
         <div
           className={cn(
-            "flex flex-col rounded-control border border-input bg-background transition-shadow",
-            "focus-within:border-primary focus-within:ring-1 focus-within:ring-primary",
+            "flex flex-col rounded-control border-2 border-input bg-background transition-shadow",
+            "focus-within:border-primary focus-within:ring-2 focus-within:ring-primary",
           )}
         >
           <FormattingToolbar
@@ -1661,8 +1983,8 @@ export function MessageComposer({
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0 rounded-full"
+                    size="iconSM"
+                    className="shrink-0 rounded-full"
                     disabled={disabled || uploading}
                     aria-label="Attach"
                   >
@@ -1742,8 +2064,8 @@ export function MessageComposer({
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0 rounded-full"
+                    size="iconSM"
+                    className="shrink-0 rounded-full"
                     disabled={disabled}
                     aria-label="Emoji"
                   >
@@ -1760,13 +2082,44 @@ export function MessageComposer({
                 </PopoverContent>
               </Popover>
 
+              {/* Dictation: speak, and whatever language you spoke is typed.
+               * Distinct from the microphone on the right, which records audio
+               * to send as a voice note. */}
+              <Button
+                variant="ghost"
+                size="iconSM"
+                className={cn(
+                  "shrink-0 rounded-full",
+                  isDictating && "bg-destructive/10 text-destructive hover:text-destructive",
+                )}
+                disabled={disabled || isRecording || isTranscribing}
+                onClick={() => void toggleDictation()}
+                aria-label={isDictating ? "Stop dictation" : "Dictate message"}
+                aria-pressed={isDictating}
+                title={
+                  isTranscribing
+                    ? "Transcribing…"
+                    : isDictating
+                      ? "Stop and transcribe"
+                      : "Dictate — speak in any language and it is typed for you"
+                }
+              >
+                {isTranscribing ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : isDictating ? (
+                  <AudioLines className="h-5 w-5 animate-pulse" />
+                ) : (
+                  <Mic className="h-5 w-5" />
+                )}
+              </Button>
+
               {/* Overflow: secondary actions that don't fit the toolbar */}
               <Popover open={moreActionsOpen} onOpenChange={setMoreActionsOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 shrink-0 rounded-full"
+                    size="iconSM"
+                    className="shrink-0 rounded-full"
                     disabled={disabled}
                     aria-label="More actions"
                     title="More actions"
@@ -1774,7 +2127,16 @@ export function MessageComposer({
                     <MoreHorizontal className="h-5 w-5" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-1" align="start">
+                <PopoverContent
+                  className="w-auto p-1"
+                  align="start"
+                  onCloseAutoFocus={(e) => {
+                    if (skipMoreActionsRefocus.current) {
+                      skipMoreActionsRefocus.current = false;
+                      e.preventDefault();
+                    }
+                  }}
+                >
                   <div className="flex flex-col gap-0.5">
                     {can("templates") && (
                       <Button
@@ -1839,29 +2201,47 @@ export function MessageComposer({
                     >
                       <Save className="h-4 w-4" /> Save as quick reply
                     </Button>
-                    <AIReplyAssistant
-                      triggerLabel="AI reply assistant"
-                      conversationId={conversationId}
-                      draft={text}
-                      onApply={(t) => {
-                        setText(t);
-                        setTimeout(() => textareaRef.current?.focus(), 0);
-                      }}
+                    <Button
+                      variant="ghost"
+                      className="justify-start gap-2 h-8 px-2 font-normal"
                       disabled={disabled}
-                    />
+                      onClick={() => {
+                        skipMoreActionsRefocus.current = true;
+                        setMoreActionsOpen(false);
+                        setAiAssistOpen(true);
+                      }}
+                    >
+                      <Sparkles className="h-4 w-4 text-violet-500" /> AI reply assistant
+                    </Button>
                   </div>
                 </PopoverContent>
               </Popover>
+
+              {/* Anchored right next to the "..." button so the panel drops
+                  rightwards from it. Kept outside the overflow popover —
+                  nesting it there unmounted the panel on open (flash). */}
+              <AIReplyAssistant
+                hideTrigger
+                open={aiAssistOpen}
+                onOpenChange={setAiAssistOpen}
+                conversationId={conversationId}
+                draft={text}
+                onApply={(t) => {
+                  setText(t);
+                  setTimeout(() => textareaRef.current?.focus(), 0);
+                }}
+                disabled={disabled}
+              />
             </div>
 
             {/* Send / Record — always rightmost */}
             <div className="shrink-0">
               {text.trim() || pendingAttachment || uploading ? (
-                <div className="flex items-center">
+                <div className="flex items-center rounded-full overflow-hidden ring-1 ring-primary">
                   <Button
                     type="button"
                     size="icon"
-                    className="h-8 w-8 rounded-full rounded-r-none"
+                    className="rounded-none border-0 ring-0 shadow-none"
                     onClick={submit}
                     disabled={disabled || uploading || (!text.trim() && !pendingAttachment)}
                     aria-label="Send"
@@ -1869,12 +2249,16 @@ export function MessageComposer({
                   >
                     <Send className="h-4 w-4" />
                   </Button>
+                  {/* Vertical divider between Send and the chevron — slightly
+                      darker than the button fill so it reads as a seam, not
+                      a stark white bar. */}
+                  <span className="w-px self-stretch bg-primary/75 shrink-0" />
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         type="button"
                         size="icon"
-                        className="h-8 w-8 rounded-full rounded-l-none border-l border-primary-foreground/20"
+                        className="rounded-none border-0 ring-0 shadow-none"
                         disabled={disabled || uploading || (!text.trim() && !pendingAttachment)}
                         aria-label="Send options"
                       >
@@ -1882,13 +2266,13 @@ export function MessageComposer({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuLabel className="text-[11px]  text-muted-foreground">
+                      {/* <DropdownMenuLabel className="text-[11px]  text-muted-foreground">
                         Send
-                      </DropdownMenuLabel>
+                      </DropdownMenuLabel> */}
                       <DropdownMenuItem onClick={submit}>
                         <Send className="h-3.5 w-3.5" />
                         Send now
-                        <span className="ml-auto text-[11px] text-muted-foreground">↵</span>
+                        <span className="ml-auto text-muted-foreground">↵</span>
                       </DropdownMenuItem>
                       {can("schedule") && (!!text.trim() || !!pendingAttachment) && (
                         <DropdownMenuItem onClick={() => setScheduleOpen(true)}>
@@ -1908,25 +2292,44 @@ export function MessageComposer({
                   </DropdownMenu>
                 </div>
               ) : isRecording ? (
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="destructive"
-                  className="h-8 w-8 rounded-full animate-pulse"
-                  onClick={stopRecording}
-                  aria-label="Stop recording"
-                >
-                  <Square className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-1.5 rounded-full bg-destructive/10 px-2.5 py-1 text-xs font-medium tabular-nums text-destructive">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-destructive" />
+                    {formatRecordingTime(recordMs)}
+                  </span>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="rounded-full"
+                    onClick={cancelRecording}
+                    aria-label="Discard recording"
+                    title="Discard"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="destructive"
+                    className="rounded-full"
+                    onClick={stopRecording}
+                    aria-label="Stop recording"
+                    title="Stop and attach"
+                  >
+                    <Square className="h-4 w-4" />
+                  </Button>
+                </div>
               ) : allow("voice_note") ? (
                 <Button
                   type="button"
                   size="icon"
                   variant="secondary"
-                  className="h-8 w-8 rounded-full"
+                  className="rounded-full"
                   onClick={startRecording}
                   disabled={disabled}
                   aria-label="Record voice note"
+                  title="Record a voice note"
                 >
                   <Mic className="h-4 w-4" />
                 </Button>
@@ -1934,7 +2337,7 @@ export function MessageComposer({
                 <Button
                   type="button"
                   size="icon"
-                  className="h-8 w-8 rounded-full"
+                  className="rounded-full"
                   onClick={submit}
                   disabled
                   aria-label="Send"
@@ -2147,7 +2550,7 @@ export function MessageComposer({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 px-2 text-xs"
+                  className="text-xs"
                   onClick={() => {
                     setLinkedContactId(null);
                     setDupeDismissed(false);
@@ -2191,7 +2594,7 @@ export function MessageComposer({
                         <Button
                           size="sm"
                           variant="secondary"
-                          className="h-7 px-2 text-xs"
+                          className="text-xs"
                           onClick={() => useExistingContact(c)}
                         >
                           Link
@@ -2204,7 +2607,7 @@ export function MessageComposer({
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 px-2 text-xs"
+                    className="text-xs"
                     onClick={() => setDupeDismissed(true)}
                   >
                     Create new instead
@@ -2267,9 +2670,9 @@ export function MessageComposer({
                     />
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-8 w-8 shrink-0"
+                      className="shrink-0"
                       disabled={pollOptions.length <= POLL_MIN_OPTIONS}
                       onClick={() => setPollOptions((prev) => prev.filter((_, i) => i !== idx))}
                       aria-label="Remove option"
@@ -2341,7 +2744,7 @@ export function MessageComposer({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-xs"
+                      className="text-xs"
                       onClick={() => setEventForm((f) => ({ ...f, end: "" }))}
                       disabled={eventSubmitting}
                     >

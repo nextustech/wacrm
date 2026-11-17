@@ -18,6 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useAuth } from "@/hooks/use-auth";
 import { useWorkspaceMembers } from "@/hooks/use-workspace";
 import { CustomFieldsSection } from "@/components/app/custom-fields/custom-fields-section";
+import { TaskSourceLink } from "@/components/app/tasks/task-source-link";
 import {
   useCreateTask, useUpdateTask, useDeleteTask,
   type TaskBoardPriority, type TaskBoardRow, type TaskBoardStatus, type TaskInput,
@@ -138,6 +139,12 @@ export function TaskEditDialog({ open, onOpenChange, workspaceId, task, canEdit,
               {readOnly ? "You can view this task, but cannot change it." : isEdit ? "Change details, status, due date or assignee." : "Create a task for your team."}
             </DialogDescription>
           </DialogHeader>
+
+          {/* Outside the fieldset: a disabled fieldset would also disable
+           * the link back to the chat this task came from. */}
+          {task?.entity_type === "conversation" && task.entity_id && (
+            <TaskSourceLink conversationId={task.entity_id} />
+          )}
 
           <fieldset disabled={readOnly} className="space-y-4">
             <div className="space-y-1.5">

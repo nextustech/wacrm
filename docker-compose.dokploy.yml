@@ -1,0 +1,69 @@
+# =============================================================================
+# WACRM v7.3.4 — Dokploy Docker Compose deployment (application only).
+#
+# Supabase runs separately (already installed); this stack runs just the app.
+#
+# Dokploy setup:
+#   1. Create a Compose app, point it at this repository.
+#   2. General  -> Compose Path: ./docker-compose.dokploy.yml
+#   3. Environment -> paste the contents of dokploy.env (local file, gitignored
+#      so its secrets never reach GitHub; every variable is also documented in
+#      .env.example). EDIT APP_ORIGIN first.
+#      Required BEFORE the first deploy: the ${VAR:?...} guards below fail fast
+#      with a clear message if the Environment tab is still empty.
+#   4. Domains -> add your domain: Service "app", Port 3000, then redeploy.
+#      (If you prefer manual Traefik labels instead, see the commented block
+#       under `labels:` — use one method, not both.)
+#   5. Deploy. Health: GET https://<domain>/api/public/health
+# =============================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Public values baked into the client bundle at build time
+        # (import.meta.env). They are not secrets; the server also reads the
+        # runtime env below as a fallback.
+        VITE_SUPABASE_URL: https://supabasewacrm.cis.ad
+        VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_5581b34d308098486dd04a_fdc35b6e
+    restart: unless-stopped
+    expose:
+      - "3000"
+    networks:
+      - dokploy-network
+    # Everything in Dokploy's Environment tab is written to .env next to this
+    # file and injected into the container (long-tail optional vars: SMTP,
+    # WhatsApp, Meta, Stripe, OAuth, ...).
+    env_file:
+      - .env
+    environment:
+      # Fail fast at deploy time if the Environment tab has not been filled in.
+      SUPABASE_URL: ${SUPABASE_URL:?Set SUPABASE_URL in the Environment tab}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:?Set SUPABASE_PUBLISHABLE_KEY in the Environment tab}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:?Set SUPABASE_SERVICE_ROLE_KEY in the Environment tab}
+      APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN in the Environment tab}
+      SESSION_SECRET: ${SESSION_SECRET:?Set SESSION_SECRET in the Environment tab}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:?Set WEBHOOK_SECRET in the Environment tab}
+      SETUP_BOOTSTRAP_TOKEN: ${SETUP_BOOTSTRAP_TOKEN:?Set SETUP_BOOTSTRAP_TOKEN in the Environment tab}
+    labels:
+      # Route via the Domains tab (recommended): these two labels are all the
+      # manual wiring needed; Dokploy injects the router/TLS labels itself.
+      - "traefik.enable=true"
+      - "traefik.docker.network=dokploy-network"
+
+      # --- Manual alternative (only if you skip the Domains tab) -------------
+      # Replace wacrm.example.com with your domain, then uncomment:
+      # - "traefik.http.routers.wacrm.rule=Host(`wacrm.example.com`)"
+      # - "traefik.http.routers.wacrm.entrypoints=websecure"
+      # - "traefik.http.routers.wacrm.tls.certresolver=letsencrypt"
+      # - "traefik.http.services.wacrm.loadbalancer.server.port=3000"
+      # ----------------------------------------------------------------------
+
+networks:
+  # Dokploy's shared Traefik network — must be declared external so the
+  # container is attached to it (works around Dokploy issues #3200/#3435
+  # where compose services are otherwise not reachable by Traefik).
+  dokploy-network:
+    external: true

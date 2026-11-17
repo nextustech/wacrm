@@ -305,7 +305,7 @@ export function MessengerChatbotTestDialog({
                 variant="outline"
                 onClick={testConnection}
                 disabled={conn.state === "checking" || !messengerAccountId}
-                className="w-full justify-start gap-1.5 h-8"
+                className="w-full justify-start gap-1.5"
               >
                 {conn.state === "checking" ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />

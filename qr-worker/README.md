@@ -1,9 +1,10 @@
 # WACRM WhatsApp QR Worker
 
 Stateful companion service that holds the long-lived WhatsApp (Baileys) sockets
-WACRM's serverless backend cannot host. It implements
-[`docs/whatsapp-qr-worker-contract.md`](../docs/whatsapp-qr-worker-contract.md)
-in both directions:
+WACRM's serverless backend cannot host. The full HTTP contract is in the docs
+site under **WhatsApp QR Worker ↔ WACRM HTTP Contract**
+(`docs/index.html#doc-whatsapp-qr-worker-contract`). It works in both
+directions:
 
 - **App → worker**: `POST /sessions`, `GET /sessions/:id/qr`, `DELETE /sessions/:id`,
   `POST /sessions/:id/send` — all Bearer-token + HMAC authenticated.
@@ -81,3 +82,30 @@ session from the WhatsApp panel — a QR code appears within a few seconds.
 - `GET /status` (authenticated) lists live sessions and dead-letter count.
 - Logs: `npx pm2 logs wacrm-wa-qr-worker` (QR payloads and signatures are redacted).
 - Rotating a secret: add the new value on both sides, deploy, then remove the old.
+
+### What happens automatically
+
+- **Restart.** On boot the worker re-opens every session that has credentials
+  in `data/auth`, so a deploy or a crash does not take connected numbers
+  offline. A folder whose scan never completed (no `creds.json`) is skipped.
+- **Dropped connection.** A socket that drops is reconnected with backoff
+  (3s, 10s, 30s, 60s, then every 2 min) until it comes back. Only an explicit
+  logout from the phone ends the session and deletes its credentials.
+
+### Troubleshooting
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| Health check passes but no QR appears | The app is calling the worker without a request signature. `/health` is the only unauthenticated route, so it passes while everything else answers 401. | Make sure `WA_QR_WORKER_SIGNING_SECRET` is set **in the app** and matches the worker's, then redeploy the app. |
+| `401 Timestamp outside allowed window` | The app server and the worker server clocks differ by more than 5 minutes. | Enable NTP on both machines. |
+| `401 Invalid signature` | The two sides hold different `WA_QR_WORKER_SIGNING_SECRET` values. | Re-copy the secret to both and restart. |
+| Session shows connected, no messages arrive | The worker cannot reach `WACRM_WEBHOOK_URL`. | `GET /status` shows a rising `dead_letters`; check egress and the URL. |
+| Inbound photos/documents arrive empty | Known limitation — media is not downloaded yet (see below). | — |
+
+### Known limitation
+
+Inbound **media** (photos, videos, audio, documents) is reported to the app
+with `media_url: null`, so the message arrives with its type but no file.
+Text, delivery receipts, replies and outbound media all work. Downloading
+inbound media needs a storage path on the worker plus an app-side fetch, which
+is not built yet.

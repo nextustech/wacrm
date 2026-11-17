@@ -15,6 +15,7 @@ import { APP_VERSION_LABEL } from "@/lib/app-version";
 import { getHostedDomainBrand } from "@/lib/white-label/hosted-domain";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { requireAuthEntry } from "@/lib/setup/first-run-guard";
 
 type Mode = "sign-in" | "sign-up" | "magic-link";
 
@@ -44,6 +45,12 @@ export const Route = createFileRoute("/auth")({
     ],
   }),
   beforeLoad: async ({ location, search }) => {
+    // An install with no super admin has nothing to sign in to — send the
+    // operator to the wizard before they can create an ordinary account.
+    // Checked on the server too, so a fresh deployment never paints the
+    // sign-in form at all; the rest of this guard needs the browser session.
+    await requireAuthEntry();
+
     if (typeof window === "undefined") return;
 
     // Use a race to avoid hanging the route transition if Supabase is slow

@@ -66,6 +66,15 @@ import {
   RefreshCw,
   Plus,
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
 import {
   listTenants,
   getTenantDetail,
@@ -76,6 +85,7 @@ import {
   impersonateTenant,
   bulkTenantAction,
   createTenant,
+  searchTenantOwnerCandidates,
 } from "@/lib/admin/tenants.functions";
 
 export const Route = createFileRoute("/_authenticated/_super-admin/admin/workspaces")({
@@ -93,6 +103,7 @@ function TenantsPage() {
   const listFn = useServerFn(listTenants);
   const bulkFn = useServerFn(bulkTenantAction);
   const createFn = useServerFn(createTenant);
+  const searchOwnersFn = useServerFn(searchTenantOwnerCandidates);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
   const [planId, setPlanId] = useState<string>("all");
@@ -103,6 +114,20 @@ function TenantsPage() {
   const [createOwnerEmail, setCreateOwnerEmail] = useState("");
   const [createWorkspaceName, setCreateWorkspaceName] = useState("");
   const [createBillingEmail, setCreateBillingEmail] = useState("");
+  const [ownerQuery, setOwnerQuery] = useState("");
+  const [ownerQueryDebounced, setOwnerQueryDebounced] = useState("");
+  const [ownerPickerOpen, setOwnerPickerOpen] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setOwnerQueryDebounced(ownerQuery.trim()), 250);
+    return () => clearTimeout(t);
+  }, [ownerQuery]);
+
+  const ownerCandidates = useQuery({
+    queryKey: ["admin", "tenant-owner-search", ownerQueryDebounced],
+    queryFn: () => searchOwnersFn({ data: { search: ownerQueryDebounced } }),
+    enabled: ownerPickerOpen && ownerQueryDebounced.length >= 2,
+  });
 
   const query = useQuery({
     queryKey: ["admin", "tenants", { search, status, planId }],
@@ -156,6 +181,7 @@ function TenantsPage() {
       setShowCreate(false);
       setCreateName("");
       setCreateOwnerEmail("");
+      setOwnerQuery("");
       setCreateWorkspaceName("");
       setCreateBillingEmail("");
       qc.invalidateQueries({ queryKey: ["admin", "tenants"] });
@@ -273,7 +299,18 @@ function TenantsPage() {
         {query.isLoading && (
           <div className="p-8 text-center text-sm text-muted-foreground">Loading tenants</div>
         )}
-        {!query.isLoading && rows.length === 0 && (
+        {query.isError && (
+          <div className="p-12 text-center">
+            <Building2 className="w-8 h-8 mx-auto text-destructive/60" />
+            <p className="mt-3 text-sm text-destructive">
+              {(query.error as Error)?.message ?? "Could not load tenants."}
+            </p>
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => query.refetch()}>
+              <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Retry
+            </Button>
+          </div>
+        )}
+        {!query.isLoading && !query.isError && rows.length === 0 && (
           <div className="p-12 text-center">
             <Building2 className="w-8 h-8 mx-auto text-muted-foreground/60" />
             <p className="mt-3 text-sm text-muted-foreground">No tenants match your filters.</p>
@@ -341,13 +378,74 @@ function TenantsPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="tenant-owner-email">Owner email</Label>
-              <Input
-                id="tenant-owner-email"
-                type="email"
-                placeholder="owner@acme.com"
-                value={createOwnerEmail}
-                onChange={(e) => setCreateOwnerEmail(e.target.value)}
-              />
+              <Popover open={ownerPickerOpen} onOpenChange={setOwnerPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Input
+                    id="tenant-owner-email"
+                    type="email"
+                    placeholder="Search by name or email…"
+                    value={createOwnerEmail}
+                    onChange={(e) => {
+                      setCreateOwnerEmail(e.target.value);
+                      setOwnerQuery(e.target.value);
+                      setOwnerPickerOpen(true);
+                    }}
+                    onFocus={() => {
+                      if (createOwnerEmail.trim().length >= 2) setOwnerPickerOpen(true);
+                    }}
+                    autoComplete="off"
+                  />
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-[--radix-popover-trigger-width] p-0"
+                  align="start"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                >
+                  <Command shouldFilter={false}>
+                    <CommandList>
+                      {ownerQueryDebounced.length < 2 ? (
+                        <p className="px-4 py-2.5 text-center text-xs text-muted-foreground">
+                          Type at least 2 characters…
+                        </p>
+                      ) : ownerCandidates.isFetching ? (
+                        <p className="px-4 py-2.5 text-center text-xs text-muted-foreground">Searching…</p>
+                      ) : ownerCandidates.isError ? (
+                        <p className="px-4 py-2.5 text-center text-xs text-destructive">
+                          {ownerCandidates.error instanceof Error
+                            ? ownerCandidates.error.message
+                            : "Error searching users"}
+                        </p>
+                      ) : (
+                        <>
+                          <CommandEmpty>No matching user found.</CommandEmpty>
+                          <CommandGroup>
+                            {(Array.isArray(ownerCandidates.data) ? ownerCandidates.data : []).map(
+                              (u) => (
+                                <CommandItem
+                                  key={u.id}
+                                  value={`${u.name} ${u.email} ${u.id}`}
+                                  onSelect={() => {
+                                    setCreateOwnerEmail(u.email);
+                                    setOwnerQuery(u.email);
+                                    setOwnerPickerOpen(false);
+                                  }}
+                                >
+                                  <div className="min-w-0">
+                                    <div className="truncate text-sm">{u.name}</div>
+                                    <div className="truncate text-xs text-muted-foreground">
+                                      {u.email}
+                                    </div>
+                                  </div>
+                                </CommandItem>
+                              ),
+                            )}
+                          </CommandGroup>
+                        </>
+                      )}
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
               <p className="text-xs text-muted-foreground">
                 Must match an existing user account in this app.
               </p>
@@ -445,7 +543,7 @@ function RowMenu({ tenantId, status, slug }: { tenantId: string; status: string;
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="w-8 h-8">
+          <Button variant="outline" size="icon">
             <MoreHorizontal className="w-4 h-4" />
           </Button>
         </DropdownMenuTrigger>

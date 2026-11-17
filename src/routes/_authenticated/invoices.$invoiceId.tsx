@@ -324,7 +324,7 @@ function InvoiceDetail() {
                       </div>
                       <Button
                         size="icon"
-                        variant="ghost"
+                        variant="outline"
                         onClick={async () => {
                           if (!confirm("Delete this payment record?")) return;
                           try {

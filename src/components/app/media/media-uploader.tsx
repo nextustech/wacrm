@@ -140,9 +140,8 @@ export function MediaUploader({
               </div>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="icon"
-                className="h-5 w-5"
                 onClick={() => setTasks((tasks) => tasks.filter((x) => x.id !== t.id))}
                 aria-label="Dismiss"
               >

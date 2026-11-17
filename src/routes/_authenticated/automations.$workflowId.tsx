@@ -196,7 +196,7 @@ function DegradedAccessNotice({ reason }: { reason: Exclude<DegradedReason, null
         <Button
           size="sm"
           variant="outline"
-          className="h-7 text-xs"
+          className="text-xs"
           disabled={rechecking}
           onClick={async () => {
             setRechecking(true);
@@ -216,8 +216,7 @@ function DegradedAccessNotice({ reason }: { reason: Exclude<DegradedReason, null
         </Button>
         <Button
           size="icon"
-          variant="ghost"
-          className="h-9 w-9"
+          variant="outline"
           aria-label="Dismiss connection notice"
           onClick={() => setDismissed(true)}
         >

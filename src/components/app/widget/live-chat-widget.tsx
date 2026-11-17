@@ -33,6 +33,9 @@ import {
 import { useWidgetRealtime } from "@/lib/widget/use-widget-realtime";
 import { useMediaLightbox } from "@/components/ui/media-lightbox";
 import { useBrandName } from "@/hooks/use-brand-name";
+import { FormattedText } from "@/components/app/inbox/formatted-text";
+import { LinkPreviewCard, type LinkPreviewData } from "@/components/app/inbox/link-preview-card";
+import { extractFirstUrl } from "@/lib/inbox/rich-text";
 
 interface WidgetAttachment {
   url: string;
@@ -238,10 +241,33 @@ export function LiveChatWidget({
   onToggleMaximize,
   onClose,
 }: Props) {
+  // Maximized spans the whole browser window, where full-bleed rows strand the
+  // bubbles against opposite edges — keep the conversation in a readable column.
+  const columnCls = isMaximized ? "mx-auto w-full max-w-3xl" : "";
   const brandName = useBrandName();
   const [bot, setBot] = useState<WidgetBotMeta | null>(null);
   const [session, setSession] = useState<{ sessionId: string; visitorToken: string } | null>(() =>
     readSession(chatbotId),
+  );
+  // No session yet → nothing to preview; `/api/public/widget/link-preview`
+  // requires one (defense against being called as an open fetch-any-url
+  // endpoint — see that route's own comment).
+  const linkPreviewFetcher = useCallback(
+    async (url: string): Promise<LinkPreviewData> => {
+      if (!session) return { status: "error", url };
+      try {
+        const res = await fetch("/api/public/widget/link-preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId: session.sessionId, visitorToken: session.visitorToken, url }),
+        });
+        if (!res.ok) return { status: "error", url };
+        return (await res.json()) as LinkPreviewData;
+      } catch {
+        return { status: "error", url };
+      }
+    },
+    [session],
   );
   const [messages, setMessages] = useState<WidgetMessage[]>([]);
   const [draft, setDraft] = useState("");
@@ -964,7 +990,7 @@ export function LiveChatWidget({
     >
       {/* Header */}
       <header
-        className="flex items-center justify-between gap-3 px-4 py-3 text-white"
+        className="flex shrink-0 items-center justify-between gap-3 px-4 py-3 text-white"
         style={{ backgroundColor: accent }}
       >
         <div className="flex min-w-0 items-center gap-2">
@@ -1070,7 +1096,7 @@ export function LiveChatWidget({
         </div>
       </header>
 
-      <div className="h-full flex flex-col border-x border-border">
+      <div className="flex min-h-0 flex-1 flex-col border-x border-border">
         {/* My conversations: past chats of this visitor. Picking one reopens it. */}
         {conversationsOpen && (
           <div className="max-h-64 overflow-y-auto border-b border-border bg-surface">
@@ -1106,7 +1132,7 @@ export function LiveChatWidget({
                     })}
                     {current ? " · current" : ""}
                   </span>
-                  <span className="w-full truncate text-xs text-muted-foreground">
+                  <span className="w-full truncate text-sm text-muted-foreground">
                     {c.lastMessage ?? "No messages yet"}
                   </span>
                 </button>
@@ -1218,7 +1244,7 @@ export function LiveChatWidget({
         {/* Transcript */}
         <div
           ref={scrollRef}
-          className={`relative flex-1 space-y-3 overflow-y-auto px-4 py-4 ${
+          className={`relative flex-1 space-y-3 overflow-y-auto px-4 py-4 ${columnCls} ${
             compact
               ? "bg-[radial-gradient(circle_at_1px_1px,hsl(var(--muted-foreground)/0.12)_1px,transparent_0)] [background-size:20px_20px]"
               : ""
@@ -1234,7 +1260,7 @@ export function LiveChatWidget({
           )}
 
           {messages.map((m) => (
-            <MessageBubble key={m.id} message={m} accent={accent} />
+            <MessageBubble key={m.id} message={m} accent={accent} linkPreviewFetcher={linkPreviewFetcher} />
           ))}
 
           {((status === "typing" && !handoff) || agentTyping) && (
@@ -1276,7 +1302,7 @@ export function LiveChatWidget({
 
         {/* Quick replies */}
         {quickReplies.length > 0 && !handoff && (
-          <div className="flex flex-wrap gap-1.5 border-t border-border px-3 py-2">
+          <div className={`flex flex-wrap gap-1.5 border-t border-border px-3 py-2 ${columnCls}`}>
             {quickReplies.map((q) => (
               <button
                 key={q}
@@ -1394,7 +1420,7 @@ export function LiveChatWidget({
               e.preventDefault();
               void sendMessage(draft, pendingAttachments);
             }}
-            className="flex items-end gap-1 border-t border-border bg-background px-2 py-2 sm:px-3 sm:py-3"
+            className={`flex items-end gap-1 border-t border-border bg-background px-2 py-2 sm:px-3 sm:py-3 ${columnCls}`}
           >
             <input
               ref={fileInputRef}
@@ -1599,7 +1625,15 @@ export function LiveChatWidget({
   );
 }
 
-function MessageBubble({ message, accent }: { message: WidgetMessage; accent: string }) {
+function MessageBubble({
+  message,
+  accent,
+  linkPreviewFetcher,
+}: {
+  message: WidgetMessage;
+  accent: string;
+  linkPreviewFetcher: (url: string) => Promise<LinkPreviewData>;
+}) {
   const isUser = message.role === "user";
   return (
     <div
@@ -1620,7 +1654,13 @@ function MessageBubble({ message, accent }: { message: WidgetMessage; accent: st
             ))}
           </div>
         )}
-        {message.content && <div>{message.content}</div>}
+        {message.content && <FormattedText text={message.content} />}
+        {message.content && (
+          <LinkPreviewCard
+            url={extractFirstUrl(message.content)}
+            fetcher={linkPreviewFetcher}
+          />
+        )}
         {isUser && message.status && (
           <div className="mt-1 flex items-center justify-end gap-0.5 text-[11px] opacity-80">
             {message.status === "queued" && (

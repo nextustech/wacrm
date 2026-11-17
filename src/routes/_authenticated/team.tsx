@@ -391,7 +391,7 @@ function MemberRow({
         </div>
         <div className="min-w-0">
           <div className="truncate text-sm font-medium">{m.display_name ?? "Unnamed"}</div>
-          <div className="truncate text-xs text-muted-foreground md:hidden">{m.email ?? "—"}</div>
+          <div className="truncate text-sm text-muted-foreground md:hidden">{m.email ?? "—"}</div>
         </div>
       </div>
       <div className="hidden md:block truncate text-sm text-muted-foreground">{m.email ?? "—"}</div>
@@ -442,7 +442,7 @@ function MemberRow({
         {canActOn && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9">
+              <Button variant="outline" size="icon">
                 <MoreHorizontal className="h-4 w-4" />
                 <span className="sr-only">Member actions</span>
               </Button>
@@ -784,7 +784,7 @@ function InvitationAuditLog({ workspaceId }: { workspaceId: string }) {
                     <span className="font-medium">{c.email ?? "—"}</span>
                     {c.role && <span className="text-muted-foreground"> · {c.role}</span>}
                   </div>
-                  <div className="truncate text-xs text-muted-foreground">
+                  <div className="truncate text-sm text-muted-foreground">
                     by {inviterLabel}
                     {c.from_status && c.to_status && ` · ${c.from_status} → ${c.to_status}`}
                   </div>

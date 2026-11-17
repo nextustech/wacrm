@@ -135,7 +135,7 @@ function NoteComposer({ conversation }: { conversation: ConversationRow }) {
           <Button
             variant={pin ? "default" : "ghost"}
             size="sm"
-            className="h-7 gap-1.5"
+            className="gap-1.5"
             onClick={() => setPin((v) => !v)}
             type="button"
           >
@@ -152,7 +152,7 @@ function NoteComposer({ conversation }: { conversation: ConversationRow }) {
           size="sm"
           onClick={submit}
           disabled={!body.trim() || create.isPending}
-          className="h-7 gap-1.5"
+          className="gap-1.5"
         >
           <Send className="h-3.5 w-3.5" />
           Post note
@@ -222,7 +222,7 @@ function NoteItem({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-6 w-6 -mr-1">
+            <Button variant="outline" size="icon" className="-mr-1">
               <MoreHorizontal className="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
@@ -278,7 +278,6 @@ function NoteItem({
             <Button
               variant="ghost"
               size="sm"
-              className="h-7"
               onClick={() => {
                 setDraft(note.body);
                 setEditing(false);
@@ -288,7 +287,6 @@ function NoteItem({
             </Button>
             <Button
               size="sm"
-              className="h-7"
               onClick={async () => {
                 await update.mutateAsync({ id: note.id, body: draft.trim() });
                 setEditing(false);
@@ -372,7 +370,7 @@ function PeopleSection({ conversation }: { conversation: ConversationRow }) {
           </div>
           <Popover open={assignOpen} onOpenChange={setAssignOpen}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 gap-1.5">
+              <Button variant="ghost" size="sm" className="gap-1.5">
                 <ArrowRightLeft className="h-3.5 w-3.5" />
                 {currentAssignee ? "Reassign" : "Assign"}
               </Button>
@@ -452,7 +450,7 @@ function PeopleSection({ conversation }: { conversation: ConversationRow }) {
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1.5"
+                className="gap-1.5"
                 disabled={availableToAdd.length === 0}
               >
                 <UserPlus className="h-3.5 w-3.5" />
@@ -525,9 +523,8 @@ function PeopleSection({ conversation }: { conversation: ConversationRow }) {
                     </div>
                   </div>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className="h-6 w-6"
                     onClick={() => removeP.mutate(p.id)}
                     aria-label="Remove"
                   >

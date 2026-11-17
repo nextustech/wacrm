@@ -98,7 +98,7 @@ function DashboardPage() {
             onClick={() => nav({ to: "/companies" })}
           />
           <QuickAction icon={Handshake} label="New Deal" onClick={() => nav({ to: "/deals" })} />
-          <QuickAction icon={Calendar} label="New Task" onClick={() => nav({ to: "/tasks" })} />
+          <QuickAction icon={Calendar} label="New Task" onClick={() => nav({ to: "/tasks", search: { taskId: undefined } })} />
           <QuickAction
             icon={MessagesSquare}
             label="Open Inbox"
@@ -382,7 +382,7 @@ function DashboardPage() {
           <div id="dashboard-upcoming-tasks">
             <Widget title="Upcoming Tasks" subtitle="CRM and project work, sorted by due date" icon={Calendar}>
               <div className="flex flex-wrap gap-3 border-b border-border/60 px-4 py-2 text-xs">
-                {!!tasks.data?.crmUpcomingCount && <Link to="/tasks" className="text-accent hover:underline">View CRM tasks ({tasks.data.crmUpcomingCount})</Link>}
+                {!!tasks.data?.crmUpcomingCount && <Link to="/tasks" search={{ taskId: undefined }} className="text-accent hover:underline">View CRM tasks ({tasks.data.crmUpcomingCount})</Link>}
                 {!!tasks.data?.projectUpcomingCount && <Link to="/projects/tasks" className="text-accent hover:underline">View Project tasks ({tasks.data.projectUpcomingCount})</Link>}
                 <Link to="/settings/task-reminders" className="text-accent hover:underline">Reminder settings</Link>
               </div>

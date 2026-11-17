@@ -410,7 +410,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: Props) {
                     <Button
                       type="button"
                       size="icon"
-                      variant={p.is_primary ? "default" : "ghost"}
+                      variant={p.is_primary ? "default" : "outline"}
                       onClick={() => setPrimaryPhone(i)}
                       title="Primary"
                     >
@@ -419,7 +419,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: Props) {
                     <Button
                       type="button"
                       size="icon"
-                      variant="ghost"
+                      variant="outline"
                       aria-label={`Remove phone ${i + 1}`}
                       onClick={() => rmPhone(i)}
                     >
@@ -455,7 +455,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: Props) {
                     <Button
                       type="button"
                       size="icon"
-                      variant={e.is_primary ? "default" : "ghost"}
+                      variant={e.is_primary ? "default" : "outline"}
                       onClick={() => setPrimaryEmail(i)}
                     >
                       <Star className="w-3.5 h-3.5" />
@@ -463,7 +463,7 @@ export function ContactFormDialog({ open, onOpenChange, contact }: Props) {
                     <Button
                       type="button"
                       size="icon"
-                      variant="ghost"
+                      variant="outline"
                       aria-label={`Remove email ${i + 1}`}
                       onClick={() => rmEmail(i)}
                     >

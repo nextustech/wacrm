@@ -5,6 +5,7 @@ import { NODE_REGISTRY_BY_TYPE, type FieldSchema } from "@/lib/workflows/node-re
 import type { WorkflowNode } from "@/lib/workflows/types";
 import { supabase } from "@/integrations/supabase/client";
 import { readActiveWorkspaceId } from "@/lib/tenant/active-tenant";
+import { useAiProviderOptions } from "@/hooks/use-ai-settings";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -239,6 +240,44 @@ function ReferenceSelect({
   );
 }
 
+/** Model list for AI nodes, read from the workspace's own providers rather than
+ *  a hardcoded list that goes stale when a vendor retires a model. */
+function ModelSelectField({
+  value,
+  onChange,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  className: string;
+}) {
+  const workspaceId = readActiveWorkspaceId() ?? "";
+  const { data: providers, isLoading } = useAiProviderOptions(workspaceId || undefined);
+  const groups = (providers ?? []).filter((p) => p.models.length > 0);
+  const known = groups.some((p) => p.models.some((m) => m.id === value));
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={className}
+      disabled={isLoading}
+    >
+      <option value="">{isLoading ? "Loading" : "Workspace default"}</option>
+      {/* A model saved before it was retired stays visible instead of reading as blank. */}
+      {value && !known && <option value={value}>{value} · unavailable</option>}
+      {groups.map((p) => (
+        <optgroup key={p.id} label={p.name}>
+          {p.models.map((m) => (
+            <option key={`${p.id}:${m.id}`} value={m.id}>
+              {m.label}
+            </option>
+          ))}
+        </optgroup>
+      ))}
+    </select>
+  );
+}
+
 function FieldEditor({
   field,
   value,
@@ -307,6 +346,8 @@ function FieldEditor({
             className={cls}
           />
         );
+      case "model":
+        return <ModelSelectField value={str} onChange={onChange} className={cls} />;
       case "select": {
         const known = field.options?.some((o) => o.value === str) ?? true;
         return (

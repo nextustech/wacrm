@@ -1,9 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppTopbar } from "@/components/app/app-topbar";
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, Keyboard, Volume2, VolumeX, X } from "lucide-react";
+import { MessageSquare, Keyboard, Volume2, VolumeX, X, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ConversationList } from "@/components/app/inbox/conversation-list";
 import type { ConversationListAction } from "@/components/app/inbox/conversation-list-item";
 import { ChannelIcon } from "@/components/app/inbox/channel-icon";
@@ -34,9 +33,18 @@ import {
 import { conversationMatchesScope } from "@/lib/inbox/conversation-scope";
 
 import { KeyboardShortcutsDialog } from "@/components/app/inbox/keyboard-shortcuts-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 import { RealtimeStatusIndicator } from "@/components/app/inbox/realtime-status-indicator";
 import { useInboxKeyboardShortcuts } from "@/hooks/use-inbox-shortcuts";
+import { useRealtimeMessaging } from "@/hooks/use-realtime-messaging";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { ConversationRow } from "@/hooks/use-conversations";
@@ -145,17 +153,14 @@ function SelectedAccountBadge() {
   const channel = account.channel;
 
   return (
-    <Badge
-      variant="secondary"
-      className="hidden sm:inline-flex gap-1.5 pl-1.5 pr-1 py-1 text-xs font-medium"
-    >
+    <div className="mb-2 flex items-center gap-2 text-xs">
       <ChannelIcon
         channel={channel}
         boxed
-        className="h-3.5 w-3.5 rounded-full"
+        className="h-4 w-4 shrink-0 rounded-full"
         iconClassName="h-full w-full"
       />
-      <span className="max-w-[120px] truncate">{account.display_name}</span>
+      <span className="min-w-0 flex-1 truncate font-medium">{account.display_name}</span>
       <button
         type="button"
         onClick={() =>
@@ -164,12 +169,13 @@ function SelectedAccountBadge() {
             replace: true,
           })
         }
-        className="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
+        className="flex shrink-0 items-center gap-1 rounded-sm px-1 py-0.5 text-muted-foreground hover:bg-muted  hover:text-accent-foreground"
         aria-label="Clear account filter"
       >
         <X className="h-3 w-3" />
+        Clear
       </button>
-    </Badge>
+    </div>
   );
 }
 
@@ -404,9 +410,28 @@ function InboxPage() {
       }
       case "resolve": {
         const next = conversation.status !== "resolved";
+        // `status` is 'open' for every thread that was never touched, so it
+        // cannot drive the list marker on its own. "Unsolved" is an explicit
+        // flag the agent sets, the same way starred and pinned work.
         updateConv.mutate(
-          { id: conversation.id, patch: next ? { status: "resolved", resolved_at: new Date().toISOString() } : { status: "open", resolved_at: null } },
-          { onSuccess: () => toast.success(next ? "Marked as resolved" : "Reopened"), onError: reportError },
+          {
+            id: conversation.id,
+            patch: next
+              ? {
+                  status: "resolved",
+                  resolved_at: new Date().toISOString(),
+                  metadata: { ...metadata, unsolved: false },
+                }
+              : {
+                  status: "open",
+                  resolved_at: null,
+                  metadata: { ...metadata, unsolved: true },
+                },
+          },
+          {
+            onSuccess: () => toast.success(next ? "Marked as resolved" : "Marked as unsolved"),
+            onError: reportError,
+          },
         );
         break;
       }
@@ -797,36 +822,61 @@ function InboxPage() {
 function InboxHeaderActions() {
   const [soundOn, setSoundOn] = useState(false);
   useEffect(() => setSoundOn(isInboundSoundEnabled()), []);
+
+  // Just the dot + label logic from RealtimeStatusIndicator, kept here only
+  // so the trigger itself still shows connection state at a glance without
+  // opening the menu — the full indicator (online count, retry queue,
+  // notification permission) lives inside the dropdown below.
+  const { connectionState } = useRealtimeMessaging();
+  const dot =
+    connectionState === "connected"
+      ? "bg-emerald-500"
+      : connectionState === "reconnecting"
+      ? "bg-amber-500 animate-pulse"
+      : connectionState === "offline"
+      ? "bg-destructive"
+      : connectionState === "paused"
+      ? "bg-muted-foreground"
+      : "bg-muted-foreground animate-pulse";
+
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex min-w-0 items-center gap-1">
-        <SelectedAccountBadge />
-        <RealtimeStatusIndicator />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0"
-              aria-label={soundOn ? "Mute inbox sounds" : "Turn on inbox sounds"}
-              aria-pressed={soundOn}
-              onClick={() => { const next = !soundOn; setSoundOn(next); setInboundSoundEnabled(next); }}>
+        <DropdownMenu>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="shrink-0 relative" aria-label="Inbox status and options">
+                  <MoreVertical className="h-4 w-4" />
+                  <span className={cn("absolute right-1 top-1 h-1.5 w-1.5 rounded-full", dot)} />
+                </Button>
+              </DropdownMenuTrigger>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Inbox status &amp; options</TooltipContent>
+          </Tooltip>
+          <DropdownMenuContent align="end" className="w-64">
+            <DropdownMenuLabel className="pb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Status
+            </DropdownMenuLabel>
+            <div className="px-2 pb-2">
+              <SelectedAccountBadge />
+              <RealtimeStatusIndicator flat />
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => { const next = !soundOn; setSoundOn(next); setInboundSoundEnabled(next); }}
+            >
               {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent className="text-xs">{soundOn ? "Inbox sounds on" : "Inbox sounds off"}</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              aria-label="Keyboard shortcuts"
+              {soundOn ? "Mute inbox sounds" : "Turn on inbox sounds"}
+            </DropdownMenuItem>
+            <DropdownMenuItem
               onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "?" }))}
             >
               <Keyboard className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent className="text-xs">Shortcuts · ?</TooltipContent>
-        </Tooltip>
+              Keyboard shortcuts
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </TooltipProvider>
   );

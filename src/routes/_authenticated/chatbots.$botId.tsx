@@ -25,6 +25,7 @@ import { useZonedDateFormatter } from "@/hooks/use-timezone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ModelSelect } from "@/components/app/ai/model-select";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextarea } from "@/shared/components/rich-textarea";
 import { Switch } from "@/components/ui/switch";
@@ -222,7 +223,7 @@ function ChatbotEditorPage() {
               />
               <Button
                 size="icon"
-                variant="ghost"
+                variant="outline"
                 onClick={submitRename}
                 disabled={renameMut.isPending}
                 aria-label="Save name"
@@ -235,7 +236,7 @@ function ChatbotEditorPage() {
               </Button>
               <Button
                 size="icon"
-                variant="ghost"
+                variant="outline"
                 onClick={() => setEditingName(false)}
                 aria-label="Cancel"
               >
@@ -529,7 +530,7 @@ function GeneralTab({ bot, onSaved }: { bot: Chatbot; onSaved: () => void }) {
 
 function AITab({ bot, onSaved }: { bot: Chatbot; onSaved: () => void }) {
   const [systemPrompt, setSystemPrompt] = useState(bot.system_prompt);
-  const [model, setModel] = useState(bot.model ?? "google/gemini-2.5-flash");
+  const [model, setModel] = useState(bot.model ?? "google/gemini-3.8-flash");
   const [temperature, setTemperature] = useState(Number(bot.temperature));
   const [maxTokens, setMaxTokens] = useState(bot.max_tokens);
   const [ragEnabled, setRagEnabled] = useState(bot.rag_enabled);
@@ -582,13 +583,14 @@ function AITab({ bot, onSaved }: { bot: Chatbot; onSaved: () => void }) {
         </div>
         <div>
           <Label>Model</Label>
-          <Input
+          <ModelSelect
+            workspaceId={bot.workspace_id}
+            providerId={bot.provider_id}
             value={model}
-            onChange={(e) => setModel(e.target.value)}
-            placeholder="google/gemini-2.5-flash"
+            onChange={setModel}
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            Any supported provider model. Uses your workspace's default AI provider.
+            Models enabled on your workspace's AI providers.
           </p>
         </div>
         <div>

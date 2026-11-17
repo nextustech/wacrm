@@ -99,10 +99,10 @@ export function TicketRelationshipsPanel({ ticketId }: { ticketId: string }) {
                       <div key={e.id} className="flex items-center justify-between rounded border px-2 py-1.5 text-sm">
                         <div className="min-w-0">
                           <div className="truncate font-medium">{e.label}</div>
-                          {e.sub && <div className="truncate text-xs text-muted-foreground">{e.sub}</div>}
+                          {e.sub && <div className="truncate text-sm text-muted-foreground">{e.sub}</div>}
                         </div>
                         {linkId && (
-                          <Button size="icon" variant="ghost" onClick={() => unlink.mutate(linkId)}>
+                          <Button size="icon" variant="outline" onClick={() => unlink.mutate(linkId)}>
                             <X className="h-3 w-3" />
                           </Button>
                         )}
@@ -134,7 +134,7 @@ export function TicketRelationshipsPanel({ ticketId }: { ticketId: string }) {
                     <Badge variant="outline" className="text-[11px]">{t.kind}</Badge>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm">{t.title}</div>
-                      {t.sub && <div className="truncate text-xs text-muted-foreground">{t.sub}</div>}
+                      {t.sub && <div className="truncate text-sm text-muted-foreground">{t.sub}</div>}
                       <div className="text-[11px] text-muted-foreground">
                         {t.at ? formatDistanceToNow(new Date(t.at), { addSuffix: true }) : ""}
                       </div>
@@ -173,7 +173,7 @@ function AddLinkDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" variant="outline" className="h-7">
+        <Button size="sm" variant="outline">
           <Plus className="h-3 w-3 " /> Link
         </Button>
       </DialogTrigger>
@@ -202,7 +202,7 @@ function AddLinkDialog({
                   }}
                 >
                   <div className="truncate font-medium">{r.label}</div>
-                  {r.sub && <div className="truncate text-xs text-muted-foreground">{r.sub}</div>}
+                  {r.sub && <div className="truncate text-sm text-muted-foreground">{r.sub}</div>}
                 </button>
               ))}
               {(results.data?.length ?? 0) === 0 && (

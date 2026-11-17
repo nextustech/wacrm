@@ -49,7 +49,7 @@ function CodeBlock({ code, lang = "html", label }: { code: string; lang?: string
           <span className="text-[#B1A7A6]">{label || lang.toUpperCase()}</span>
           <Badge variant="secondary" className="h-5 bg-white/10 text-white/80 hover:bg-white/10 border-0">{lang}</Badge>
         </div>
-        <Button size="sm" variant="ghost" className="h-7 text-white/80 hover:text-white hover:bg-white/10" onClick={doCopy}>
+        <Button size="sm" variant="ghost" className="text-white/80 hover:text-white hover:bg-white/10" onClick={doCopy}>
           {copied ? <Check className="h-3.5 w-3.5 " /> : <Copy className="h-3.5 w-3.5 " />}
           {copied ? "Copied" : "Copy"}
         </Button>

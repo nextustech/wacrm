@@ -23,7 +23,7 @@ interface InfoCardDescriptionProps extends React.HTMLAttributes<HTMLDivElement> 
 
 const InfoCardTitle = React.memo(({ children, className, ...props }: InfoCardTitleProps) => {
   return (
-    <div className={cn("font-medium mb-1", className)} {...props}>
+    <div className={cn("font-heading font-medium mb-1", className)} {...props}>
       {children}
     </div>
   );

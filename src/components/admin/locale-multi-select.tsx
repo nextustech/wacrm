@@ -72,7 +72,7 @@ export function LocaleMultiSelect({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 px-2 text-xs"
+              className="text-xs"
               onClick={() => onChange([])}
             >
               Clear

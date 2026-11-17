@@ -94,7 +94,7 @@ export function AdvancedSearchDialog({
                       <div className="flex-1 min-w-0">
                         <div className="truncate text-sm">{h.title || "Untitled"}</div>
                         {h.snippet && (
-                          <div className="truncate text-xs text-muted-foreground">
+                          <div className="truncate text-sm text-muted-foreground">
                             {h.snippet}
                           </div>
                         )}

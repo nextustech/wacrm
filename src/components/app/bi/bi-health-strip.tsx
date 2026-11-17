@@ -54,7 +54,7 @@ export function BiHealthStrip({ workspaceId }: Props) {
             <div className="min-w-0">
               <p className="text-[11px] uppercase text-muted-foreground">{s.label}</p>
               <p className="mt-0.5 truncate text-sm font-semibold">{s.value}</p>
-              {s.hint && <p className="mt-0.5 truncate text-xs text-muted-foreground">{s.hint}</p>}
+              {s.hint && <p className="mt-0.5 truncate text-sm text-muted-foreground">{s.hint}</p>}
             </div>
           </CardContent>
         </Card>

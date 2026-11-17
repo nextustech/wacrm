@@ -211,7 +211,7 @@ export function FileDropzone({
               </div>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="icon"
                 onClick={() => remove(f.id)}
                 aria-label={`Remove ${f.file.name}`}

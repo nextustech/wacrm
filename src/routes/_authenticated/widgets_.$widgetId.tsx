@@ -764,7 +764,7 @@ function WidgetDetailPage() {
                                   />
                                 )}
                                 <Button
-                                  variant="ghost"
+                                  variant="outline"
                                   size="icon"
                                   aria-label="Remove"
                                   onClick={() =>
@@ -803,7 +803,7 @@ function WidgetDetailPage() {
                         </div>
                       </div>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
                         aria-label="Delete rule"
                         onClick={() => setRules(rules.filter((_, i) => i !== ri))}

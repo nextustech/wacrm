@@ -87,10 +87,22 @@ export function useExternalChannelAccounts(workspaceId: string | undefined) {
     staleTime: 30_000,
     queryFn: async (): Promise<ChannelAccountRow[]> => {
       const base = "id, workspace_id, status, status_reason, metadata, last_verified_at, created_at, updated_at";
-      const [tg, ms, ig, em, sm, so, tt] = await Promise.all([
+      const [tg, vb, ln, wc, ms, ig, em, sm, so, tt, qr] = await Promise.all([
         supabase
           .from("telegram_accounts")
           .select(`${base}, bot_name, bot_username, bot_id`)
+          .eq("workspace_id", workspaceId!),
+        sbAny(supabase)
+          .from("viber_accounts")
+          .select(`${base}, bot_name, bot_uri, bot_id`)
+          .eq("workspace_id", workspaceId!),
+        sbAny(supabase)
+          .from("line_accounts")
+          .select(`${base}, display_name, basic_id, bot_user_id`)
+          .eq("workspace_id", workspaceId!),
+        sbAny(supabase)
+          .from("wechat_accounts")
+          .select(`${base}, account_name, original_id, app_id`)
           .eq("workspace_id", workspaceId!),
         supabase
           .from("messenger_accounts")
@@ -121,13 +133,25 @@ export function useExternalChannelAccounts(workspaceId: string | undefined) {
           .select("id, workspace_id, business_id, username, display_name, status, last_error, created_at, updated_at")
           .eq("workspace_id", workspaceId!)
           .neq("status", "disconnected"),
+        sbAny(supabase)
+          .from("whatsapp_qr_sessions")
+          .select(
+            "id, workspace_id, status, phone_number, display_name, device_platform, error_message, last_seen_at, connected_at, created_at, updated_at",
+          )
+          .eq("workspace_id", workspaceId!)
+          // Only sessions that have ever linked a phone; pending QR dialogs
+          // and revoked sessions are managed from the QR panel, not the inbox.
+          .in("status", ["connected", "disconnected", "error"])
+          .not("phone_number", "is", null),
       ]);
 
       // Social comment channels are additive: never let them hide the others.
-      const firstError = tg.error ?? ms.error ?? ig.error ?? em.error ?? sm.error;
+      const firstError =
+        tg.error ?? vb.error ?? ln.error ?? wc.error ?? ms.error ?? ig.error ?? em.error ?? sm.error;
       if (firstError) throw firstError;
       if (so.error) console.warn("[external-accounts] social_channels:", so.error.message);
       if (tt.error) console.warn("[external-accounts] tiktok_business_accounts:", tt.error.message);
+      if (qr.error) console.warn("[external-accounts] whatsapp_qr_sessions:", qr.error.message);
 
       const out: ChannelAccountRow[] = [];
 
@@ -148,6 +172,39 @@ export function useExternalChannelAccounts(workspaceId: string | undefined) {
         out.push(
           shape("telegram", "telegram", r, r.bot_name?.trim() || r.bot_username || "Telegram bot",
             r.bot_username ? `@${r.bot_username.replace(/^@/, "")}` : null),
+        );
+      }
+
+      for (const r of ((vb.data ?? []) as unknown) as (BaseRow & {
+        bot_name: string | null;
+        bot_uri: string | null;
+        bot_id: string | null;
+      })[]) {
+        out.push(
+          shape("viber", "viber", r, r.bot_name?.trim() || "Viber bot",
+            r.bot_uri ? `viber.com/${r.bot_uri}` : r.bot_id),
+        );
+      }
+
+      for (const r of ((ln.data ?? []) as unknown) as (BaseRow & {
+        display_name: string | null;
+        basic_id: string | null;
+        bot_user_id: string | null;
+      })[]) {
+        out.push(
+          shape("line", "line", r, r.display_name?.trim() || "LINE account",
+            r.basic_id || r.bot_user_id),
+        );
+      }
+
+      for (const r of ((wc.data ?? []) as unknown) as (BaseRow & {
+        account_name: string | null;
+        original_id: string | null;
+        app_id: string | null;
+      })[]) {
+        out.push(
+          shape("wechat", "wechat", r, r.account_name?.trim() || "WeChat account",
+            r.original_id || r.app_id),
         );
       }
 
@@ -256,6 +313,36 @@ export function useExternalChannelAccounts(workspaceId: string | undefined) {
       })[]) {
         out.push(
           shape("sms", providerFor("sms", r.provider), r, r.display_name?.trim() || r.phone_number || "SMS number",
+            r.phone_number),
+        );
+      }
+
+      for (const r of (qr.data ?? []) as Array<{
+        id: string;
+        workspace_id: string;
+        status: string | null;
+        phone_number: string | null;
+        display_name: string | null;
+        device_platform: string | null;
+        error_message: string | null;
+        last_seen_at: string | null;
+        connected_at: string | null;
+        created_at: string;
+        updated_at: string;
+      }>) {
+        const row: BaseRow = {
+          id: r.id,
+          workspace_id: r.workspace_id,
+          status: r.status,
+          status_reason: r.error_message,
+          metadata: null,
+          last_verified_at: r.last_seen_at ?? r.connected_at,
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+        };
+        out.push(
+          shape("whatsapp", "whatsapp_qr", row,
+            r.display_name?.trim() || r.phone_number || "WhatsApp (QR)",
             r.phone_number),
         );
       }

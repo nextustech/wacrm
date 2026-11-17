@@ -129,6 +129,7 @@ import { Route as LegalPrivacyRouteImport } from './routes/legal.privacy'
 import { Route as LegalPrivacyPolicyRouteImport } from './routes/legal.privacy-policy'
 import { Route as LegalTermsRouteImport } from './routes/legal.terms'
 import { Route as LegalTermsOfServiceRouteImport } from './routes/legal.terms-of-service'
+import { Route as OnboardingOrganizationRouteImport } from './routes/onboarding.organization'
 import { Route as PayTokenRouteImport } from './routes/pay.$token'
 import { Route as QTokenRouteImport } from './routes/q.$token'
 import { Route as STokenRouteImport } from './routes/s.$token'
@@ -272,6 +273,7 @@ import { Route as AuthenticatedWhatsappTemplatesCreateRouteImport } from './rout
 import { Route as AuthenticatedWhatsappTemplatesDraftsRouteImport } from './routes/_authenticated/whatsapp-templates.drafts'
 import { Route as AuthenticatedWidgetsWidgetIdRouteImport } from './routes/_authenticated/widgets_.$widgetId'
 import { Route as ApiAiConversationStreamRouteImport } from './routes/api/ai/conversation-stream'
+import { Route as ApiAiReplyStreamRouteImport } from './routes/api/ai/reply-stream'
 import { Route as ApiMobileAiRouteImport } from './routes/api/mobile/ai'
 import { Route as ApiMobileAiReplyRouteImport } from './routes/api/mobile/ai-reply'
 import { Route as ApiMobileAiSttRouteImport } from './routes/api/mobile/ai-stt'
@@ -350,6 +352,7 @@ import { Route as ApiPublicHooksCleanupMediaRouteImport } from './routes/api/pub
 import { Route as ApiPublicHooksDispatchActivityRemindersRouteImport } from './routes/api/public/hooks/dispatch-activity-reminders'
 import { Route as ApiPublicHooksDripTickRouteImport } from './routes/api/public/hooks/drip-tick'
 import { Route as ApiPublicHooksFlushScheduledMessagesRouteImport } from './routes/api/public/hooks/flush-scheduled-messages'
+import { Route as ApiPublicHooksGmailSyncRouteImport } from './routes/api/public/hooks/gmail-sync'
 import { Route as ApiPublicHooksProcessExportsRouteImport } from './routes/api/public/hooks/process-exports'
 import { Route as ApiPublicHooksProcessOutboxRouteImport } from './routes/api/public/hooks/process-outbox'
 import { Route as ApiPublicHooksProcessScheduledRouteImport } from './routes/api/public/hooks/process-scheduled'
@@ -398,6 +401,7 @@ import { Route as ApiPublicWidgetConversationsRouteImport } from './routes/api/p
 import { Route as ApiPublicWidgetEmbedRouteImport } from './routes/api/public/widget/embed'
 import { Route as ApiPublicWidgetHealthRouteImport } from './routes/api/public/widget/health'
 import { Route as ApiPublicWidgetHistoryRouteImport } from './routes/api/public/widget/history'
+import { Route as ApiPublicWidgetLinkPreviewRouteImport } from './routes/api/public/widget/link-preview'
 import { Route as ApiPublicWidgetRateRouteImport } from './routes/api/public/widget/rate'
 import { Route as ApiPublicWidgetSessionRouteImport } from './routes/api/public/widget/session'
 import { Route as ApiPublicWidgetStatusRouteImport } from './routes/api/public/widget/status'
@@ -413,13 +417,17 @@ import { Route as ApiPublicBookingGoogleCalendarCallbackRouteImport } from './ro
 import { Route as ApiPublicBookingMicrosoftCalendarCallbackRouteImport } from './routes/api/public/booking.microsoft-calendar.callback'
 import { Route as ApiPublicHooksBillingAutomationRouteImport } from './routes/api/public/hooks/billing.automation'
 import { Route as ApiPublicHooksBillingRollupRouteImport } from './routes/api/public/hooks/billing.rollup'
+import { Route as ApiPublicIntegrationsGmailChannelCallbackRouteImport } from './routes/api/public/integrations.gmail-channel.callback'
 import { Route as ApiPublicIntegrationsGoogleWorkspaceCallbackRouteImport } from './routes/api/public/integrations.google-workspace.callback'
 import { Route as ApiPublicIntegrationsWebhookInstallIdRouteImport } from './routes/api/public/integrations.webhook.$installId'
 import { Route as ApiPublicV1ContactsIdRouteImport } from './routes/api/public/v1/contacts.$id'
 import { Route as ApiPublicWebhooksBillingProviderRouteImport } from './routes/api/public/webhooks/billing.$provider'
 import { Route as ApiPublicWebhooksEmailAccountIdRouteImport } from './routes/api/public/webhooks/email.$accountId'
+import { Route as ApiPublicWebhooksLineAccountIdRouteImport } from './routes/api/public/webhooks/line.$accountId'
 import { Route as ApiPublicWebhooksSmsTwilioRouteImport } from './routes/api/public/webhooks/sms.twilio'
 import { Route as ApiPublicWebhooksTelegramAccountIdRouteImport } from './routes/api/public/webhooks/telegram.$accountId'
+import { Route as ApiPublicWebhooksViberAccountIdRouteImport } from './routes/api/public/webhooks/viber.$accountId'
+import { Route as ApiPublicWebhooksWechatAccountIdRouteImport } from './routes/api/public/webhooks/wechat.$accountId'
 import { Route as ApiPublicWidgetConfigWidgetIdRouteImport } from './routes/api/public/widget/config.$widgetId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -1054,6 +1062,11 @@ const LegalTermsRoute = LegalTermsRouteImport.update({
 const LegalTermsOfServiceRoute = LegalTermsOfServiceRouteImport.update({
   id: '/legal/terms-of-service',
   path: '/legal/terms-of-service',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingOrganizationRoute = OnboardingOrganizationRouteImport.update({
+  id: '/onboarding/organization',
+  path: '/onboarding/organization',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PayTokenRoute = PayTokenRouteImport.update({
@@ -1902,6 +1915,11 @@ const ApiAiConversationStreamRoute = ApiAiConversationStreamRouteImport.update({
   path: '/api/ai/conversation-stream',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiReplyStreamRoute = ApiAiReplyStreamRouteImport.update({
+  id: '/api/ai/reply-stream',
+  path: '/api/ai/reply-stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMobileAiRoute = ApiMobileAiRouteImport.update({
   id: '/api/mobile/ai',
   path: '/api/mobile/ai',
@@ -2351,6 +2369,11 @@ const ApiPublicHooksFlushScheduledMessagesRoute =
     path: '/api/public/hooks/flush-scheduled-messages',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksGmailSyncRoute = ApiPublicHooksGmailSyncRouteImport.update({
+  id: '/api/public/hooks/gmail-sync',
+  path: '/api/public/hooks/gmail-sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksProcessExportsRoute =
   ApiPublicHooksProcessExportsRouteImport.update({
     id: '/api/public/hooks/process-exports',
@@ -2621,6 +2644,12 @@ const ApiPublicWidgetHistoryRoute = ApiPublicWidgetHistoryRouteImport.update({
   path: '/api/public/widget/history',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicWidgetLinkPreviewRoute =
+  ApiPublicWidgetLinkPreviewRouteImport.update({
+    id: '/api/public/widget/link-preview',
+    path: '/api/public/widget/link-preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWidgetRateRoute = ApiPublicWidgetRateRouteImport.update({
   id: '/api/public/widget/rate',
   path: '/api/public/widget/rate',
@@ -2705,6 +2734,12 @@ const ApiPublicHooksBillingRollupRoute =
     path: '/api/public/hooks/billing/rollup',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicIntegrationsGmailChannelCallbackRoute =
+  ApiPublicIntegrationsGmailChannelCallbackRouteImport.update({
+    id: '/api/public/integrations/gmail-channel/callback',
+    path: '/api/public/integrations/gmail-channel/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicIntegrationsGoogleWorkspaceCallbackRoute =
   ApiPublicIntegrationsGoogleWorkspaceCallbackRouteImport.update({
     id: '/api/public/integrations/google-workspace/callback',
@@ -2734,6 +2769,12 @@ const ApiPublicWebhooksEmailAccountIdRoute =
     path: '/api/public/webhooks/email/$accountId',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWebhooksLineAccountIdRoute =
+  ApiPublicWebhooksLineAccountIdRouteImport.update({
+    id: '/api/public/webhooks/line/$accountId',
+    path: '/api/public/webhooks/line/$accountId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWebhooksSmsTwilioRoute =
   ApiPublicWebhooksSmsTwilioRouteImport.update({
     id: '/api/public/webhooks/sms/twilio',
@@ -2744,6 +2785,18 @@ const ApiPublicWebhooksTelegramAccountIdRoute =
   ApiPublicWebhooksTelegramAccountIdRouteImport.update({
     id: '/api/public/webhooks/telegram/$accountId',
     path: '/api/public/webhooks/telegram/$accountId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWebhooksViberAccountIdRoute =
+  ApiPublicWebhooksViberAccountIdRouteImport.update({
+    id: '/api/public/webhooks/viber/$accountId',
+    path: '/api/public/webhooks/viber/$accountId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWebhooksWechatAccountIdRoute =
+  ApiPublicWebhooksWechatAccountIdRouteImport.update({
+    id: '/api/public/webhooks/wechat/$accountId',
+    path: '/api/public/webhooks/wechat/$accountId',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWidgetConfigWidgetIdRoute =
@@ -2871,6 +2924,7 @@ export interface FileRoutesByFullPath {
   '/legal/privacy-policy': typeof LegalPrivacyPolicyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/legal/terms-of-service': typeof LegalTermsOfServiceRoute
+  '/onboarding/organization': typeof OnboardingOrganizationRoute
   '/pay/$token': typeof PayTokenRoute
   '/q/$token': typeof QTokenRoute
   '/s/$token': typeof STokenRoute
@@ -2991,6 +3045,7 @@ export interface FileRoutesByFullPath {
   '/whatsapp-templates/drafts': typeof AuthenticatedWhatsappTemplatesDraftsRoute
   '/widgets/$widgetId': typeof AuthenticatedWidgetsWidgetIdRoute
   '/api/ai/conversation-stream': typeof ApiAiConversationStreamRoute
+  '/api/ai/reply-stream': typeof ApiAiReplyStreamRoute
   '/api/mobile/ai': typeof ApiMobileAiRoute
   '/api/mobile/ai-reply': typeof ApiMobileAiReplyRoute
   '/api/mobile/ai-stt': typeof ApiMobileAiSttRoute
@@ -3089,6 +3144,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/dispatch-activity-reminders': typeof ApiPublicHooksDispatchActivityRemindersRoute
   '/api/public/hooks/drip-tick': typeof ApiPublicHooksDripTickRoute
   '/api/public/hooks/flush-scheduled-messages': typeof ApiPublicHooksFlushScheduledMessagesRoute
+  '/api/public/hooks/gmail-sync': typeof ApiPublicHooksGmailSyncRoute
   '/api/public/hooks/process-exports': typeof ApiPublicHooksProcessExportsRoute
   '/api/public/hooks/process-outbox': typeof ApiPublicHooksProcessOutboxRoute
   '/api/public/hooks/process-scheduled': typeof ApiPublicHooksProcessScheduledRoute
@@ -3137,6 +3193,7 @@ export interface FileRoutesByFullPath {
   '/api/public/widget/embed': typeof ApiPublicWidgetEmbedRoute
   '/api/public/widget/health': typeof ApiPublicWidgetHealthRoute
   '/api/public/widget/history': typeof ApiPublicWidgetHistoryRoute
+  '/api/public/widget/link-preview': typeof ApiPublicWidgetLinkPreviewRoute
   '/api/public/widget/rate': typeof ApiPublicWidgetRateRoute
   '/api/public/widget/session': typeof ApiPublicWidgetSessionRoute
   '/api/public/widget/status': typeof ApiPublicWidgetStatusRoute
@@ -3155,13 +3212,17 @@ export interface FileRoutesByFullPath {
   '/api/public/booking/microsoft-calendar/callback': typeof ApiPublicBookingMicrosoftCalendarCallbackRoute
   '/api/public/hooks/billing/automation': typeof ApiPublicHooksBillingAutomationRoute
   '/api/public/hooks/billing/rollup': typeof ApiPublicHooksBillingRollupRoute
+  '/api/public/integrations/gmail-channel/callback': typeof ApiPublicIntegrationsGmailChannelCallbackRoute
   '/api/public/integrations/google-workspace/callback': typeof ApiPublicIntegrationsGoogleWorkspaceCallbackRoute
   '/api/public/integrations/webhook/$installId': typeof ApiPublicIntegrationsWebhookInstallIdRoute
   '/api/public/v1/contacts/$id': typeof ApiPublicV1ContactsIdRoute
   '/api/public/webhooks/billing/$provider': typeof ApiPublicWebhooksBillingProviderRoute
   '/api/public/webhooks/email/$accountId': typeof ApiPublicWebhooksEmailAccountIdRoute
+  '/api/public/webhooks/line/$accountId': typeof ApiPublicWebhooksLineAccountIdRoute
   '/api/public/webhooks/sms/twilio': typeof ApiPublicWebhooksSmsTwilioRoute
   '/api/public/webhooks/telegram/$accountId': typeof ApiPublicWebhooksTelegramAccountIdRoute
+  '/api/public/webhooks/viber/$accountId': typeof ApiPublicWebhooksViberAccountIdRoute
+  '/api/public/webhooks/wechat/$accountId': typeof ApiPublicWebhooksWechatAccountIdRoute
   '/api/public/widget/config/$widgetId': typeof ApiPublicWidgetConfigWidgetIdRoute
   '/integrations/marketplace/$providerId/': typeof AuthenticatedIntegrationsMarketplaceProviderIdIndexRoute
 }
@@ -3277,6 +3338,7 @@ export interface FileRoutesByTo {
   '/legal/privacy-policy': typeof LegalPrivacyPolicyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/legal/terms-of-service': typeof LegalTermsOfServiceRoute
+  '/onboarding/organization': typeof OnboardingOrganizationRoute
   '/pay/$token': typeof PayTokenRoute
   '/q/$token': typeof QTokenRoute
   '/s/$token': typeof STokenRoute
@@ -3394,6 +3456,7 @@ export interface FileRoutesByTo {
   '/whatsapp-templates/drafts': typeof AuthenticatedWhatsappTemplatesDraftsRoute
   '/widgets/$widgetId': typeof AuthenticatedWidgetsWidgetIdRoute
   '/api/ai/conversation-stream': typeof ApiAiConversationStreamRoute
+  '/api/ai/reply-stream': typeof ApiAiReplyStreamRoute
   '/api/mobile/ai': typeof ApiMobileAiRoute
   '/api/mobile/ai-reply': typeof ApiMobileAiReplyRoute
   '/api/mobile/ai-stt': typeof ApiMobileAiSttRoute
@@ -3491,6 +3554,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/dispatch-activity-reminders': typeof ApiPublicHooksDispatchActivityRemindersRoute
   '/api/public/hooks/drip-tick': typeof ApiPublicHooksDripTickRoute
   '/api/public/hooks/flush-scheduled-messages': typeof ApiPublicHooksFlushScheduledMessagesRoute
+  '/api/public/hooks/gmail-sync': typeof ApiPublicHooksGmailSyncRoute
   '/api/public/hooks/process-exports': typeof ApiPublicHooksProcessExportsRoute
   '/api/public/hooks/process-outbox': typeof ApiPublicHooksProcessOutboxRoute
   '/api/public/hooks/process-scheduled': typeof ApiPublicHooksProcessScheduledRoute
@@ -3539,6 +3603,7 @@ export interface FileRoutesByTo {
   '/api/public/widget/embed': typeof ApiPublicWidgetEmbedRoute
   '/api/public/widget/health': typeof ApiPublicWidgetHealthRoute
   '/api/public/widget/history': typeof ApiPublicWidgetHistoryRoute
+  '/api/public/widget/link-preview': typeof ApiPublicWidgetLinkPreviewRoute
   '/api/public/widget/rate': typeof ApiPublicWidgetRateRoute
   '/api/public/widget/session': typeof ApiPublicWidgetSessionRoute
   '/api/public/widget/status': typeof ApiPublicWidgetStatusRoute
@@ -3557,13 +3622,17 @@ export interface FileRoutesByTo {
   '/api/public/booking/microsoft-calendar/callback': typeof ApiPublicBookingMicrosoftCalendarCallbackRoute
   '/api/public/hooks/billing/automation': typeof ApiPublicHooksBillingAutomationRoute
   '/api/public/hooks/billing/rollup': typeof ApiPublicHooksBillingRollupRoute
+  '/api/public/integrations/gmail-channel/callback': typeof ApiPublicIntegrationsGmailChannelCallbackRoute
   '/api/public/integrations/google-workspace/callback': typeof ApiPublicIntegrationsGoogleWorkspaceCallbackRoute
   '/api/public/integrations/webhook/$installId': typeof ApiPublicIntegrationsWebhookInstallIdRoute
   '/api/public/v1/contacts/$id': typeof ApiPublicV1ContactsIdRoute
   '/api/public/webhooks/billing/$provider': typeof ApiPublicWebhooksBillingProviderRoute
   '/api/public/webhooks/email/$accountId': typeof ApiPublicWebhooksEmailAccountIdRoute
+  '/api/public/webhooks/line/$accountId': typeof ApiPublicWebhooksLineAccountIdRoute
   '/api/public/webhooks/sms/twilio': typeof ApiPublicWebhooksSmsTwilioRoute
   '/api/public/webhooks/telegram/$accountId': typeof ApiPublicWebhooksTelegramAccountIdRoute
+  '/api/public/webhooks/viber/$accountId': typeof ApiPublicWebhooksViberAccountIdRoute
+  '/api/public/webhooks/wechat/$accountId': typeof ApiPublicWebhooksWechatAccountIdRoute
   '/api/public/widget/config/$widgetId': typeof ApiPublicWidgetConfigWidgetIdRoute
   '/integrations/marketplace/$providerId': typeof AuthenticatedIntegrationsMarketplaceProviderIdIndexRoute
 }
@@ -3688,6 +3757,7 @@ export interface FileRoutesById {
   '/legal/privacy-policy': typeof LegalPrivacyPolicyRoute
   '/legal/terms': typeof LegalTermsRoute
   '/legal/terms-of-service': typeof LegalTermsOfServiceRoute
+  '/onboarding/organization': typeof OnboardingOrganizationRoute
   '/pay/$token': typeof PayTokenRoute
   '/q/$token': typeof QTokenRoute
   '/s/$token': typeof STokenRoute
@@ -3808,6 +3878,7 @@ export interface FileRoutesById {
   '/_authenticated/whatsapp-templates/drafts': typeof AuthenticatedWhatsappTemplatesDraftsRoute
   '/_authenticated/widgets_/$widgetId': typeof AuthenticatedWidgetsWidgetIdRoute
   '/api/ai/conversation-stream': typeof ApiAiConversationStreamRoute
+  '/api/ai/reply-stream': typeof ApiAiReplyStreamRoute
   '/api/mobile/ai': typeof ApiMobileAiRoute
   '/api/mobile/ai-reply': typeof ApiMobileAiReplyRoute
   '/api/mobile/ai-stt': typeof ApiMobileAiSttRoute
@@ -3906,6 +3977,7 @@ export interface FileRoutesById {
   '/api/public/hooks/dispatch-activity-reminders': typeof ApiPublicHooksDispatchActivityRemindersRoute
   '/api/public/hooks/drip-tick': typeof ApiPublicHooksDripTickRoute
   '/api/public/hooks/flush-scheduled-messages': typeof ApiPublicHooksFlushScheduledMessagesRoute
+  '/api/public/hooks/gmail-sync': typeof ApiPublicHooksGmailSyncRoute
   '/api/public/hooks/process-exports': typeof ApiPublicHooksProcessExportsRoute
   '/api/public/hooks/process-outbox': typeof ApiPublicHooksProcessOutboxRoute
   '/api/public/hooks/process-scheduled': typeof ApiPublicHooksProcessScheduledRoute
@@ -3954,6 +4026,7 @@ export interface FileRoutesById {
   '/api/public/widget/embed': typeof ApiPublicWidgetEmbedRoute
   '/api/public/widget/health': typeof ApiPublicWidgetHealthRoute
   '/api/public/widget/history': typeof ApiPublicWidgetHistoryRoute
+  '/api/public/widget/link-preview': typeof ApiPublicWidgetLinkPreviewRoute
   '/api/public/widget/rate': typeof ApiPublicWidgetRateRoute
   '/api/public/widget/session': typeof ApiPublicWidgetSessionRoute
   '/api/public/widget/status': typeof ApiPublicWidgetStatusRoute
@@ -3972,13 +4045,17 @@ export interface FileRoutesById {
   '/api/public/booking/microsoft-calendar/callback': typeof ApiPublicBookingMicrosoftCalendarCallbackRoute
   '/api/public/hooks/billing/automation': typeof ApiPublicHooksBillingAutomationRoute
   '/api/public/hooks/billing/rollup': typeof ApiPublicHooksBillingRollupRoute
+  '/api/public/integrations/gmail-channel/callback': typeof ApiPublicIntegrationsGmailChannelCallbackRoute
   '/api/public/integrations/google-workspace/callback': typeof ApiPublicIntegrationsGoogleWorkspaceCallbackRoute
   '/api/public/integrations/webhook/$installId': typeof ApiPublicIntegrationsWebhookInstallIdRoute
   '/api/public/v1/contacts/$id': typeof ApiPublicV1ContactsIdRoute
   '/api/public/webhooks/billing/$provider': typeof ApiPublicWebhooksBillingProviderRoute
   '/api/public/webhooks/email/$accountId': typeof ApiPublicWebhooksEmailAccountIdRoute
+  '/api/public/webhooks/line/$accountId': typeof ApiPublicWebhooksLineAccountIdRoute
   '/api/public/webhooks/sms/twilio': typeof ApiPublicWebhooksSmsTwilioRoute
   '/api/public/webhooks/telegram/$accountId': typeof ApiPublicWebhooksTelegramAccountIdRoute
+  '/api/public/webhooks/viber/$accountId': typeof ApiPublicWebhooksViberAccountIdRoute
+  '/api/public/webhooks/wechat/$accountId': typeof ApiPublicWebhooksWechatAccountIdRoute
   '/api/public/widget/config/$widgetId': typeof ApiPublicWidgetConfigWidgetIdRoute
   '/_authenticated/integrations/marketplace/$providerId/': typeof AuthenticatedIntegrationsMarketplaceProviderIdIndexRoute
 }
@@ -4102,6 +4179,7 @@ export interface FileRouteTypes {
     | '/legal/privacy-policy'
     | '/legal/terms'
     | '/legal/terms-of-service'
+    | '/onboarding/organization'
     | '/pay/$token'
     | '/q/$token'
     | '/s/$token'
@@ -4222,6 +4300,7 @@ export interface FileRouteTypes {
     | '/whatsapp-templates/drafts'
     | '/widgets/$widgetId'
     | '/api/ai/conversation-stream'
+    | '/api/ai/reply-stream'
     | '/api/mobile/ai'
     | '/api/mobile/ai-reply'
     | '/api/mobile/ai-stt'
@@ -4320,6 +4399,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-activity-reminders'
     | '/api/public/hooks/drip-tick'
     | '/api/public/hooks/flush-scheduled-messages'
+    | '/api/public/hooks/gmail-sync'
     | '/api/public/hooks/process-exports'
     | '/api/public/hooks/process-outbox'
     | '/api/public/hooks/process-scheduled'
@@ -4368,6 +4448,7 @@ export interface FileRouteTypes {
     | '/api/public/widget/embed'
     | '/api/public/widget/health'
     | '/api/public/widget/history'
+    | '/api/public/widget/link-preview'
     | '/api/public/widget/rate'
     | '/api/public/widget/session'
     | '/api/public/widget/status'
@@ -4386,13 +4467,17 @@ export interface FileRouteTypes {
     | '/api/public/booking/microsoft-calendar/callback'
     | '/api/public/hooks/billing/automation'
     | '/api/public/hooks/billing/rollup'
+    | '/api/public/integrations/gmail-channel/callback'
     | '/api/public/integrations/google-workspace/callback'
     | '/api/public/integrations/webhook/$installId'
     | '/api/public/v1/contacts/$id'
     | '/api/public/webhooks/billing/$provider'
     | '/api/public/webhooks/email/$accountId'
+    | '/api/public/webhooks/line/$accountId'
     | '/api/public/webhooks/sms/twilio'
     | '/api/public/webhooks/telegram/$accountId'
+    | '/api/public/webhooks/viber/$accountId'
+    | '/api/public/webhooks/wechat/$accountId'
     | '/api/public/widget/config/$widgetId'
     | '/integrations/marketplace/$providerId/'
   fileRoutesByTo: FileRoutesByTo
@@ -4508,6 +4593,7 @@ export interface FileRouteTypes {
     | '/legal/privacy-policy'
     | '/legal/terms'
     | '/legal/terms-of-service'
+    | '/onboarding/organization'
     | '/pay/$token'
     | '/q/$token'
     | '/s/$token'
@@ -4625,6 +4711,7 @@ export interface FileRouteTypes {
     | '/whatsapp-templates/drafts'
     | '/widgets/$widgetId'
     | '/api/ai/conversation-stream'
+    | '/api/ai/reply-stream'
     | '/api/mobile/ai'
     | '/api/mobile/ai-reply'
     | '/api/mobile/ai-stt'
@@ -4722,6 +4809,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-activity-reminders'
     | '/api/public/hooks/drip-tick'
     | '/api/public/hooks/flush-scheduled-messages'
+    | '/api/public/hooks/gmail-sync'
     | '/api/public/hooks/process-exports'
     | '/api/public/hooks/process-outbox'
     | '/api/public/hooks/process-scheduled'
@@ -4770,6 +4858,7 @@ export interface FileRouteTypes {
     | '/api/public/widget/embed'
     | '/api/public/widget/health'
     | '/api/public/widget/history'
+    | '/api/public/widget/link-preview'
     | '/api/public/widget/rate'
     | '/api/public/widget/session'
     | '/api/public/widget/status'
@@ -4788,13 +4877,17 @@ export interface FileRouteTypes {
     | '/api/public/booking/microsoft-calendar/callback'
     | '/api/public/hooks/billing/automation'
     | '/api/public/hooks/billing/rollup'
+    | '/api/public/integrations/gmail-channel/callback'
     | '/api/public/integrations/google-workspace/callback'
     | '/api/public/integrations/webhook/$installId'
     | '/api/public/v1/contacts/$id'
     | '/api/public/webhooks/billing/$provider'
     | '/api/public/webhooks/email/$accountId'
+    | '/api/public/webhooks/line/$accountId'
     | '/api/public/webhooks/sms/twilio'
     | '/api/public/webhooks/telegram/$accountId'
+    | '/api/public/webhooks/viber/$accountId'
+    | '/api/public/webhooks/wechat/$accountId'
     | '/api/public/widget/config/$widgetId'
     | '/integrations/marketplace/$providerId'
   id:
@@ -4918,6 +5011,7 @@ export interface FileRouteTypes {
     | '/legal/privacy-policy'
     | '/legal/terms'
     | '/legal/terms-of-service'
+    | '/onboarding/organization'
     | '/pay/$token'
     | '/q/$token'
     | '/s/$token'
@@ -5038,6 +5132,7 @@ export interface FileRouteTypes {
     | '/_authenticated/whatsapp-templates/drafts'
     | '/_authenticated/widgets_/$widgetId'
     | '/api/ai/conversation-stream'
+    | '/api/ai/reply-stream'
     | '/api/mobile/ai'
     | '/api/mobile/ai-reply'
     | '/api/mobile/ai-stt'
@@ -5136,6 +5231,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/dispatch-activity-reminders'
     | '/api/public/hooks/drip-tick'
     | '/api/public/hooks/flush-scheduled-messages'
+    | '/api/public/hooks/gmail-sync'
     | '/api/public/hooks/process-exports'
     | '/api/public/hooks/process-outbox'
     | '/api/public/hooks/process-scheduled'
@@ -5184,6 +5280,7 @@ export interface FileRouteTypes {
     | '/api/public/widget/embed'
     | '/api/public/widget/health'
     | '/api/public/widget/history'
+    | '/api/public/widget/link-preview'
     | '/api/public/widget/rate'
     | '/api/public/widget/session'
     | '/api/public/widget/status'
@@ -5202,13 +5299,17 @@ export interface FileRouteTypes {
     | '/api/public/booking/microsoft-calendar/callback'
     | '/api/public/hooks/billing/automation'
     | '/api/public/hooks/billing/rollup'
+    | '/api/public/integrations/gmail-channel/callback'
     | '/api/public/integrations/google-workspace/callback'
     | '/api/public/integrations/webhook/$installId'
     | '/api/public/v1/contacts/$id'
     | '/api/public/webhooks/billing/$provider'
     | '/api/public/webhooks/email/$accountId'
+    | '/api/public/webhooks/line/$accountId'
     | '/api/public/webhooks/sms/twilio'
     | '/api/public/webhooks/telegram/$accountId'
+    | '/api/public/webhooks/viber/$accountId'
+    | '/api/public/webhooks/wechat/$accountId'
     | '/api/public/widget/config/$widgetId'
     | '/_authenticated/integrations/marketplace/$providerId/'
   fileRoutesById: FileRoutesById
@@ -5258,6 +5359,7 @@ export interface RootRouteChildren {
   LegalPrivacyPolicyRoute: typeof LegalPrivacyPolicyRoute
   LegalTermsRoute: typeof LegalTermsRoute
   LegalTermsOfServiceRoute: typeof LegalTermsOfServiceRoute
+  OnboardingOrganizationRoute: typeof OnboardingOrganizationRoute
   PayTokenRoute: typeof PayTokenRoute
   QTokenRoute: typeof QTokenRoute
   STokenRoute: typeof STokenRoute
@@ -5266,6 +5368,7 @@ export interface RootRouteChildren {
   DocsIndexRoute: typeof DocsIndexRoute
   StoreIndexRoute: typeof StoreIndexRoute
   ApiAiConversationStreamRoute: typeof ApiAiConversationStreamRoute
+  ApiAiReplyStreamRoute: typeof ApiAiReplyStreamRoute
   ApiMobileAiRoute: typeof ApiMobileAiRoute
   ApiMobileAiReplyRoute: typeof ApiMobileAiReplyRoute
   ApiMobileAiSttRoute: typeof ApiMobileAiSttRoute
@@ -5294,6 +5397,7 @@ export interface RootRouteChildren {
   ApiPublicHooksDispatchActivityRemindersRoute: typeof ApiPublicHooksDispatchActivityRemindersRoute
   ApiPublicHooksDripTickRoute: typeof ApiPublicHooksDripTickRoute
   ApiPublicHooksFlushScheduledMessagesRoute: typeof ApiPublicHooksFlushScheduledMessagesRoute
+  ApiPublicHooksGmailSyncRoute: typeof ApiPublicHooksGmailSyncRoute
   ApiPublicHooksProcessExportsRoute: typeof ApiPublicHooksProcessExportsRoute
   ApiPublicHooksProcessOutboxRoute: typeof ApiPublicHooksProcessOutboxRoute
   ApiPublicHooksProcessScheduledRoute: typeof ApiPublicHooksProcessScheduledRoute
@@ -5342,6 +5446,7 @@ export interface RootRouteChildren {
   ApiPublicWidgetEmbedRoute: typeof ApiPublicWidgetEmbedRoute
   ApiPublicWidgetHealthRoute: typeof ApiPublicWidgetHealthRoute
   ApiPublicWidgetHistoryRoute: typeof ApiPublicWidgetHistoryRoute
+  ApiPublicWidgetLinkPreviewRoute: typeof ApiPublicWidgetLinkPreviewRoute
   ApiPublicWidgetRateRoute: typeof ApiPublicWidgetRateRoute
   ApiPublicWidgetSessionRoute: typeof ApiPublicWidgetSessionRoute
   ApiPublicWidgetStatusRoute: typeof ApiPublicWidgetStatusRoute
@@ -5352,12 +5457,16 @@ export interface RootRouteChildren {
   ApiPublicBookingMicrosoftCalendarCallbackRoute: typeof ApiPublicBookingMicrosoftCalendarCallbackRoute
   ApiPublicHooksBillingAutomationRoute: typeof ApiPublicHooksBillingAutomationRoute
   ApiPublicHooksBillingRollupRoute: typeof ApiPublicHooksBillingRollupRoute
+  ApiPublicIntegrationsGmailChannelCallbackRoute: typeof ApiPublicIntegrationsGmailChannelCallbackRoute
   ApiPublicIntegrationsGoogleWorkspaceCallbackRoute: typeof ApiPublicIntegrationsGoogleWorkspaceCallbackRoute
   ApiPublicIntegrationsWebhookInstallIdRoute: typeof ApiPublicIntegrationsWebhookInstallIdRoute
   ApiPublicWebhooksBillingProviderRoute: typeof ApiPublicWebhooksBillingProviderRoute
   ApiPublicWebhooksEmailAccountIdRoute: typeof ApiPublicWebhooksEmailAccountIdRoute
+  ApiPublicWebhooksLineAccountIdRoute: typeof ApiPublicWebhooksLineAccountIdRoute
   ApiPublicWebhooksSmsTwilioRoute: typeof ApiPublicWebhooksSmsTwilioRoute
   ApiPublicWebhooksTelegramAccountIdRoute: typeof ApiPublicWebhooksTelegramAccountIdRoute
+  ApiPublicWebhooksViberAccountIdRoute: typeof ApiPublicWebhooksViberAccountIdRoute
+  ApiPublicWebhooksWechatAccountIdRoute: typeof ApiPublicWebhooksWechatAccountIdRoute
   ApiPublicWidgetConfigWidgetIdRoute: typeof ApiPublicWidgetConfigWidgetIdRoute
 }
 
@@ -6201,6 +6310,13 @@ declare module '@tanstack/react-router' {
       path: '/legal/terms-of-service'
       fullPath: '/legal/terms-of-service'
       preLoaderRoute: typeof LegalTermsOfServiceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding/organization': {
+      id: '/onboarding/organization'
+      path: '/onboarding/organization'
+      fullPath: '/onboarding/organization'
+      preLoaderRoute: typeof OnboardingOrganizationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pay/$token': {
@@ -7204,6 +7320,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiConversationStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/reply-stream': {
+      id: '/api/ai/reply-stream'
+      path: '/api/ai/reply-stream'
+      fullPath: '/api/ai/reply-stream'
+      preLoaderRoute: typeof ApiAiReplyStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/mobile/ai': {
       id: '/api/mobile/ai'
       path: '/api/mobile/ai'
@@ -7750,6 +7873,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksFlushScheduledMessagesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/gmail-sync': {
+      id: '/api/public/hooks/gmail-sync'
+      path: '/api/public/hooks/gmail-sync'
+      fullPath: '/api/public/hooks/gmail-sync'
+      preLoaderRoute: typeof ApiPublicHooksGmailSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/process-exports': {
       id: '/api/public/hooks/process-exports'
       path: '/api/public/hooks/process-exports'
@@ -8086,6 +8216,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWidgetHistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/widget/link-preview': {
+      id: '/api/public/widget/link-preview'
+      path: '/api/public/widget/link-preview'
+      fullPath: '/api/public/widget/link-preview'
+      preLoaderRoute: typeof ApiPublicWidgetLinkPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/widget/rate': {
       id: '/api/public/widget/rate'
       path: '/api/public/widget/rate'
@@ -8191,6 +8328,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksBillingRollupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/gmail-channel/callback': {
+      id: '/api/public/integrations/gmail-channel/callback'
+      path: '/api/public/integrations/gmail-channel/callback'
+      fullPath: '/api/public/integrations/gmail-channel/callback'
+      preLoaderRoute: typeof ApiPublicIntegrationsGmailChannelCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/integrations/google-workspace/callback': {
       id: '/api/public/integrations/google-workspace/callback'
       path: '/api/public/integrations/google-workspace/callback'
@@ -8226,6 +8370,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWebhooksEmailAccountIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/webhooks/line/$accountId': {
+      id: '/api/public/webhooks/line/$accountId'
+      path: '/api/public/webhooks/line/$accountId'
+      fullPath: '/api/public/webhooks/line/$accountId'
+      preLoaderRoute: typeof ApiPublicWebhooksLineAccountIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/webhooks/sms/twilio': {
       id: '/api/public/webhooks/sms/twilio'
       path: '/api/public/webhooks/sms/twilio'
@@ -8238,6 +8389,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/webhooks/telegram/$accountId'
       fullPath: '/api/public/webhooks/telegram/$accountId'
       preLoaderRoute: typeof ApiPublicWebhooksTelegramAccountIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/webhooks/viber/$accountId': {
+      id: '/api/public/webhooks/viber/$accountId'
+      path: '/api/public/webhooks/viber/$accountId'
+      fullPath: '/api/public/webhooks/viber/$accountId'
+      preLoaderRoute: typeof ApiPublicWebhooksViberAccountIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/webhooks/wechat/$accountId': {
+      id: '/api/public/webhooks/wechat/$accountId'
+      path: '/api/public/webhooks/wechat/$accountId'
+      fullPath: '/api/public/webhooks/wechat/$accountId'
+      preLoaderRoute: typeof ApiPublicWebhooksWechatAccountIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/widget/config/$widgetId': {
@@ -9152,6 +9317,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalPrivacyPolicyRoute: LegalPrivacyPolicyRoute,
   LegalTermsRoute: LegalTermsRoute,
   LegalTermsOfServiceRoute: LegalTermsOfServiceRoute,
+  OnboardingOrganizationRoute: OnboardingOrganizationRoute,
   PayTokenRoute: PayTokenRoute,
   QTokenRoute: QTokenRoute,
   STokenRoute: STokenRoute,
@@ -9160,6 +9326,7 @@ const rootRouteChildren: RootRouteChildren = {
   DocsIndexRoute: DocsIndexRoute,
   StoreIndexRoute: StoreIndexRoute,
   ApiAiConversationStreamRoute: ApiAiConversationStreamRoute,
+  ApiAiReplyStreamRoute: ApiAiReplyStreamRoute,
   ApiMobileAiRoute: ApiMobileAiRoute,
   ApiMobileAiReplyRoute: ApiMobileAiReplyRoute,
   ApiMobileAiSttRoute: ApiMobileAiSttRoute,
@@ -9192,6 +9359,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksDripTickRoute: ApiPublicHooksDripTickRoute,
   ApiPublicHooksFlushScheduledMessagesRoute:
     ApiPublicHooksFlushScheduledMessagesRoute,
+  ApiPublicHooksGmailSyncRoute: ApiPublicHooksGmailSyncRoute,
   ApiPublicHooksProcessExportsRoute: ApiPublicHooksProcessExportsRoute,
   ApiPublicHooksProcessOutboxRoute: ApiPublicHooksProcessOutboxRoute,
   ApiPublicHooksProcessScheduledRoute: ApiPublicHooksProcessScheduledRoute,
@@ -9240,6 +9408,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicWidgetEmbedRoute: ApiPublicWidgetEmbedRoute,
   ApiPublicWidgetHealthRoute: ApiPublicWidgetHealthRoute,
   ApiPublicWidgetHistoryRoute: ApiPublicWidgetHistoryRoute,
+  ApiPublicWidgetLinkPreviewRoute: ApiPublicWidgetLinkPreviewRoute,
   ApiPublicWidgetRateRoute: ApiPublicWidgetRateRoute,
   ApiPublicWidgetSessionRoute: ApiPublicWidgetSessionRoute,
   ApiPublicWidgetStatusRoute: ApiPublicWidgetStatusRoute,
@@ -9252,15 +9421,20 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicBookingMicrosoftCalendarCallbackRoute,
   ApiPublicHooksBillingAutomationRoute: ApiPublicHooksBillingAutomationRoute,
   ApiPublicHooksBillingRollupRoute: ApiPublicHooksBillingRollupRoute,
+  ApiPublicIntegrationsGmailChannelCallbackRoute:
+    ApiPublicIntegrationsGmailChannelCallbackRoute,
   ApiPublicIntegrationsGoogleWorkspaceCallbackRoute:
     ApiPublicIntegrationsGoogleWorkspaceCallbackRoute,
   ApiPublicIntegrationsWebhookInstallIdRoute:
     ApiPublicIntegrationsWebhookInstallIdRoute,
   ApiPublicWebhooksBillingProviderRoute: ApiPublicWebhooksBillingProviderRoute,
   ApiPublicWebhooksEmailAccountIdRoute: ApiPublicWebhooksEmailAccountIdRoute,
+  ApiPublicWebhooksLineAccountIdRoute: ApiPublicWebhooksLineAccountIdRoute,
   ApiPublicWebhooksSmsTwilioRoute: ApiPublicWebhooksSmsTwilioRoute,
   ApiPublicWebhooksTelegramAccountIdRoute:
     ApiPublicWebhooksTelegramAccountIdRoute,
+  ApiPublicWebhooksViberAccountIdRoute: ApiPublicWebhooksViberAccountIdRoute,
+  ApiPublicWebhooksWechatAccountIdRoute: ApiPublicWebhooksWechatAccountIdRoute,
   ApiPublicWidgetConfigWidgetIdRoute: ApiPublicWidgetConfigWidgetIdRoute,
 }
 export const routeTree = rootRouteImport

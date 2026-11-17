@@ -3,6 +3,26 @@ import { Fragment } from "react";
 import { parseRichText, type BlockNode, type InlineNode } from "@/lib/inbox/rich-text";
 import { cn } from "@/lib/utils";
 
+/**
+ * A bare tracking URL can run to 300 characters and, shown in full, buries
+ * the sentence it belongs to. Past this length show host + path only and keep
+ * the whole thing in `title` (the href itself is never touched).
+ */
+const MAX_LINK_TEXT = 60;
+
+function linkLabel(value: string, href: string): string {
+  if (value !== href || value.length <= MAX_LINK_TEXT) return value;
+  try {
+    const u = new URL(href);
+    const path = u.pathname === "/" ? "" : u.pathname;
+    const tail = u.search || u.hash ? "…" : "";
+    const base = u.hostname.replace(/^www\./, "") + path + tail;
+    return base.length > MAX_LINK_TEXT ? base.slice(0, MAX_LINK_TEXT - 1) + "…" : base;
+  } catch {
+    return value.slice(0, MAX_LINK_TEXT - 1) + "…";
+  }
+}
+
 function renderInline(nodes: InlineNode[], keyPrefix: string) {
   return nodes.map((node, i) => {
     const key = `${keyPrefix}-${i}`;
@@ -36,19 +56,22 @@ function renderInline(nodes: InlineNode[], keyPrefix: string) {
             {node.value}
           </code>
         );
-      case "link":
+      case "link": {
+        const label = linkLabel(node.value, node.href);
         return (
           <a
             key={key}
             href={node.href}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="underline underline-offset-2 hover:opacity-80"
+            title={label === node.value ? undefined : node.href}
+            className="underline underline-offset-2 hover:opacity-80 [overflow-wrap:anywhere]"
             onClick={(e) => e.stopPropagation()}
           >
-            {node.value}
+            {label}
           </a>
         );
+      }
     }
   });
 }

@@ -287,9 +287,8 @@ export function ScheduleDialog({
                           <div className="text-xs text-muted-foreground truncate">{m.body}</div>
                         </div>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="icon"
-                          className="h-6 w-6"
                           onClick={() => cancel.mutate(m.id)}
                           aria-label="Cancel"
                         >

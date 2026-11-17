@@ -125,7 +125,7 @@ export function BulkLinkContactDialog({
                         disabled={bulkRelink.isPending}
                         onClick={() => handlePick(c)}
                         className={cn(
-                          "flex items-center gap-3 w-full text-left px-3 py-2 hover:bg-accent focus:bg-accent outline-none disabled:opacity-60",
+                          "flex items-center gap-3 w-full text-left px-3 py-2 hover:bg-muted focus:bg-muted outline-none disabled:opacity-60",
                         )}
                       >
                         <Avatar className="h-9 w-9">

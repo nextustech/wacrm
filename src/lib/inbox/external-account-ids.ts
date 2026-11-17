@@ -19,7 +19,15 @@
 import type { InboxChannel } from "@/hooks/use-conversations";
 
 export const EXTERNAL_ACCOUNT_CHANNELS = [
+  // "whatsapp" here covers QR-linked sessions (whatsapp_qr_sessions rows,
+  // linked via metadata.account_id); Cloud API accounts keep using the plain
+  // channel_account_id path because their selector ids are bare UUIDs that
+  // parseExternalAccountId never matches.
+  "whatsapp",
   "telegram",
+  "viber",
+  "line",
+  "wechat",
   "messenger",
   "instagram",
   "email",

@@ -168,7 +168,7 @@ function QuotesPage() {
                         <div className="flex items-center gap-0.5">
                           <Button
                             size="icon"
-                            variant="ghost"
+                            variant="outline"
                             title="Restore"
                             onClick={(e) => {
                               e.preventDefault();
@@ -179,7 +179,7 @@ function QuotesPage() {
                           </Button>
                           <Button
                             size="icon"
-                            variant="ghost"
+                            variant="outline"
                             title="Delete permanently"
                             className="text-destructive hover:text-destructive"
                             onClick={(e) => {
@@ -194,7 +194,7 @@ function QuotesPage() {
                         <div className="flex items-center gap-0.5">
                           <Button
                             size="icon"
-                            variant="ghost"
+                            variant="outline"
                             title="Duplicate"
                             disabled={duplicate.isPending}
                             onClick={async (e) => {
@@ -212,7 +212,7 @@ function QuotesPage() {
                           </Button>
                           <Button
                             size="icon"
-                            variant="ghost"
+                            variant="outline"
                             title="Delete"
                             onClick={(e) => {
                               e.preventDefault();

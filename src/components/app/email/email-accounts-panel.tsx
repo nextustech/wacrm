@@ -3,7 +3,7 @@
  * (optionally) the inbound address replies arrive on. Connected accounts show
  * up in the Inbox account selector and conversations link to them.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Mail, Trash2, Power, PowerOff, Link2 } from "lucide-react";
 import { toast } from "sonner";
@@ -18,9 +18,21 @@ import {
   deleteEmailAccount,
   getEmailWebhookInfo,
   listEmailAccounts,
+  startGmailChannelOAuth,
   updateEmailAccount,
   type EmailAccountSummary,
 } from "@/lib/email/accounts.functions";
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return "never";
+  const ms = Date.now() - new Date(iso).getTime();
+  const min = Math.round(ms / 60_000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return `${Math.round(hr / 24)}d ago`;
+}
 
 function StatusBadge({ status }: { status: string }) {
   if (status === "connected") return <Badge variant="secondary">Connected</Badge>;
@@ -44,13 +56,41 @@ export function EmailAccountsPanel() {
   const accountsQuery = useQuery({
     queryKey: ["email-accounts", workspaceId],
     enabled: !!workspaceId,
-    queryFn: async () => (await listEmailAccounts({ data: { workspaceId: workspaceId! } })).accounts,
+    queryFn: async () =>
+      (await listEmailAccounts({ data: { workspaceId: workspaceId! } })).accounts,
   });
 
   const invalidate = () => {
     void qc.invalidateQueries({ queryKey: ["email-accounts", workspaceId] });
     void qc.invalidateQueries({ queryKey: ["external-channel-accounts", workspaceId] });
   };
+
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (event.origin !== window.location.origin) return;
+      if ((event.data as { type?: string } | null)?.type !== "wacrm:gmail-channel-oauth") return;
+      if ((event.data as { success?: boolean }).success) {
+        toast.success("Gmail account connected");
+        invalidate();
+      } else {
+        toast.error("Gmail connection failed");
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId]);
+
+  const connectGmail = useMutation({
+    mutationFn: async () =>
+      startGmailChannelOAuth({
+        data: { workspaceId: workspaceId!, targetOrigin: window.location.origin },
+      }),
+    onSuccess: (res) => {
+      window.open(res.authorizationUrl, "wacrm-gmail-oauth", "width=480,height=640");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const connect = useMutation({
     mutationFn: async () =>
@@ -121,10 +161,24 @@ export function EmailAccountsPanel() {
           </CardTitle>
           <CardDescription>
             Outgoing mail is sent through Resend from your verified domain. To receive mail, enable
-            Receiving for that domain in Resend and add the webhook URL shown after connecting.
+            Receiving for that domain in Resend and add the webhook URL shown after connecting. Or
+            connect a Gmail mailbox directly below — no DNS setup required.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="md:col-span-2">
+            <Button
+              variant="outline"
+              disabled={!workspaceId || connectGmail.isPending}
+              onClick={() => connectGmail.mutate()}
+            >
+              {connectGmail.isPending ? "Opening Google sign-in" : "Connect Gmail"}
+            </Button>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Grants read + send access only (no Drive, Calendar, or Contacts). You can revoke it
+              from Google at any time.
+            </p>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="ea-name">Account name</Label>
             <Input
@@ -178,7 +232,8 @@ export function EmailAccountsPanel() {
               maxLength={255}
             />
             <p className="text-xs text-muted-foreground">
-              Replies arriving on this address are matched to this account and routed into the Inbox.
+              Replies arriving on this address are matched to this account and routed into the
+              Inbox.
             </p>
           </div>
           <div className="space-y-2 md:col-span-2">
@@ -232,10 +287,12 @@ export function EmailAccountsPanel() {
                 <div className="flex items-center gap-2">
                   <span className="truncate font-medium">{a.display_name}</span>
                   <StatusBadge status={a.status} />
+                  {a.provider === "gmail" && <Badge variant="outline">Gmail</Badge>}
                 </div>
                 <p className="truncate text-sm text-muted-foreground">
                   {a.from_email}
                   {a.inbound_address ? ` · inbound: ${a.inbound_address}` : ""}
+                  {a.provider === "gmail" ? ` · last synced: ${timeAgo(a.last_synced_at)}` : ""}
                 </p>
               </div>
               <div className="flex items-center gap-2">

@@ -40,12 +40,22 @@ function clearDeliveryError(metadata: Record<string, unknown>): Record<string, u
   return copy;
 }
 
-export type DeliverableChannel = "messenger" | "instagram" | "telegram" | "email";
+export type DeliverableChannel =
+  | "messenger"
+  | "instagram"
+  | "telegram"
+  | "viber"
+  | "line"
+  | "wechat"
+  | "email";
 
 export const DELIVERABLE_CHANNELS: readonly DeliverableChannel[] = [
   "messenger",
   "instagram",
   "telegram",
+  "viber",
+  "line",
+  "wechat",
   "email",
 ];
 
@@ -206,6 +216,73 @@ export async function deliverInboxMessage(args: {
       return markFailed("This conversation is not linked to a connected WhatsApp number.");
     }
 
+    // QR-linked (Baileys) sessions live in whatsapp_qr_sessions, not
+    // channel_accounts, and are sent through the Fly.io worker instead of
+    // the Cloud API registry below.
+    const { data: qrSessionRaw } = await admin
+      .from("whatsapp_qr_sessions")
+      .select("id, status")
+      .eq("id", waAccountId)
+      .maybeSingle();
+    const qrSession = qrSessionRaw as { id: string; status: string } | null;
+    if (qrSession) {
+      if (qrSession.status !== "connected") {
+        return markFailed("The QR-linked WhatsApp number is not currently connected.");
+      }
+      let to = resolveRecipient(conv);
+      if (!to && conv.contact_id) {
+        const { data: contactRaw } = await admin
+          .from("contacts")
+          .select("phone")
+          .eq("id", conv.contact_id)
+          .maybeSingle();
+        to = (contactRaw as { phone?: string | null } | null)?.phone ?? null;
+      }
+      if (!to) return markFailed("No WhatsApp phone number is on file for this contact.");
+
+      const waText = msg.body?.trim() ? msg.body : null;
+      const mediaKind =
+        msg.media_url &&
+        (msg.message_type === "image" ||
+          msg.message_type === "video" ||
+          msg.message_type === "audio" ||
+          msg.message_type === "document")
+          ? (msg.message_type as "image" | "video" | "audio" | "document")
+          : null;
+      if (!waText && !mediaKind) {
+        return markFailed(
+          mediaKind === null && msg.media_url
+            ? "This message type isn't supported on a QR-linked WhatsApp number yet."
+            : "Message is empty.",
+        );
+      }
+
+      const { WorkerAPI } = await import("@/lib/messaging/qr-worker.server");
+      const result = await WorkerAPI.sendMessage(qrSession.id, {
+        to: to.replace(/[^\d+]/g, ""),
+        type: mediaKind ?? "text",
+        ...(mediaKind
+          ? { media_url: msg.media_url!, caption: waText ?? undefined }
+          : { text: waText! }),
+        client_message_id: msg.id,
+      });
+      if (!result.ok || !result.data?.message_id) {
+        return markFailed(result.error ?? "QR WhatsApp worker could not deliver this message.");
+      }
+      await admin
+        .from("messages")
+        .update({
+          status: "sent",
+          provider_message_id: result.data.message_id,
+          external_message_id: result.data.message_id,
+          to_address: to,
+          failed_reason: null,
+          metadata: deliveryMetadata(msg.metadata),
+        })
+        .eq("id", msg.id);
+      return { delivered: true, status: "sent", providerMessageId: result.data.message_id };
+    }
+
     // Recipient: explicit to_address → conversation routing → contact phone.
     let to = resolveRecipient(conv);
     if (!to && conv.contact_id) {
@@ -235,10 +312,15 @@ export async function deliverInboxMessage(args: {
 
     const cleanTo = to.replace(/[^\d+]/g, "");
     const providerReplyId = await findProviderReplyId(
-      admin, msg.workspace_id, msg.conversation_id, msg.reply_to_id,
+      admin,
+      msg.workspace_id,
+      msg.conversation_id,
+      msg.reply_to_id,
     );
     if (msg.reply_to_id && !providerReplyId) {
-      return markFailed("The original message has not been delivered to WhatsApp yet. Retry this reply after it arrives.");
+      return markFailed(
+        "The original message has not been delivered to WhatsApp yet. Retry this reply after it arrives.",
+      );
     }
 
     const isTemplate = msg.message_type === "template";
@@ -300,7 +382,6 @@ export async function deliverInboxMessage(args: {
       ) {
         // Native WhatsApp contact card instead of just the name as text.
         const card = ((msg.metadata ?? {}) as Record<string, any>)["contact_card"] as {
-          // eslint-disable-line @typescript-eslint/no-explicit-any
           name: string;
           phone?: string;
           email?: string;
@@ -382,7 +463,8 @@ export async function deliverInboxMessage(args: {
     } catch (err) {
       const providerError = err as Error & { code?: string };
       const rawReason = [providerError?.code, providerError?.message ?? "WhatsApp delivery failed"]
-        .filter(Boolean).join(": ");
+        .filter(Boolean)
+        .join(": ");
       const { explainWhatsAppDeliveryFailure } =
         await import("@/lib/messaging/whatsapp-delivery-errors");
       const failure = explainWhatsAppDeliveryFailure(rawReason);
@@ -410,7 +492,11 @@ export async function deliverInboxMessage(args: {
           metadata: clearDeliveryError(deliveryMetadata(msg.metadata)),
         })
         .eq("id", msg.id);
-      return { delivered: true, status: "sent", providerMessageId: res.providerMessageId ?? undefined };
+      return {
+        delivered: true,
+        status: "sent",
+        providerMessageId: res.providerMessageId ?? undefined,
+      };
     } catch (err) {
       return markFailed(redactSecrets((err as Error).message ?? "TikTok message failed"));
     }
@@ -596,11 +682,139 @@ export async function deliverInboxMessage(args: {
         });
         providerMessageId = res.messageId;
       }
+    } else if (channel === "viber") {
+      const { data: accRaw } = await admin
+        .from("viber_accounts")
+        .select("auth_token_ciphertext, bot_name, status, status_reason, workspace_id")
+        .eq("id", accountId)
+        .maybeSingle();
+      const acc = accRaw as {
+        auth_token_ciphertext?: string;
+        bot_name?: string | null;
+        status?: string;
+        status_reason?: string | null;
+        workspace_id?: string;
+      } | null;
+      if (!acc || acc.workspace_id !== conv.workspace_id) {
+        return fail("Viber bot for this thread was not found.");
+      }
+      if (!acc.auth_token_ciphertext) return fail("Viber auth token is missing.");
+      if (acc.status && acc.status !== "connected") {
+        return fail(
+          `Viber bot is ${acc.status}${acc.status_reason ? ` — ${acc.status_reason}` : ""}.`,
+        );
+      }
+      const { sendViberMessage } = await import("@/lib/viber/send.server");
+      const res = await sendViberMessage({
+        authTokenCipher: acc.auth_token_ciphertext,
+        receiver: recipient,
+        senderName: acc.bot_name ?? null,
+        text,
+        media: media
+          ? {
+              url: media.url,
+              kind:
+                media.kind === "image"
+                  ? ("picture" as const)
+                  : media.kind === "video"
+                    ? ("video" as const)
+                    : ("file" as const),
+              fileName: msgMeta["media_name"] as string | undefined,
+              sizeBytes: msg.media_size ?? null,
+            }
+          : null,
+      });
+      providerMessageId = res.messageToken;
+    } else if (channel === "line") {
+      const { data: accRaw } = await admin
+        .from("line_accounts")
+        .select("channel_access_token_ciphertext, status, status_reason, workspace_id")
+        .eq("id", accountId)
+        .maybeSingle();
+      const acc = accRaw as {
+        channel_access_token_ciphertext?: string;
+        status?: string;
+        status_reason?: string | null;
+        workspace_id?: string;
+      } | null;
+      if (!acc || acc.workspace_id !== conv.workspace_id) {
+        return fail("LINE account for this thread was not found.");
+      }
+      if (!acc.channel_access_token_ciphertext) {
+        return fail("LINE channel access token is missing.");
+      }
+      if (acc.status && acc.status !== "connected") {
+        return fail(
+          `LINE account is ${acc.status}${acc.status_reason ? ` — ${acc.status_reason}` : ""}.`,
+        );
+      }
+      const { sendLineMessage } = await import("@/lib/line/send.server");
+      // An agent reply arrives long after the inbound event, so the free
+      // reply token has expired — this path always pushes.
+      const isDocument = Boolean(media) && media!.kind === "document";
+      const res = await sendLineMessage({
+        accessTokenCipher: acc.channel_access_token_ciphertext,
+        to: recipient,
+        text,
+        media:
+          media && !isDocument
+            ? {
+                url: media.url,
+                kind:
+                  media.kind === "image"
+                    ? ("image" as const)
+                    : media.kind === "video"
+                      ? ("video" as const)
+                      : ("audio" as const),
+              }
+            : null,
+        documentUrl: isDocument ? media!.url : null,
+      });
+      providerMessageId = res.messageId;
+    } else if (channel === "wechat") {
+      const { data: accRaw } = await admin
+        .from("wechat_accounts")
+        .select("status, status_reason, workspace_id")
+        .eq("id", accountId)
+        .maybeSingle();
+      const acc = accRaw as {
+        status?: string;
+        status_reason?: string | null;
+        workspace_id?: string;
+      } | null;
+      if (!acc || acc.workspace_id !== conv.workspace_id) {
+        return fail("WeChat account for this thread was not found.");
+      }
+      if (acc.status && acc.status !== "connected") {
+        return fail(
+          `WeChat account is ${acc.status}${acc.status_reason ? ` — ${acc.status_reason}` : ""}.`,
+        );
+      }
+      // WeChat cannot send an arbitrary media URL — only a `media_id` it
+      // already holds — so an attachment goes out as its link in the text.
+      const wechatText = [text, media?.url].filter(Boolean).join("\n");
+      if (!wechatText) return fail("WeChat needs text to send.");
+      const { sendWeChatMessage, WeChatApiError } = await import("@/lib/wechat/send.server");
+      try {
+        const res = await sendWeChatMessage({
+          accountId,
+          toUser: recipient,
+          text: wechatText,
+        });
+        providerMessageId = res.messageId;
+      } catch (err) {
+        if (err instanceof WeChatApiError && err.isWindowClosed) {
+          return fail(
+            "WeChat's 48-hour reply window has closed — only a template message can be sent now.",
+          );
+        }
+        throw err;
+      }
     } else if (channel === "email") {
       const { data: accRaw } = await admin
         .from("email_accounts")
         .select(
-          "provider, from_email, from_name, reply_to, api_key_ciphertext, status, status_reason, workspace_id",
+          "provider, from_email, from_name, reply_to, api_key_ciphertext, oauth_refresh_token_ciphertext, status, status_reason, workspace_id",
         )
         .eq("id", accountId)
         .maybeSingle();
@@ -610,6 +824,7 @@ export async function deliverInboxMessage(args: {
         from_name?: string | null;
         reply_to?: string | null;
         api_key_ciphertext?: string | null;
+        oauth_refresh_token_ciphertext?: string | null;
         status?: string;
         status_reason?: string | null;
         workspace_id?: string;
@@ -617,8 +832,18 @@ export async function deliverInboxMessage(args: {
       if (!acc || acc.workspace_id !== conv.workspace_id) {
         return fail("Email account for this thread was not found.");
       }
-      if (acc.provider !== "resend" || !acc.api_key_ciphertext || !acc.from_email) {
-        return fail("This email account cannot send yet. Reconnect it with Resend.");
+      const isGmail = acc.provider === "gmail";
+      if (
+        !acc.from_email ||
+        (isGmail
+          ? !acc.oauth_refresh_token_ciphertext
+          : acc.provider !== "resend" || !acc.api_key_ciphertext)
+      ) {
+        return fail(
+          isGmail
+            ? "This Gmail account cannot send yet. Reconnect it from Settings → Email."
+            : "This email account cannot send yet. Reconnect it with Resend.",
+        );
       }
       if (acc.status && acc.status !== "connected") {
         return fail(
@@ -628,7 +853,7 @@ export async function deliverInboxMessage(args: {
       const meta = (conv.metadata ?? {}) as Record<string, unknown>;
       const to =
         typeof meta["from"] === "string" && meta["from"] ? (meta["from"] as string) : recipient;
-      const { sendResendEmail, replySubject } = await import("@/lib/email/send.server");
+      const { replySubject } = await import("@/lib/email/send.server");
       const lastId =
         typeof meta["last_message_id"] === "string" ? (meta["last_message_id"] as string) : null;
       const lastRefs =
@@ -638,23 +863,54 @@ export async function deliverInboxMessage(args: {
       const body = [text, media ? media.url : null].filter(Boolean).join("\n\n");
       const mediaName =
         typeof msgMeta["media_name"] === "string" ? (msgMeta["media_name"] as string) : null;
-      const res = await sendResendEmail({
-        apiKeyCipher: acc.api_key_ciphertext,
-        fromEmail: acc.from_email,
-        fromName: acc.from_name,
-        to,
-        subject: replySubject(
-          typeof meta["last_subject"] === "string" ? (meta["last_subject"] as string) : "",
-        ),
-        text: body,
-        attachments: media
-          ? [{ path: media.url, filename: mediaName || `attachment-${msg.id.slice(0, 8)}` }]
-          : undefined,
-        replyTo: acc.reply_to,
-        inReplyTo: lastId,
-        references: [lastRefs, lastId].filter(Boolean).join(" ") || null,
-      });
-      providerMessageId = res.messageId;
+      const subject = replySubject(
+        typeof meta["last_subject"] === "string" ? (meta["last_subject"] as string) : "",
+      );
+      const references = [lastRefs, lastId].filter(Boolean).join(" ") || null;
+
+      if (isGmail) {
+        // Gmail sends as the connected mailbox itself. Media rides along as the
+        // link already appended to `body` — the API takes raw MIME, so real
+        // file attachments would need a multipart build we do not do yet.
+        const [{ decryptToken }, { googleAccessTokenFromRefreshToken }, { sendGmailEmail }] =
+          await Promise.all([
+            import("@/lib/instagram/token-crypto.server"),
+            import("@/lib/integrations/google-oauth.server"),
+            import("@/lib/email/gmail.server"),
+          ]);
+        const accessToken = await googleAccessTokenFromRefreshToken(
+          decryptToken(acc.oauth_refresh_token_ciphertext!),
+        );
+        const res = await sendGmailEmail({
+          accessToken,
+          fromEmail: acc.from_email,
+          fromName: acc.from_name,
+          to,
+          subject,
+          text: body,
+          inReplyTo: lastId,
+          references,
+          threadId: typeof meta["gmail_thread_id"] === "string" ? meta["gmail_thread_id"] : null,
+        });
+        providerMessageId = `gmail:${res.messageId}`;
+      } else {
+        const { sendResendEmail } = await import("@/lib/email/send.server");
+        const res = await sendResendEmail({
+          apiKeyCipher: acc.api_key_ciphertext!,
+          fromEmail: acc.from_email,
+          fromName: acc.from_name,
+          to,
+          subject,
+          text: body,
+          attachments: media
+            ? [{ path: media.url, filename: mediaName || `attachment-${msg.id.slice(0, 8)}` }]
+            : undefined,
+          replyTo: acc.reply_to,
+          inReplyTo: lastId,
+          references,
+        });
+        providerMessageId = res.messageId;
+      }
     } else if (channel === "messenger") {
       const { data: accRaw } = await admin
         .from("messenger_accounts")

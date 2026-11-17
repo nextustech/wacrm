@@ -657,7 +657,6 @@ function TemplateCard({
                   {phoneFix && (
                     <Button
                       size="sm"
-                      className="h-7"
                       disabled={update.isPending}
                       onClick={applyPhoneFixAndResubmit}
                       title={`Set ${phoneFix.changes[0].from} → ${phoneFix.changes[0].to} and resubmit`}
@@ -668,7 +667,6 @@ function TemplateCard({
                   {variableFix && !phoneFix && (
                     <Button
                       size="sm"
-                      className="h-7"
                       disabled={update.isPending}
                       data-testid="wa-template-variable-fix"
                       onClick={applyVariableFixAndResubmit}
@@ -682,7 +680,6 @@ function TemplateCard({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-7"
                     onClick={() => setEditing(true)}
                   >
                     {phoneFix || variableFix ? "Review in editor" : "Fix & resubmit"}
@@ -695,34 +692,31 @@ function TemplateCard({
         <div className="flex items-center gap-1 shrink-0">
           <Button
             size="icon"
-            variant="ghost"
+            variant="outline"
             onClick={() => setPreviewing(true)}
             title="Preview"
-            className="h-9 w-9"
           >
             <Eye className="w-4 h-4" />
           </Button>
           <Button
             size="icon"
-            variant="ghost"
+            variant="outline"
             onClick={() => setShowVersions(true)}
             title="Version history"
-            className="h-9 w-9"
           >
             <History className="w-4 h-4" />
           </Button>
           <Button
             size="icon"
-            variant="ghost"
+            variant="outline"
             onClick={() => setCloning(true)}
             title="Add language variant"
-            className="h-9 w-9"
           >
             <Languages className="w-4 h-4" />
           </Button>
           <Button
             size="icon"
-            variant="ghost"
+            variant="outline"
             disabled={isSample || !isAdmin}
             onClick={() => setEditing(true)}
             title={
@@ -732,13 +726,12 @@ function TemplateCard({
                   ? SAMPLE_TEMPLATE_MESSAGE
                   : "Edit"
             }
-            className="h-9 w-9"
           >
             <Edit3 className="w-4 h-4" />
           </Button>
           <Button
             size="icon"
-            variant="ghost"
+            variant="outline"
             disabled={isSample || !isAdmin}
             onClick={() => {
               if (
@@ -753,7 +746,6 @@ function TemplateCard({
                   ? SAMPLE_TEMPLATE_MESSAGE
                   : "Delete"
             }
-            className="h-9 w-9"
           >
             <Trash2 className="w-4 h-4 text-destructive" />
           </Button>
@@ -1611,7 +1603,7 @@ export function TemplateEditorDialog({
                           <Progress value={uploadPercent} className="h-2" />
                           <div className="flex items-center justify-between gap-2">
                             <span
-                              className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
+                              className="min-w-0 flex-1 truncate text-sm text-muted-foreground"
                               data-testid="wa-header-upload-status"
                             >
                               {uploadPhase === "encoding"
@@ -1645,7 +1637,7 @@ export function TemplateEditorDialog({
                         (uploadPhase === "canceled" || uploadPhase === "error") &&
                         lastFileRef.current && (
                           <div className="flex items-center justify-between gap-2 rounded-control border border-border bg-muted/30 p-2">
-                            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                            <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
                               {uploadPhase === "canceled" ? "Upload canceled" : "Upload failed"} —{" "}
                               {lastFileRef.current.name}
                             </span>
@@ -1800,7 +1792,6 @@ export function TemplateEditorDialog({
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="h-7"
                   onClick={() => fixVariables()}
                 >
                   Fix all variables ({fixableVarComponents.size} fields)
@@ -2149,7 +2140,7 @@ function VariableFixRow({
             type="button"
             size="sm"
             variant="outline"
-            className="h-6 px-2 text-xs"
+            className="text-xs"
             onClick={onFix}
           >
             Fix variables

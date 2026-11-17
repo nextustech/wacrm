@@ -195,7 +195,7 @@ function IPAllowlistCard() {
                   <TableCell className="font-mono text-xs">{r.cidr}</TableCell>
                   <TableCell><Badge variant="secondary">{r.applies_to}</Badge></TableCell>
                   <TableCell>
-                    <Button size="icon" variant="ghost" onClick={() => del.mutate(r.id)}>
+                    <Button size="icon" variant="outline" onClick={() => del.mutate(r.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>

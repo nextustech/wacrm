@@ -133,13 +133,20 @@ export function GoogleConnectorSettings() {
             ? "https://your-domain/api/public/integrations/google-workspace/callback"
             : `${window.location.origin}/api/public/integrations/google-workspace/callback`}
         </code>{" "}
-        and{" "}
+        ,{" "}
         <code>
           {typeof window === "undefined"
             ? "https://your-domain/api/public/booking/google-calendar/callback"
             : `${window.location.origin}/api/public/booking/google-calendar/callback`}
         </code>
-        . Credentials are encrypted on the server and never returned to this form.
+        , and{" "}
+        <code>
+          {typeof window === "undefined"
+            ? "https://your-domain/api/public/integrations/gmail-channel/callback"
+            : `${window.location.origin}/api/public/integrations/gmail-channel/callback`}
+        </code>{" "}
+        (the Gmail inbox channel in Settings &gt; Email). Credentials are encrypted on the server
+        and never returned to this form.
       </p>
       <div className="flex items-center gap-2">
         <Button

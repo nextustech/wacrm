@@ -10,6 +10,7 @@
  * so two auto-responders cannot loop.
  */
 import { timingSafeEqual } from "node:crypto";
+import { richestBody, describeBodyChoice } from "./plain-text";
 import { isIP } from "node:net";
 import { decryptToken } from "@/lib/instagram/token-crypto.server";
 import { ensureInboxThread } from "@/lib/inbox/thread-dedup.server";
@@ -107,6 +108,7 @@ function str(v: unknown): string {
   return typeof v === "string" ? v : "";
 }
 
+
 /** "Ann <ann@x.com>" -> { email, name } */
 export function parseAddress(raw: string): { email: string; name: string | null } {
   const m = raw.match(/^\s*"?([^"<]*?)"?\s*<([^>]+)>\s*$/);
@@ -176,7 +178,15 @@ export function parseInboundEmail(
     from = addr.email;
     fromName = addr.name;
     headers = headersFromMailgun(str(payload["message-headers"]));
-    text = str(payload["stripped-text"]) || str(payload["body-plain"]);
+    // Full body first. A provider's "stripped" variant cuts at the first
+    // signature-looking separator (a bare `---` line), which in a
+    // transactional mail is often right above the thing that matters —
+    // the verification code. We split quoted threads ourselves, so the
+    // stripped copy is only a fallback.
+    text = richestBody(
+      str(payload["body-plain"]) || str(payload["stripped-text"]),
+      str(payload["body-html"]),
+    );
     subject = str(payload["subject"]) || str(payload["Subject"]);
     messageId = str(payload["Message-Id"]) || headers["message-id"] || "";
     to = str(payload["recipient"]) || str(payload["To"]);
@@ -188,13 +198,28 @@ export function parseInboundEmail(
     from = addr.email;
     fromName = str(full.Name).trim() || addr.name;
     headers = headersFromPostmark(payload["Headers"]);
-    text = str(payload["StrippedTextReply"]) || str(payload["TextBody"]);
+    text = richestBody(
+      str(payload["TextBody"]) || str(payload["StrippedTextReply"]),
+      str(payload["HtmlBody"]),
+    );
     subject = str(payload["Subject"]);
     messageId = str(payload["MessageID"]) || headers["message-id"] || "";
     to = str(payload["OriginalRecipient"]) || str(payload["To"]);
     attachments = attachmentsFromPostmark(payload["Attachments"]);
   }
 
+  // TEMPORARY diagnostic (sizes and flags only, no message content) while we
+  // chase verification codes that never reach the thread.
+  console.warn(
+    "[email-body]",
+    isMailgun ? "mailgun" : "postmark/resend",
+    JSON.stringify(
+      describeBodyChoice(
+        isMailgun ? str(payload["body-plain"]) || str(payload["stripped-text"]) : str(payload["TextBody"]) || str(payload["StrippedTextReply"]),
+        isMailgun ? str(payload["body-html"]) : str(payload["HtmlBody"]),
+      ),
+    ),
+  );
   if (!from || !from.includes("@")) return null;
   text = text.trim().slice(0, MAX_BODY);
   return {
@@ -261,8 +286,12 @@ export async function resolveResendInboundPayload(
     const downloadUrl = str(item.download_url);
     const url = new URL(downloadUrl);
     if (
-      url.protocol !== "https:" || url.username || url.password ||
-      isIP(url.hostname) !== 0 || url.hostname === "localhost" || url.hostname.endsWith(".localhost")
+      url.protocol !== "https:" ||
+      url.username ||
+      url.password ||
+      isIP(url.hostname) !== 0 ||
+      url.hostname === "localhost" ||
+      url.hostname.endsWith(".localhost")
     ) {
       throw new Error("Invalid Resend attachment download URL");
     }
@@ -291,14 +320,30 @@ export async function resolveResendInboundPayload(
       contentId: str(item.content_id) || null,
     });
   }
-  const headers = mail.headers && typeof mail.headers === "object" && !Array.isArray(mail.headers)
-    ? Object.entries(mail.headers as Record<string, unknown>).map(([Name, Value]) => ({ Name, Value: str(Value) }))
-    : [];
+  const headers =
+    mail.headers && typeof mail.headers === "object" && !Array.isArray(mail.headers)
+      ? Object.entries(mail.headers as Record<string, unknown>).map(([Name, Value]) => ({
+          Name,
+          Value: str(Value),
+        }))
+      : [];
+  // TEMPORARY: which fields Resend actually returns (key names only).
+  console.warn(
+    "[email-body] resend-fields",
+    JSON.stringify({
+      keys: Object.keys(mail),
+      textChars: str(mail.text).length,
+      htmlChars: str(mail.html).length,
+    }),
+  );
   return {
     From: str(mail.from),
     To: Array.isArray(mail.to) ? str(mail.to[0]) : "",
     Subject: str(mail.subject),
     TextBody: str(mail.text),
+    // Resend keeps the HTML alternative separate; parseInboundEmail falls
+    // back to it when the sender shipped no text part.
+    HtmlBody: str(mail.html),
     MessageID: str(mail.message_id) || emailId,
     Headers: headers,
     Attachments: attachments.map((att) => ({
@@ -342,15 +387,17 @@ export async function handleEmailWebhook(
   if (!payload) return new Response("unsupported payload", { status: 400 });
 
   try {
-    const inbound = account.provider === "resend" && payload.type === "email.received"
-      ? await resolveResendInboundPayload(payload, account.api_key_ciphertext ?? "")
-      : payload;
+    const inbound =
+      account.provider === "resend" && payload.type === "email.received"
+        ? await resolveResendInboundPayload(payload, account.api_key_ciphertext ?? "")
+        : payload;
     if (inbound) await processInboundEmail(admin, account, inbound);
   } catch (err) {
     // Resend retries non-2xx deliveries; preserve the event if its body could
     // not be fetched or persisted. Other webhook formats keep legacy handling.
     console.error("[email-webhook] processing error:", (err as Error).message);
-    if (account.provider === "resend") return new Response("inbound processing failed", { status: 503 });
+    if (account.provider === "resend")
+      return new Response("inbound processing failed", { status: 503 });
   }
   return Response.json({ ok: true });
 }
@@ -370,6 +417,7 @@ export async function processInboundEmail(
       .select("id")
       .eq("workspace_id", account.workspace_id)
       .eq("provider_message_id", mail.messageId)
+      .limit(1)
       .maybeSingle();
     existingMessage = Boolean(dupe);
     if (existingMessage && account.provider !== "resend") return true;
@@ -429,7 +477,9 @@ export async function processInboundEmail(
   for (const [i, att] of mail.attachments.entries()) {
     try {
       const attachmentMessageId = mail.messageId
-        ? body || i > 0 ? `${mail.messageId}#att${i}` : mail.messageId
+        ? body || i > 0
+          ? `${mail.messageId}#att${i}`
+          : mail.messageId
         : null;
       if (existingMessage && attachmentMessageId) {
         const { data: existingAttachment, error: lookupError } = await admin
@@ -437,6 +487,7 @@ export async function processInboundEmail(
           .select("id")
           .eq("workspace_id", account.workspace_id)
           .eq("provider_message_id", attachmentMessageId)
+          .limit(1)
           .maybeSingle();
         if (lookupError) throw new Error(lookupError.message);
         if (existingAttachment) continue;
@@ -540,7 +591,37 @@ async function runEmailChatbot(
     });
 }
 
-async function resolveContact(
+/**
+ * Early mail from an address often carries no display name, so the contact is
+ * created with the address as its name. Once a real name does arrive, adopt it
+ * — but never overwrite a name someone has actually set.
+ */
+async function adoptSenderName(
+  admin: Admin,
+  contactId: string,
+  email: string,
+  name: string | null,
+): Promise<void> {
+  const incoming = name?.trim();
+  if (!incoming || incoming.toLowerCase() === email.toLowerCase()) return;
+  const { data } = await admin
+    .from("contacts")
+    .select("name, display_name")
+    .eq("id", contactId)
+    .maybeSingle();
+  const row = data as { name: string | null; display_name: string | null } | null;
+  if (!row) return;
+  const isPlaceholder = (value: string | null) =>
+    !value?.trim() || value.trim().toLowerCase() === email.toLowerCase();
+  const patch: Record<string, string> = {};
+  if (isPlaceholder(row.name)) patch.name = incoming;
+  if (isPlaceholder(row.display_name)) patch.display_name = incoming;
+  if (Object.keys(patch).length) {
+    await sbAny(admin).from("contacts").update(patch).eq("id", contactId);
+  }
+}
+
+export async function resolveContact(
   admin: Admin,
   workspaceId: string,
   email: string,
@@ -559,6 +640,7 @@ async function resolveContact(
       .from("channel_identities")
       .update({ last_seen_at: new Date().toISOString() })
       .eq("id", ident.id);
+    await adoptSenderName(admin, ident.contact_id, email, name);
     return ident.contact_id;
   }
 
@@ -570,6 +652,7 @@ async function resolveContact(
     .limit(1)
     .maybeSingle();
   let contactId = (existing as { id: string } | null)?.id ?? null;
+  if (contactId) await adoptSenderName(admin, contactId, email, name);
 
   if (!contactId) {
     const label = name ?? email;

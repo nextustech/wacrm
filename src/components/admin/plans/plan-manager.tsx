@@ -221,7 +221,7 @@ export function PlanManager() {
                       <div className="flex justify-end gap-1">
                         <Button
                           size="icon"
-                          variant="ghost"
+                          variant="outline"
                           onClick={() => setEditing(p)}
                           aria-label="Edit"
                         >
@@ -229,7 +229,7 @@ export function PlanManager() {
                         </Button>
                         <Button
                           size="icon"
-                          variant="ghost"
+                          variant="outline"
                           onClick={() => setGatewayPlan(p)}
                           aria-label="Payment gateways"
                           title="Payment gateways"
@@ -238,7 +238,7 @@ export function PlanManager() {
                         </Button>
                         <Button
                           size="icon"
-                          variant="ghost"
+                          variant="outline"
                           onClick={() => toggleMut.mutate({ id: p.id, is_active: !p.is_active })}
                           aria-label={p.is_active ? "Deactivate" : "Activate"}
                         >
@@ -250,7 +250,7 @@ export function PlanManager() {
                         </Button>
                         <Button
                           size="icon"
-                          variant="ghost"
+                          variant="outline"
                           onClick={() => {
                             if (confirm(`Archive "${p.name}"? Existing subscribers keep access.`))
                               delMut.mutate(p.id);

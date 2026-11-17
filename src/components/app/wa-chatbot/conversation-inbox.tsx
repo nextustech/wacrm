@@ -316,7 +316,7 @@ export function WaConversationInbox({ instances }: { instances: Instance[] }) {
                             isActive ? "bg-muted" : "hover:bg-muted/60",
                           )}
                         >
-                          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
+                          <span className="mt-0.5 flex shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary">
                             {initials(name) || <User className="h-4 w-4" />}
                           </span>
                           <span className="min-w-0 flex-1">
@@ -327,7 +327,7 @@ export function WaConversationInbox({ instances }: { instances: Instance[] }) {
                               </span>
                             </span>
                             <span className="mt-0.5 flex items-center gap-2">
-                              <span className="truncate text-xs text-muted-foreground">
+                              <span className="truncate text-sm text-muted-foreground">
                                 {c.last_message_preview || "No messages yet"}
                               </span>
                               {c.unread_count > 0 && (

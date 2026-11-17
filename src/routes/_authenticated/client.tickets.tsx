@@ -159,7 +159,7 @@ function SupportCenterPage() {
           <section className="rounded-control border border-border bg-surface p-5">
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-display text-base font-semibold flex items-center gap-2"><MessageCircle className="w-4 h-4" /> Your tickets</h2>
-              <Link to="/client/tickets/new"><Button size="sm" variant="ghost" className="h-7 -mr-2"><Plus className="w-3.5 h-3.5" /></Button></Link>
+              <Link to="/client/tickets/new"><Button size="sm" variant="ghost" className="-mr-2"><Plus className="w-3.5 h-3.5" /></Button></Link>
             </div>
 
             {tickets.isLoading ? (

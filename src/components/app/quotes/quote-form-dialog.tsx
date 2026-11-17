@@ -235,7 +235,7 @@ export function QuoteFormDialog({ open, onOpenChange, quote, onSaved, defaults }
                 </div>
                 <div className="col-span-8 md:col-span-2 flex items-end justify-between">
                   <div className="text-sm font-medium">{money((l.quantity * l.unit_price) * (1 - l.discount_pct / 100) * (1 + l.tax_rate / 100))}</div>
-                  <Button size="icon" variant="ghost" onClick={() => setForm((f) => ({ ...f, lines: f.lines.filter((_, idx) => idx !== i) }))}>
+                  <Button size="icon" variant="outline" onClick={() => setForm((f) => ({ ...f, lines: f.lines.filter((_, idx) => idx !== i) }))}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>

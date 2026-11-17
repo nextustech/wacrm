@@ -350,6 +350,7 @@ async function processMessagingEvent(
       .select("id, metadata")
       .eq("workspace_id", account.workspace_id)
       .eq("provider_message_id", reaction.mid)
+      .limit(1)
       .maybeSingle();
     const row = target as { id: string; metadata: Record<string, unknown> | null } | null;
     if (!row) return none;
@@ -816,7 +817,7 @@ async function runMessengerChatbot(args: RunBotArgs): Promise<boolean> {
     .join("\n\n");
 
   let reply = bot.fallback_message ?? "Thanks for your message! We'll get back to you shortly.";
-  let model = bot.model ?? "google/gemini-2.5-flash";
+  let model = bot.model ?? "google/gemini-3.8-flash";
   let providerKind = "";
   try {
     const { runChat } = await import("@/lib/ai/complete.functions");
@@ -825,7 +826,7 @@ async function runMessengerChatbot(args: RunBotArgs): Promise<boolean> {
       feature: "chatbot:messenger",
       primaryProviderId: bot.provider_id,
       request: {
-        model: bot.model || "google/gemini-2.5-flash",
+        model: bot.model || "google/gemini-3.8-flash",
         temperature: bot.temperature ?? 0.4,
         max_tokens: bot.max_tokens ?? 500,
         messages: [

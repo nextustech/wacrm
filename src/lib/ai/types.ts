@@ -17,9 +17,28 @@ export type AIProviderKind =
 
 export type AIRole = "system" | "user" | "assistant" | "tool";
 
+/**
+ * One piece of a multimodal message.
+ *
+ * Binary parts carry raw base64 (no `data:` prefix, no newlines) rather than a
+ * URL: chat attachments live in a private Supabase Storage bucket, so a URL
+ * the provider could fetch would have to be a signed one, and handing a
+ * time-limited credential for the customer's files to a third party is worse
+ * than sending the bytes we already hold.
+ */
+export type AIContentPart =
+  | { type: "text"; text: string }
+  | { type: "image"; mimeType: string; dataBase64: string }
+  | { type: "document"; mimeType: string; dataBase64: string; filename?: string };
+
 export interface AIMessage {
   role: AIRole;
-  content: string;
+  /**
+   * A plain string for the overwhelming majority of calls. An array of parts
+   * only where an image or document is being sent — see `contentToText()` in
+   * ./content for the text-only view every non-vision consumer wants.
+   */
+  content: string | AIContentPart[];
   name?: string;
   tool_call_id?: string;
   tool_calls?: AIToolCall[];

@@ -252,7 +252,7 @@ function ConditionRow({
           </>
         )}
       </div>
-      <Button variant="ghost" size="icon" onClick={onRemove}>
+      <Button variant="outline" size="icon" onClick={onRemove}>
         <X className="h-4 w-4" />
       </Button>
     </div>

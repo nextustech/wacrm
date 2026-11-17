@@ -231,8 +231,8 @@ export function ChannelHealthChecks({
                 </code>
                 <Button
                   size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 shrink-0"
+                  variant="outline"
+                  className="shrink-0"
                   onClick={() => void copyCallback()}
                   aria-label="Copy callback URL"
                 >

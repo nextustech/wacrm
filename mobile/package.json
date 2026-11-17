@@ -1,6 +1,6 @@
 {
   "name": "wacrm-mobile",
-  "version": "6.8.9",
+  "version": "7.3.4",
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",

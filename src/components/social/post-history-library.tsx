@@ -208,9 +208,8 @@ export function PostHistory({
                   </td>
                   <td className="px-3 py-2 text-right">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-9 w-9"
                       aria-label="Open post"
                       onClick={() => onOpenPost(p)}
                     >
@@ -351,9 +350,9 @@ export function PostLibrary({ onUse }: { onUse: (item: LibraryItem) => void }) {
                   Edit
                 </Button>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
-                  className="h-8 w-8 ml-auto"
+                  className="ml-auto"
                   aria-label={`Delete ${item.name}`}
                   onClick={async () => {
                     try {

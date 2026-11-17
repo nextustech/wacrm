@@ -218,9 +218,9 @@ export function AnnouncementsManager({ kind }: { kind: Kind }) {
                     Edit
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className="h-8 w-8 text-destructive"
+                    className="text-destructive"
                     onClick={() => {
                       if (confirm("Delete this?")) mDelete.mutate(a.id);
                     }}

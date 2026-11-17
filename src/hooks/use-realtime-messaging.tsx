@@ -11,6 +11,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { toast } from "sonner";
+import { showInboundMessageToast } from "@/components/app/inbox/inbound-message-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useCurrentWorkspace } from "@/hooks/use-workspace";
@@ -25,17 +26,13 @@ import { createReconnectController } from "@/lib/inbox/realtime-backoff";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { sbAny } from "@/lib/supabase/untyped";
 import { channelLabel } from "@/lib/inbox/channel-capabilities";
+import { resolveContactDisplayName } from "@/lib/inbox/contact-display";
 import { externalAccountKeyForConversation } from "@/lib/inbox/external-account-ids";
 import { liveChatAccountId } from "@/hooks/use-livechat-accounts";
 import { playInboundChime } from "@/lib/notifications/inbound-sound";
 import { explainWhatsAppDeliveryFailure } from "@/lib/messaging/whatsapp-delivery-errors";
 
-export type ConnectionState =
-  | "connecting"
-  | "connected"
-  | "reconnecting"
-  | "offline"
-  | "paused";
+export type ConnectionState = "connecting" | "connected" | "reconnecting" | "offline" | "paused";
 
 export type PresenceUser = {
   user_id: string;
@@ -106,9 +103,7 @@ function deviceLabel() {
 }
 
 /** Channel label and sender name for an attention toast. */
-async function describeConversation(
-  conversationId: string,
-): Promise<{
+async function describeConversation(conversationId: string): Promise<{
   channel: string;
   rawChannel?: string;
   channelAccountId?: string | null;
@@ -117,31 +112,39 @@ async function describeConversation(
 }> {
   const { data } = await sbAny(supabase)
     .from("conversations")
-    .select("channel, channel_account_id, metadata, contact:contacts(display_name, first_name, last_name, phone)")
+    .select(
+      "channel, channel_account_id, metadata, contact:contacts(name, display_name, first_name, last_name, phone)",
+    )
     .eq("id", conversationId)
     .maybeSingle();
   const row = (data ?? {}) as {
     channel?: string;
     channel_account_id?: string | null;
     metadata?: Record<string, unknown> | null;
-    contact?: { display_name?: string | null; first_name?: string | null; last_name?: string | null; phone?: string | null } | null;
+    contact?: {
+      name?: string | null;
+      display_name?: string | null;
+      first_name?: string | null;
+      last_name?: string | null;
+      phone?: string | null;
+    } | null;
   };
   const muted = row.metadata?.muted === "true" || row.metadata?.muted === true;
-  const metadataAccountId = typeof row.metadata?.account_id === "string"
-    ? row.metadata.account_id
-    : null;
-  const chatbotId = typeof row.metadata?.chatbot_id === "string"
-    ? row.metadata.chatbot_id
-    : null;
-  const channelAccountId = row.channel_account_id
-    ?? externalAccountKeyForConversation(row.channel, metadataAccountId)
-    ?? ((row.channel === "webchat" || row.channel === "livechat") && chatbotId ? liveChatAccountId(chatbotId) : null);
+  const metadataAccountId =
+    typeof row.metadata?.account_id === "string" ? row.metadata.account_id : null;
+  const chatbotId = typeof row.metadata?.chatbot_id === "string" ? row.metadata.chatbot_id : null;
+  const channelAccountId =
+    row.channel_account_id ??
+    externalAccountKeyForConversation(row.channel, metadataAccountId) ??
+    ((row.channel === "webchat" || row.channel === "livechat") && chatbotId
+      ? liveChatAccountId(chatbotId)
+      : null);
+  // Same precedence as the rest of the inbox (sidebar, header): the CRM's
+  // own  field wins over a channel's , since a WhatsApp
+  // profile name (or worse, a stale email-derived handle) is often wrong
+  // while an agent-entered full name is correct.
   const contact = row.contact ?? {};
-  const name =
-    contact.display_name ||
-    [contact.first_name, contact.last_name].filter(Boolean).join(" ") ||
-    contact.phone ||
-    "Customer";
+  const name = resolveContactDisplayName(contact);
   return {
     channel: channelLabel(row.channel),
     rawChannel: row.channel,
@@ -163,11 +166,8 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
   const qc = useQueryClient();
   const router = useRouter();
 
-  const [connectionState, setConnectionState] =
-    useState<ConnectionState>("connecting");
-  const [onlineUsers, setOnlineUsers] = useState<Record<string, PresenceUser[]>>(
-    {},
-  );
+  const [connectionState, setConnectionState] = useState<ConnectionState>("connecting");
+  const [onlineUsers, setOnlineUsers] = useState<Record<string, PresenceUser[]>>({});
   const [notificationsPermission, setNotificationsPermission] = useState<
     NotificationPermission | "unsupported"
   >(() =>
@@ -185,9 +185,7 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
   // stale data until the next manual refresh.
   const [reconnectEpoch, setReconnectEpoch] = useState(0);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const reconnectRef = useRef<ReturnType<typeof createReconnectController> | null>(
-    null,
-  );
+  const reconnectRef = useRef<ReturnType<typeof createReconnectController> | null>(null);
   if (!reconnectRef.current) {
     reconnectRef.current = createReconnectController((attempt) => {
       setReconnectAttempts(attempt);
@@ -267,8 +265,6 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
     },
     [router],
   );
-
-
 
   // Load offline queue on mount
   useEffect(() => {
@@ -392,7 +388,6 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
     qc.invalidateQueries({ queryKey: ["external-channel-accounts", workspaceId] });
   }, [workspaceId, qc]);
 
-
   // Presence + workspace message sync
   useEffect(() => {
     if (!workspaceId || !userId) return;
@@ -410,10 +405,7 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
     // Single coalesced fan-out for every conversation-derived surface in the
     // app (Inbox list, badges, timeline, activity, notifications, handoff,
     // SLA, dashboard) so realtime — not polling — drives freshness.
-    const invalidateConversations = createConversationInvalidator(
-      qc,
-      boundWorkspaceId,
-    );
+    const invalidateConversations = createConversationInvalidator(qc, boundWorkspaceId);
 
     // Start each (re)subscription cycle in the reconnecting state so the UI
     // reflects that the previous workspace's channels have been torn down.
@@ -430,11 +422,7 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
         setConnectionState("connected");
         return;
       }
-      if (
-        status === "CHANNEL_ERROR" ||
-        status === "TIMED_OUT" ||
-        status === "CLOSED"
-      ) {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
         setConnectionState(navigator.onLine ? "reconnecting" : "offline");
         if (navigator.onLine) reconnect.schedule();
       }
@@ -446,10 +434,7 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
     });
 
     const syncPresence = () => {
-      const state = presence.presenceState() as Record<
-        string,
-        PresenceUser[]
-      >;
+      const state = presence.presenceState() as Record<string, PresenceUser[]>;
       setOnlineUsers(state);
     };
 
@@ -470,7 +455,6 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
         }
       });
     channels.push(presence);
-
 
     // Workspace-wide message stream — desktop notifications, cache updates
     const messagesChan = supabase
@@ -502,10 +486,7 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
           // Realtime can redeliver the same INSERT (reconnect, duplicate
           // subscription). Only the first occurrence refreshes caches or
           // raises a notification.
-          const fresh = invalidateConversations.schedule(
-            m.conversation_id,
-            `msg-i:${m.id}`,
-          );
+          const fresh = invalidateConversations.schedule(m.conversation_id, `msg-i:${m.id}`);
           if (!fresh) return;
 
           // Auto-mark delivered for inbound
@@ -525,12 +506,16 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
                 if (!m.is_internal && !muted) {
                   playInboundChime(rawChannel, boundWorkspaceId, channelAccountId);
                 }
-                toast.message(`New message on ${channel}`, {
-                  description: `${name}: ${(m.body ?? "Sent an attachment").slice(0, 120)}`,
-                  action: {
-                    label: "Open",
-                    onClick: () => router.navigate({ to: "/inbox", search: { conversationId: m.conversation_id } as never }),
-                  },
+                showInboundMessageToast({
+                  channel,
+                  rawChannel,
+                  name,
+                  body: (m.body ?? "Sent an attachment").slice(0, 160),
+                  onOpen: () =>
+                    router.navigate({
+                      to: "/inbox",
+                      search: { conversationId: m.conversation_id } as never,
+                    }),
                 });
               })
               .catch(() => {});
@@ -587,9 +572,7 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
           // for the same message is dropped instead of re-sorting the list.
           const freshUpdate = invalidateConversations.schedule(
             m.conversation_id,
-            m.id
-              ? `msg-u:${m.id}:${m.status ?? ""}:${m.updated_at ?? ""}`
-              : null,
+            m.id ? `msg-u:${m.id}:${m.status ?? ""}:${m.updated_at ?? ""}` : null,
           );
 
           // An outbound message the provider rejected needs the agent's attention.
@@ -597,24 +580,27 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
             describeConversation(m.conversation_id)
               .then(({ channel, name }) => {
                 if (cancelled) return;
-                const failure = channel === "WhatsApp"
-                  ? explainWhatsAppDeliveryFailure(m.failed_reason)
-                  : null;
+                const failure =
+                  channel === "WhatsApp" ? explainWhatsAppDeliveryFailure(m.failed_reason) : null;
                 toast.error(`Message to ${name} failed on ${channel}`, {
-                  description: failure?.action ?? (failure?.retryable === false
-                    ? failure.summary
-                    : "Open the conversation to see the reason and retry."),
+                  description:
+                    failure?.action ??
+                    (failure?.retryable === false
+                      ? failure.summary
+                      : "Open the conversation to see the reason and retry."),
                   action: {
                     label: "Open",
-                    onClick: () => router.navigate({ to: "/inbox", search: { conversationId: m.conversation_id } as never }),
+                    onClick: () =>
+                      router.navigate({
+                        to: "/inbox",
+                        search: { conversationId: m.conversation_id } as never,
+                      }),
                   },
                 });
               })
               .catch(() => {});
           }
-
         },
-
       )
       .subscribe(handleChannelStatus);
     channels.push(messagesChan);
@@ -677,7 +663,6 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
       });
       void qc.invalidateQueries({ queryKey: ["chatbot-sessions"] });
     };
-
 
     const liveChatChan = supabase
       .channel(`ws-livechat:${boundWorkspaceId}`)
@@ -781,26 +766,22 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
         (payload) => {
           if (cancelled) return;
           const row = (payload.new ?? payload.old) as
-            | { id?: string; workspace_id?: string; updated_at?: string | null }
-            | undefined;
+            { id?: string; workspace_id?: string; updated_at?: string | null } | undefined;
           // Guard against payloads queued before a tenant switch.
           if (row?.workspace_id && row.workspace_id !== boundWorkspaceId) return;
           invalidateAccounts(
-            row?.id
-              ? `acct:${table}:${row.id}:${payload.eventType}:${row.updated_at ?? ""}`
-              : null,
+            row?.id ? `acct:${table}:${row.id}:${payload.eventType}:${row.updated_at ?? ""}` : null,
           );
         },
       );
     }
     channels.push(accountsChan.subscribe(handleChannelStatus));
 
-
-
-
     // Heartbeat — updates profiles.last_seen_at
     const beat = () => {
-      sbAny(supabase).rpc("heartbeat").then(() => {});
+      sbAny(supabase)
+        .rpc("heartbeat")
+        .then(() => {});
     };
     beat();
     heartbeat = setInterval(beat, 30_000);
@@ -810,7 +791,6 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
       invalidateConversations.cancel();
       if (heartbeat) clearInterval(heartbeat);
       channels.forEach((c) => supabase.removeChannel(c));
-
     };
   }, [workspaceId, userId, qc, flushQueue, realtimeEnabled, reconnect, reconnectEpoch]);
 
@@ -857,9 +837,7 @@ export function RealtimeMessagingProvider({ children }: { children: ReactNode })
     ],
   );
 
-  return (
-    <RealtimeContext.Provider value={value}>{children}</RealtimeContext.Provider>
-  );
+  return <RealtimeContext.Provider value={value}>{children}</RealtimeContext.Provider>;
 }
 
 export function useRealtimeMessaging() {
@@ -871,8 +849,7 @@ export function useRealtimeMessaging() {
       realtimeEnabled: true,
       onlineUsers: {} as Record<string, PresenceUser[]>,
       isUserOnline: () => false,
-      requestDesktopNotifications: async () =>
-        "default" as NotificationPermission,
+      requestDesktopNotifications: async () => "default" as NotificationPermission,
       notificationsPermission: "default" as NotificationPermission,
       queueOffline: () => {},
       pendingOfflineCount: 0,
@@ -894,8 +871,6 @@ export function useConversationReadState(conversationId: string | undefined) {
         table: "message_read_receipts",
       },
     ],
-    onChange: () =>
-      qc.invalidateQueries({ queryKey: ["messages", conversationId] }),
+    onChange: () => qc.invalidateQueries({ queryKey: ["messages", conversationId] }),
   });
 }
-

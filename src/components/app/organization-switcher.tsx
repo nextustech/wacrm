@@ -170,8 +170,8 @@ export function OrganizationSwitcher({
                 ref={retryRef}
                 type="button"
                 size="icon"
-                variant="ghost"
-                className="h-8 w-8 text-destructive hover:bg-destructive/20"
+                variant="outline"
+                className="text-destructive hover:bg-destructive/20"
                 onClick={onRetry}
                 aria-label="Retry loading organizations"
               >

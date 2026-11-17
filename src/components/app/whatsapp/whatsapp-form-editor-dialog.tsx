@@ -377,7 +377,7 @@ function StepEditor({
         <div className="flex items-center gap-1">
           <Button
             size="icon"
-            variant="ghost"
+            variant="outline"
             onClick={onMoveUp}
             disabled={index === 0}
             title="Move up"
@@ -386,14 +386,14 @@ function StepEditor({
           </Button>
           <Button
             size="icon"
-            variant="ghost"
+            variant="outline"
             onClick={onMoveDown}
             disabled={index === total - 1}
             title="Move down"
           >
             <ArrowDown className="w-4 h-4" />
           </Button>
-          <Button size="icon" variant="ghost" onClick={onDelete} title="Delete step">
+          <Button size="icon" variant="outline" onClick={onDelete} title="Delete step">
             <Trash2 className="w-4 h-4 text-destructive" />
           </Button>
         </div>
@@ -575,7 +575,7 @@ function StepEditor({
             <div className="text-[11px] uppercase text-muted-foreground">
               Options ({step.options.length})
             </div>
-            <Button size="sm" variant="outline" className="gap-1.5 h-7" onClick={addOption}>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={addOption}>
               <Plus className="w-3 h-3" /> Add option
             </Button>
           </div>
@@ -609,7 +609,7 @@ function StepEditor({
                   />
                   <Button
                     size="icon"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => removeOption(i)}
                     title="Remove"
                   >

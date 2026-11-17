@@ -130,8 +130,8 @@ function TemplatePreviewPage() {
       const s = highlight(subject);
       const b = highlight(body);
       const translationHits = Object.values(t.translations ?? {}).reduce((acc, tr) => {
-        const trSubj = highlight(render(tr?.subject ?? "")).hits;
-        const trBody = highlight(render(tr?.body ?? "")).hits;
+        const trSubj = highlight(render(tr?.subject ?? "", sampleVars)).hits;
+        const trBody = highlight(render(tr?.body ?? "", sampleVars)).hits;
         return acc + trSubj + trBody;
       }, 0);
       const hits = s.hits + b.hits + translationHits;

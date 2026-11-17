@@ -14,6 +14,7 @@ type Admin = any;
 
 export type BotChannel =
   | "whatsapp" | "instagram" | "messenger" | "telegram"
+  | "viber" | "line" | "wechat"
   | "livechat" | "web" | "sms" | "email" | "tiktok";
 
 export interface DispatchBot {
@@ -47,6 +48,9 @@ const CHANNEL_LABELS: Record<BotChannel, string> = {
   sms: "SMS",
   email: "Email",
   tiktok: "TikTok",
+  viber: "Viber",
+  line: "LINE",
+  wechat: "WeChat",
 };
 
 /**
@@ -219,7 +223,7 @@ export async function dispatchChannelBot(args: DispatchArgs): Promise<DispatchRe
     .join("\n\n");
 
   let reply = bot.fallback_message ?? "Thanks for your message! We'll get back to you shortly.";
-  let model = bot.model ?? "google/gemini-2.5-flash";
+  let model = bot.model ?? "google/gemini-3.8-flash";
   let providerKind = "";
   try {
     const { runChat } = await import("@/lib/ai/complete.functions");
@@ -228,7 +232,7 @@ export async function dispatchChannelBot(args: DispatchArgs): Promise<DispatchRe
       feature: `chatbot:${channel}`,
       primaryProviderId: bot.provider_id,
       request: {
-        model: bot.model || "google/gemini-2.5-flash",
+        model: bot.model || "google/gemini-3.8-flash",
         temperature: bot.temperature ?? 0.4,
         max_tokens: bot.max_tokens ?? 500,
         messages: [

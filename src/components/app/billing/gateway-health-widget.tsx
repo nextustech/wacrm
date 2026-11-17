@@ -135,8 +135,7 @@ export function GatewayHealthWidget({ workspaceId }: { workspaceId: string }) {
           </Select>
           <Button
             size="icon"
-            variant="ghost"
-            className="h-9 w-9"
+            variant="outline"
             onClick={() => q.refetch()}
             disabled={q.isFetching}
             aria-label="Refresh gateway health"

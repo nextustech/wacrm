@@ -186,12 +186,12 @@ export function WebhookConfigDialog({
                   <code className="flex-1 rounded-control border border-border bg-muted/40 px-3 py-2 text-xs font-mono truncate">
                     {showSecret ? existing.secret : `whsec_••••••••••••${existing.secretLast4}`}
                   </code>
-                  <Button size="icon" variant="ghost" onClick={() => setShowSecret((s) => !s)}>
+                  <Button size="icon" variant="outline" onClick={() => setShowSecret((s) => !s)}>
                     {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                   <Button
                     size="icon"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => copy(existing.secret, "Secret")}
                   >
                     <Copy className="h-4 w-4" />

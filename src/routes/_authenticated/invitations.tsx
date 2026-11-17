@@ -312,7 +312,7 @@ function PendingList({
               <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{inv.email}</div>
-                <div className="truncate text-xs text-muted-foreground">
+                <div className="truncate text-sm text-muted-foreground">
                   {wsName.get(inv.workspace_id) ?? "Workspace"} ·{" "}
                   {expired ? "expired" : `expires ${new Date(inv.expires_at).toLocaleDateString()}`}
                 </div>
@@ -478,7 +478,7 @@ function HistoryList({
           )}
           <div className="min-w-0 flex-1">
             <div className="truncate font-medium">{inv.email}</div>
-            <div className="truncate text-xs text-muted-foreground">
+            <div className="truncate text-sm text-muted-foreground">
               {wsName.get(inv.workspace_id) ?? "Workspace"} · {inv.role} ·{" "}
               {new Date(inv.accepted_at ?? inv.created_at).toLocaleString()}
             </div>

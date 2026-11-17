@@ -25,6 +25,9 @@ export const CHANNEL_LABELS: Record<InboxChannel, string> = {
   messenger: "Messenger",
   instagram: "Instagram",
   telegram: "Telegram",
+  viber: "Viber",
+  line: "LINE",
+  wechat: "WeChat",
   email: "Email",
   sms: "SMS",
   webchat: "Live Chat",
@@ -42,6 +45,9 @@ export const FILTERABLE_CHANNELS: InboxChannel[] = [
   "messenger",
   "instagram",
   "telegram",
+  "viber",
+  "line",
+  "wechat",
   "email",
   "sms",
   "webchat",
@@ -60,6 +66,12 @@ export const CHANNEL_COMPOSER_CAPABILITIES: Record<InboxChannel, ComposerCapabil
   whatsapp: ALL,
   telegram: ["text", "emoji", "media", "document", "location", "contact_card", "voice_note", "templates", "schedule"],
   messenger: ["text", "emoji", "media", "document", "templates", "schedule"],
+  // Viber bots take text, media and files; no template catalogue of their own.
+  viber: ["text", "emoji", "media", "document", "location", "contact_card", "schedule"],
+  // LINE sends image/video/audio natively; a document goes out as a link.
+  line: ["text", "emoji", "media", "document", "location", "templates", "schedule"],
+  // Customer-service replies only, inside WeChat's 48-hour window.
+  wechat: ["text", "emoji", "media", "location", "schedule"],
   instagram: ["text", "emoji", "media", "voice_note", "templates", "schedule"],
   email: ["text", "emoji", "media", "document", "templates", "schedule"],
   sms: ["text", "templates", "schedule"],
@@ -98,6 +110,9 @@ export function providerToChannel(provider: string): InboxChannel {
   if (p.includes("tiktok")) return "tiktok";
   if (p.includes("messenger") || p.includes("facebook")) return "messenger";
   if (p.includes("telegram")) return "telegram";
+  if (p.includes("viber")) return "viber";
+  if (p === "line" || p.includes("line_") || p.includes("line_oa")) return "line";
+  if (p.includes("wechat") || p.includes("weixin")) return "wechat";
   if (
     p.includes("email") || p.includes("smtp") || p.includes("imap") || p.includes("mail") ||
     ["sendgrid", "resend", "postmark", "ses", "smtp2go"].includes(p)
@@ -144,6 +159,12 @@ export const KNOWN_PROVIDERS = [
   "instagram",
   "telegram",
   "telegram_bot",
+  "viber",
+  "viber_bot",
+  "line",
+  "line_oa",
+  "wechat",
+  "wechat_oa",
   "email",
   "email_smtp",
   "smtp",
@@ -257,6 +278,12 @@ export function channelSetupPath(channel: InboxChannel): {
       return { to: "/api-config/$section", params: { section: "instagram" } };
     case "telegram":
       return { to: "/api-config/$section", params: { section: "telegram" } };
+    case "viber":
+      return { to: "/api-config/$section", params: { section: "viber" } };
+    case "line":
+      return { to: "/api-config/$section", params: { section: "line" } };
+    case "wechat":
+      return { to: "/api-config/$section", params: { section: "wechat" } };
     case "webchat":
       return { to: "/chatbots" };
     case "facebook":

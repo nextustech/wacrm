@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { FormattedText } from "@/components/app/inbox/formatted-text";
+import { TaskSourceLink } from "@/components/app/tasks/task-source-link";
 import type { PmProject, PmTask, PmWorkspaceUser } from "@/lib/project-management/client";
 import { TASK_PRIORITY_LABELS, TASK_PRIORITY_TONE, TASK_STATUS_LABELS, TASK_STATUS_TONE, shortDate } from "./labels";
 
@@ -88,6 +89,10 @@ export function TaskDetailDialog({
               <p className="text-sm text-muted-foreground italic">No description yet.</p>
             )}
           </div>
+
+          {/* Tasks raised from the inbox keep a link home, so whoever picks
+           * the task up can read the chat it came out of. */}
+          {task.conversation_id && <TaskSourceLink conversationId={task.conversation_id} />}
         </div>
 
         <DialogFooter>

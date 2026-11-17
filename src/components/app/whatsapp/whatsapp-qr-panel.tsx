@@ -52,6 +52,7 @@ import {
   revokeAllQrSessions,
   qrWorkerHealth,
 } from "@/lib/messaging/qr-sessions.functions";
+import { Button } from "@/components/ui/button";
 
 type Session = {
   id: string;
@@ -324,17 +325,19 @@ export function WhatsAppQrPanel() {
         </div>
         <div className="flex items-center gap-1">
           {FILTERS.map((f) => (
-            <button
+            <Button
+              size="default"
+              variant="outline"
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`px-3 py-1.5 rounded text-xs border ${
+              className={` ${
                 filter === f.id
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "border-border hover:bg-muted"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-foreground"
               }`}
             >
               {f.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>

@@ -14,6 +14,12 @@ import { sbAny } from "@/lib/supabase/untyped";
 
 const orgInput = z.object({ organization_id: z.string().uuid() });
 
+/**
+ * `messages.metadata.source` written by the WhatsApp webhook for a
+ * Coexistence echo — a message sent from the linked phone, not from here.
+ */
+const COEXISTENCE_SOURCE = "whatsapp_app_coexistence";
+
 export type UsageMeterRow = {
   code: string;
   name: string;
@@ -63,6 +69,7 @@ export const getUsageSummary = createServerFn({ method: "POST" })
       apiCallsRes,
       workflowRunsRes,
       filesRes,
+      coexEchoRes,
       quotasRes,
     ] = await Promise.all([
       sbAny(supabase).from("organization_members").select("user_id", { count: "exact", head: true }).eq("organization_id", orgId),
@@ -124,6 +131,18 @@ export const getUsageSummary = createServerFn({ method: "POST" })
         .gte("started_at", periodStart)
         .lt("started_at", periodEnd),
       sbAny(supabase).from("files").select("size_bytes").eq("organization_id", orgId),
+      // Replies the agent typed in the phone's own WhatsApp app. Meta
+      // mirrors them back to us as outbound rows, but nothing was sent
+      // through this platform and Meta charges nothing for them, so they
+      // are subtracted from the billable send count below.
+      supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", wsId)
+        .eq("direction", "outbound")
+        .eq("metadata->>source", COEXISTENCE_SOURCE)
+        .gte("created_at", periodStart)
+        .lt("created_at", periodEnd),
       supabase
         .from("tenant_quotas")
         .select("meter_code, used, included, hard_limit, period_start, period_end")
@@ -131,6 +150,10 @@ export const getUsageSummary = createServerFn({ method: "POST" })
         .lte("period_start", now.toISOString())
         .gt("period_end", now.toISOString()),
     ]);
+
+    // Never negative: the two counts are separate round-trips, so a message
+    // can land between them.
+    const billableSent = Math.max(0, (msgsSentRes.count ?? 0) - (coexEchoRes.count ?? 0));
 
     const activeUserIds = new Set<string>();
     for (const r of (activeUsersRes.data ?? []) as Array<{ actor_id: string | null }>) {
@@ -162,7 +185,7 @@ export const getUsageSummary = createServerFn({ method: "POST" })
       active_users: activeUserIds.size,
       contacts: contactsRes.count ?? 0,
       whatsapp_numbers: channelsRes.count ?? 0,
-      messages_sent: msgsSentRes.count ?? 0,
+      messages_sent: billableSent,
       messages_received: msgsRecvRes.count ?? 0,
       broadcast_messages: broadcastRes.count ?? 0,
       campaigns_launched: campaignsRes.count ?? 0,

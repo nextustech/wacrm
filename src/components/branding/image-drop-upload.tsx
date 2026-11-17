@@ -153,7 +153,7 @@ export function ImageDropUpload({
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UploadCloud className="h-3.5 w-3.5" />}
             {busy ? "Uploading" : "Drag & drop, or click to upload"}
           </p>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="truncate text-[11px] text-muted-foreground">
             {broken && value ? "Image could not be loaded — check the URL." : (hint ?? "PNG, JPG, WEBP, SVG or ICO · max 5 MB")}
           </p>
         </div>
@@ -161,9 +161,9 @@ export function ImageDropUpload({
         {value ? (
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="icon"
-            className="h-8 w-8 shrink-0"
+            className="shrink-0"
             aria-label={`Remove ${label}`}
             onClick={(e) => {
               e.stopPropagation();

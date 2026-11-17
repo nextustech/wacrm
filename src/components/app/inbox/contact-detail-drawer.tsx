@@ -41,7 +41,7 @@ export function ContactDetailDrawer({ open, onOpenChange, conversation }: Props)
         <SheetHeader className="p-4 border-b border-border flex flex-row items-center justify-between gap-2 space-y-0">
           <SheetTitle className="mb-0 text-base">Contact details</SheetTitle>
           <SheetClose asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label="Close contact details">
+            <Button variant="outline" size="icon" className="shrink-0" aria-label="Close contact details">
               <X className="h-4 w-4" />
             </Button>
           </SheetClose>
@@ -145,7 +145,7 @@ function DetailRow({
         )}
       </div>
       {hasValue && copyValue && (
-        <Button variant="ghost" size="icon" className="shrink-0" onClick={onCopy} aria-label={`Copy ${label}`}>
+        <Button variant="outline" size="icon" className="shrink-0" onClick={onCopy} aria-label={`Copy ${label}`}>
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
         </Button>
       )}

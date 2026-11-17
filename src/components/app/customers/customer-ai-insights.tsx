@@ -139,7 +139,6 @@ export function CustomerAIInsights({ customerId }: Props) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 px-2"
                   onClick={() => {
                     void navigator.clipboard.writeText(insight.suggestedReply ?? "");
                     toast.success("Copied");

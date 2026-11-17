@@ -47,7 +47,7 @@ export function HandoffToolbar({
     <div className={cn("flex items-center", className)}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="h-8 gap-1.5 px-2 text-xs" aria-label="Handoff options">
+          <Button variant="outline" size="default" className="gap-1.5 text-xs" aria-label="Handoff options">
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icon className="h-3.5 w-3.5" />}
             {text}
             <ChevronDown className="h-3 w-3 opacity-60" />

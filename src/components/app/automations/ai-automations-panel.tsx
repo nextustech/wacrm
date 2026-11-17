@@ -133,7 +133,6 @@ function SuggestionQueue({ workspaceId }: { workspaceId: string | undefined }) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 px-2"
                       disabled={rejecting || applying}
                       onClick={() => reject.mutate(s.id)}
                     >
@@ -141,7 +140,6 @@ function SuggestionQueue({ workspaceId }: { workspaceId: string | undefined }) {
                     </Button>
                     <Button
                       size="sm"
-                      className="h-7 px-2"
                       disabled={applying || rejecting}
                       onClick={() => apply.mutate(s.id)}
                     >

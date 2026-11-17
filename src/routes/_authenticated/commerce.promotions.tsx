@@ -426,7 +426,7 @@ function PromotionsPage() {
                 }}
               >
                 <DialogTrigger asChild>
-                  <Button size="sm" className="h-9">
+                  <Button size="sm">
                     <Plus className="h-4 w-4 mr-2" />
                     New Promotion
                   </Button>
@@ -443,7 +443,6 @@ function PromotionsPage() {
                 key="export"
                 variant="outline"
                 size="sm"
-                className="h-9"
                 onClick={exportCsv}
                 disabled={filtered.length === 0}
               >
@@ -507,7 +506,6 @@ function PromotionsPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-9"
                 onClick={() => bulkMut.mutate("activate")}
                 disabled={bulkMut.isPending}
               >
@@ -516,7 +514,6 @@ function PromotionsPage() {
               <Button
                 size="sm"
                 variant="outline"
-                className="h-9"
                 onClick={() => bulkMut.mutate("deactivate")}
                 disabled={bulkMut.isPending}
               >
@@ -525,7 +522,6 @@ function PromotionsPage() {
               <Button
                 size="sm"
                 variant="destructive"
-                className="h-9"
                 onClick={() => setConfirmBulk("delete")}
                 disabled={bulkMut.isPending}
               >
@@ -651,18 +647,16 @@ function PromotionsPage() {
                         aria-label="Toggle active"
                       />
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
-                        className="h-9 w-9"
                         onClick={() => openEdit(p)}
                         aria-label="Edit"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
-                        className="h-9 w-9"
                         onClick={() => dupMut.mutate(p.id)}
                         disabled={dupMut.isPending}
                         aria-label="Duplicate"
@@ -670,9 +664,9 @@ function PromotionsPage() {
                         <CopyPlus className="h-3.5 w-3.5" />
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
-                        className="h-8 w-8 text-destructive"
+                        className="text-destructive"
                         onClick={() => setConfirmDelete({ id: p.id, name: p.name })}
                         aria-label="Delete"
                       >
@@ -797,7 +791,7 @@ function PromotionDialog({
                 type="button"
                 variant="outline"
                 size="sm"
-                className="h-9 shrink-0"
+                className="shrink-0"
                 onClick={() => {
                   const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
                   upd("code", `SAVE${rand}`);

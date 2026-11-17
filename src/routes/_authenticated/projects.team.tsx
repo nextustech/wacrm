@@ -232,7 +232,7 @@ function ProjectTeamPage() {
                 <UsersRound className="size-4" aria-hidden="true" />
                 <span>{projectMembers.length + (ownerUser && !ownerIsMember ? 1 : 0)} people</span>
                 <Button asChild size="sm" variant="ghost">
-                  <Link to="/projects/$projectId" params={{ projectId: project.id }}>
+                  <Link to="/projects/$projectId" params={{ projectId: project.id }} search={{ taskId: undefined }}>
                     Open project
                   </Link>
                 </Button>
@@ -335,7 +335,7 @@ function ProjectTeamPage() {
                         {canManage && !isOwner && (
                           <Button
                             size="icon"
-                            variant="ghost"
+                            variant="outline"
                             className="ml-auto text-muted-foreground hover:text-destructive"
                             aria-label={`Remove ${displayName(person)} from project`}
                             onClick={() => setRemoveTarget(member)}
@@ -491,7 +491,7 @@ function PersonIdentity({ user }: { user: PmWorkspaceUser | undefined }) {
       </Avatar>
       <div className="min-w-0">
         <div className="truncate text-sm font-medium">{name}</div>
-        <div className="truncate text-xs text-muted-foreground">
+        <div className="truncate text-sm text-muted-foreground">
           {user?.email ?? "Former workspace member"}
         </div>
       </div>

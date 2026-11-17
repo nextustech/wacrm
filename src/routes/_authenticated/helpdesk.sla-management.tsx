@@ -339,7 +339,7 @@ function PolicyCard({ policy }: { policy: any }) {
         </div>
         <div className="flex gap-1">
           <PolicyDialog policy={policy} />
-          <Button size="icon" variant="ghost" onClick={() => remove.mutate()}>
+          <Button size="icon" variant="outline" onClick={() => remove.mutate()}>
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
@@ -575,6 +575,10 @@ function EscalationRulesEditor({ policyId, rules }: { policyId: string; rules: a
                   placeholder="e.g. sla.escalated"
                   onChange={(e) => setForm({ ...form, workflow_event: e.target.value })}
                 />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Runs every active workflow that starts with the “SLA escalated” trigger
+                  carrying this name (or no name filter at all).
+                </p>
               </div>
             </div>
             <DialogFooter>
@@ -608,8 +612,7 @@ function EscalationRulesEditor({ policyId, rules }: { policyId: string; rules: a
               {r.workflow_event && <Badge variant="outline">→ {r.workflow_event}</Badge>}
               <Button
                 size="icon"
-                variant="ghost"
-                className="h-6 w-6"
+                variant="outline"
                 onClick={() => remove.mutate(r.id)}
               >
                 <Trash2 className="h-3 w-3" />
@@ -789,7 +792,7 @@ function HolidaysTab() {
                   </Badge>
                 )}
               </div>
-              <Button size="icon" variant="ghost" onClick={() => delMut.mutate(h.id)}>
+              <Button size="icon" variant="outline" onClick={() => delMut.mutate(h.id)}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>

@@ -15,11 +15,13 @@ import {
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { OrgUrlSync } from "@/lib/tenant/org-url-sync";
+import { guardAppEntry } from "@/lib/setup/first-run-guard";
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { supabase } from "@/integrations/supabase/client";
 import { Toaster } from "sonner";
+import { InboundMessageBackdrop } from "@/components/app/inbox/inbound-message-toast";
 import { MediaLightboxProvider } from "@/components/ui/media-lightbox";
 import { IdleLogoutSentinel } from "@/hooks/use-idle-logout";
 import { clearActiveOrgState, hydrateActiveOrgFromProfile } from "@/hooks/use-organization";
@@ -175,9 +177,10 @@ function ErrorComponent({ error: rawError, reset }: { error: unknown; reset: () 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <p className="text-xs uppercase text-muted-foreground">
-          <Brand />
-        </p>
+        {/* The shipped brand name, not <Brand />: this fallback renders when the
+            root tree failed, which includes the case where the query provider
+            that resolves live branding is the thing that broke. */}
+        <p className="text-xs uppercase text-muted-foreground">{BRAND_NAME}</p>
         <h1 className="mt-4 font-display text-2xl font-semibold text-foreground">
           This page didn't load
         </h1>
@@ -214,6 +217,10 @@ function ErrorComponent({ error: rawError, reset }: { error: unknown; reset: () 
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  // First-run gate for the whole router: an installation without a super admin
+  // shows its marketing pages and the setup wizard, and nothing else. Here
+  // rather than on each route so anything added later is gated by default.
+  beforeLoad: ({ location }) => guardAppEntry(location.pathname),
   loader: ({ context }) => context.queryClient.ensureQueryData(platformBrandingQueryOptions()),
   // Global search param: the active organization id. Declared at the root
   // so every child route inherits the typed slot and TanStack Router keeps
@@ -381,6 +388,7 @@ function RootComponent() {
 
             <IdleLogoutSentinel />
             <CookieConsentBanner />
+            <InboundMessageBackdrop />
             <Toaster position="top-right" richColors closeButton />
           </MediaLightboxProvider>
         </TenantAccentProvider>

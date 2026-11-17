@@ -139,8 +139,8 @@ export function SidebarGroupFlyout({
                   key={`${item.to}:${item.hash ?? ""}`}
                   asChild
                   className={cn(
-                    "min-h-8 gap-2 py-1.5 text-sm",
-                    item.active && "bg-muted font-medium",
+                    "min-h-8 gap-2 py-1.5 text-[13px] text-foreground/75",
+                    item.active && "bg-muted font-medium text-foreground",
                   )}
                   onSelect={onNavigate}
                 >

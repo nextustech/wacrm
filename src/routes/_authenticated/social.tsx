@@ -698,7 +698,7 @@ function SocialComposerPreview({ form, channel }: { form: PostInput; channel: So
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold">{channel.name}</p>
             {channel.username && (
-              <p className="truncate text-xs text-muted-foreground">@{channel.username}</p>
+              <p className="truncate text-sm text-muted-foreground">@{channel.username}</p>
             )}
           </div>
         </div>
@@ -1594,9 +1594,9 @@ function SocialStudio() {
                       />
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
-                        className="h-8 w-8 shrink-0"
+                        className="shrink-0"
                         aria-label={`Remove option ${i + 1}`}
                         disabled={busy || (form.poll_options ?? []).length <= 2}
                         onClick={() =>

@@ -7,11 +7,11 @@
  * `ring-accent`, and `[var(--accent)]` escape hatches) across the app
  * source, classified by how it's applied:
  *
- *   - HOVER    → hover:bg-accent / md:hover:bg-accent / group-hover:
+ *   - HOVER    → hover:bg-muted  / md:hover:bg-accent / group-hover:
  *                (banned — the app rule is hover:bg-muted)
  *   - ACTIVE   → active:bg-accent, group-active:
  *                (banned — active state should not switch to accent)
- *   - FOCUS    → focus:bg-accent, focus-visible:bg-accent
+ *   - FOCUS    → focus:bg-muted , focus-visible:bg-accent
  *                (banned — focus uses the muted surface + ring)
  *   - DATA     → data-[state=]:bg-accent, aria-:bg-accent
  *                (usually inherited from shadcn primitives; flagged so

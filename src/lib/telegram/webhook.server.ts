@@ -182,6 +182,7 @@ async function applyTelegramReaction(
     .select("id, metadata")
     .eq("conversation_id", conversationId)
     .eq("provider_message_id", messageId)
+    .limit(1)
     .maybeSingle();
   const target = msgRaw as { id: string; metadata: Record<string, unknown> | null } | null;
   if (!target) return false;
@@ -265,6 +266,7 @@ export async function processUpdate(
       .select("id")
       .eq("conversation_id", conversationId)
       .eq("provider_message_id", providerMessageId)
+      .limit(1)
       .maybeSingle();
     if (dupe) return true;
   }

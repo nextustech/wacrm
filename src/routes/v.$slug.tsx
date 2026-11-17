@@ -82,22 +82,22 @@ function PublicVCard() {
 
           <div className="space-y-2 text-sm">
             {card.phone && (
-              <a href={`tel:${card.phone}`} className="flex items-center gap-3 rounded border p-3 hover:bg-accent">
+              <a href={`tel:${card.phone}`} className="flex items-center gap-3 rounded border p-3 hover:bg-muted ">
                 <Phone className="h-4 w-4" style={{ color: accent }} />{card.phone}
               </a>
             )}
             {card.whatsapp && (
-              <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded border p-3 hover:bg-accent">
+              <a href={`https://wa.me/${waNumber}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded border p-3 hover:bg-muted ">
                 <MessageCircle className="h-4 w-4" style={{ color: accent }} />WhatsApp
               </a>
             )}
             {card.email && (
-              <a href={`mailto:${card.email}`} className="flex items-center gap-3 rounded border p-3 hover:bg-accent">
+              <a href={`mailto:${card.email}`} className="flex items-center gap-3 rounded border p-3 hover:bg-muted ">
                 <Mail className="h-4 w-4" style={{ color: accent }} />{card.email}
               </a>
             )}
             {card.website && (
-              <a href={card.website} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded border p-3 hover:bg-accent">
+              <a href={card.website} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded border p-3 hover:bg-muted ">
                 <Globe className="h-4 w-4" style={{ color: accent }} />{card.website}
               </a>
             )}

@@ -72,8 +72,8 @@ export function ChannelSwitcher({ conversation, align = "start", className }: Pr
           <DropdownMenuTrigger asChild>
             <Button
               variant="outline"
-              size="sm"
-              className="h-8 gap-2 rounded-control px-2.5"
+              size="default"
+              className="gap-2"
               aria-label="Switch channel"
               disabled={isLoading}
             >
@@ -127,7 +127,7 @@ export function ChannelSwitcher({ conversation, align = "start", className }: Pr
               <Button
                 variant="secondary"
                 size="sm"
-                className="h-9 gap-1.5 rounded-control px-2.5 animate-fade-in"
+                className="gap-1.5 animate-fade-in"
                 onClick={() => switchChannel.mutate(suggestedFallback)}
               >
                 <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
@@ -226,11 +226,16 @@ function ChannelRow({
         <div className="text-[11px] text-muted-foreground truncate mt-0.5">
           {opt.externalId && <span className="mr-2">{opt.externalId}</span>}
           {opt.lastUsedAt && (
-            <span>
+            <span className="mr-2">
               Last reply {formatDistanceToNow(new Date(opt.lastUsedAt), { addSuffix: true })}
             </span>
           )}
-          {!opt.canReply && !opt.hasAccount && <span>No connected account</span>}
+          {/* The current channel is proven reachable — this conversation is
+              already happening on it — so "no connected account" would be
+              misleading here even if no channel_accounts row was found. */}
+          {!opt.isCurrent && !opt.canReply && !opt.hasAccount && (
+            <span>No connected account</span>
+          )}
           {opt.statusReason && opt.status !== "active" && (
             <span className="ml-1 text-amber-600">· {opt.statusReason}</span>
           )}

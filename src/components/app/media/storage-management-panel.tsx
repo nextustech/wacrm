@@ -128,9 +128,8 @@ export function StorageManagementPanel({ workspaceId }: { workspaceId: string })
                     </div>
                   </div>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className="h-7 w-7"
                     onClick={() => onDelete(r.id)}
                     aria-label={`Delete ${r.file_name ?? "file"}`}
                   >

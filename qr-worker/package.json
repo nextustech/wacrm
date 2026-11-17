@@ -1,6 +1,6 @@
 {
   "name": "wacrm-wa-qr-worker",
-  "version": "6.8.9",
+  "version": "7.3.4",
   "private": true,
   "type": "module",
   "description": "Stateful WhatsApp (Baileys) QR worker for WACRM. Implements docs/whatsapp-qr-worker-contract.md",

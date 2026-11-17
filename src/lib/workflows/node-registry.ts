@@ -9,7 +9,7 @@ export type NodeKind = "trigger" | "action" | "logic" | "ai";
 export type FieldSchema = {
   key: string;
   label: string;
-  type: "text" | "textarea" | "number" | "boolean" | "select" | "json" | "reference";
+  type: "text" | "textarea" | "number" | "boolean" | "select" | "json" | "reference" | "model";
   placeholder?: string;
   required?: boolean;
   options?: Array<{ value: string; label: string }>;
@@ -32,12 +32,6 @@ export type NodeDefinition = {
   async?: boolean;
 };
 
-/** Options shared by the AI nodes. Values must match what the AI layer accepts. */
-const AI_MODEL_OPTIONS = [
-  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash (fast, default)" },
-  { value: "google/gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite (cheapest)" },
-  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro (most capable)" },
-];
 const TONE_OPTIONS = [
   { value: "professional", label: "Professional" },
   { value: "friendly", label: "Friendly" },
@@ -288,6 +282,28 @@ export const NODE_REGISTRY: NodeDefinition[] = [
       ] },
       { key: "event", label: "Source event", type: "text", placeholder: "contact.created" },
     ],
+  },
+
+  // ─── Helpdesk Triggers ───────────────────────────────────────
+  {
+    type: "trigger.helpdesk.sla_escalated",
+    kind: "trigger",
+    category: "Helpdesk",
+    label: "SLA escalated",
+    description:
+      "Fires when an SLA escalation rule with a workflow event name escalates a ticket.",
+    icon: "AlarmClock",
+    inputs: [
+      {
+        key: "event",
+        label: "Event name filter",
+        type: "text",
+        placeholder: "sla.escalated",
+        helpText:
+          "Matches the escalation rule's workflow event name. Leave empty to catch every SLA escalation.",
+      },
+    ],
+    outputSchema: { event: "string", ticket_id: "string", level: "number" },
   },
 
   // ─── Integration Triggers ────────────────────────────────────
@@ -1038,7 +1054,7 @@ export const NODE_REGISTRY: NodeDefinition[] = [
       { key: "goal", label: "Goal", type: "text" },
       { key: "language", label: "Language", type: "select", options: [{ value: "", label: "Auto (match customer)" }, ...LANGUAGE_OPTIONS] },
       { key: "provider_id", label: "AI Provider", type: "reference", reference: "ai_provider", helpText: "Blank = workspace default." },
-      { key: "model", label: "Model", type: "select", options: AI_MODEL_OPTIONS },
+      { key: "model", label: "Model", type: "model" },
       { key: "temperature", label: "Temperature", type: "number" },
       { key: "system", label: "System prompt override", type: "textarea" },
     ],
@@ -1064,7 +1080,7 @@ export const NODE_REGISTRY: NodeDefinition[] = [
         { value: "detailed", label: "Detailed" },
       ] },
       { key: "provider_id", label: "AI Provider", type: "reference", reference: "ai_provider" },
-      { key: "model", label: "Model", type: "select", options: AI_MODEL_OPTIONS },
+      { key: "model", label: "Model", type: "model" },
     ],
     outputSchema: { summary: "string", model: "string" },
   },
@@ -1078,7 +1094,7 @@ export const NODE_REGISTRY: NodeDefinition[] = [
     inputs: [
       { key: "text", label: "Text", type: "textarea", required: true },
       { key: "provider_id", label: "AI Provider", type: "reference", reference: "ai_provider" },
-      { key: "model", label: "Model", type: "select", options: AI_MODEL_OPTIONS },
+      { key: "model", label: "Model", type: "model" },
     ],
     outputSchema: { sentiment: "string", score: "number", emotions: "array", reason: "string" },
   },
@@ -1093,7 +1109,7 @@ export const NODE_REGISTRY: NodeDefinition[] = [
       { key: "text", label: "Message", type: "textarea", required: true },
       { key: "intents", label: "Allowed intents (JSON array)", type: "json", helpText: `e.g. ["question","complaint","purchase_interest","cancellation"]` },
       { key: "provider_id", label: "AI Provider", type: "reference", reference: "ai_provider" },
-      { key: "model", label: "Model", type: "select", options: AI_MODEL_OPTIONS },
+      { key: "model", label: "Model", type: "model" },
     ],
     outputSchema: { intent: "string", confidence: "number", entities: "object" },
   },
@@ -1107,7 +1123,7 @@ export const NODE_REGISTRY: NodeDefinition[] = [
     inputs: [
       { key: "conversation", label: "Source", type: "textarea", required: true },
       { key: "provider_id", label: "AI Provider", type: "reference", reference: "ai_provider" },
-      { key: "model", label: "Model", type: "select", options: AI_MODEL_OPTIONS },
+      { key: "model", label: "Model", type: "model" },
     ],
     outputSchema: { note: "string" },
   },
@@ -1125,7 +1141,7 @@ export const NODE_REGISTRY: NodeDefinition[] = [
       { key: "tone", label: "Tone", type: "select", options: TONE_OPTIONS },
       { key: "subject", label: "Subject hint", type: "text" },
       { key: "provider_id", label: "AI Provider", type: "reference", reference: "ai_provider" },
-      { key: "model", label: "Model", type: "select", options: AI_MODEL_OPTIONS },
+      { key: "model", label: "Model", type: "model" },
     ],
     outputSchema: { subject: "string", body: "string" },
   },
@@ -1140,7 +1156,7 @@ export const NODE_REGISTRY: NodeDefinition[] = [
       { key: "text", label: "Text", type: "textarea", required: true },
       { key: "style", label: "Style", type: "text", placeholder: "clearer and more professional" },
       { key: "provider_id", label: "AI Provider", type: "reference", reference: "ai_provider" },
-      { key: "model", label: "Model", type: "select", options: AI_MODEL_OPTIONS },
+      { key: "model", label: "Model", type: "model" },
     ],
     outputSchema: { text: "string" },
   },
@@ -1155,7 +1171,7 @@ export const NODE_REGISTRY: NodeDefinition[] = [
       { key: "text", label: "Text", type: "textarea", required: true },
       { key: "target_language", label: "Target language", type: "select", required: true, options: LANGUAGE_OPTIONS },
       { key: "provider_id", label: "AI Provider", type: "reference", reference: "ai_provider" },
-      { key: "model", label: "Model", type: "select", options: AI_MODEL_OPTIONS },
+      { key: "model", label: "Model", type: "model" },
     ],
     outputSchema: { text: "string", language: "string" },
   },
@@ -1170,7 +1186,7 @@ export const NODE_REGISTRY: NodeDefinition[] = [
       { key: "conversation", label: "Conversation", type: "textarea", required: true },
       { key: "categories", label: "Categories (JSON array)", type: "json", helpText: `e.g. ["sales","support","billing"]` },
       { key: "provider_id", label: "AI Provider", type: "reference", reference: "ai_provider" },
-      { key: "model", label: "Model", type: "select", options: AI_MODEL_OPTIONS },
+      { key: "model", label: "Model", type: "model" },
     ],
     outputSchema: { category: "string", confidence: "number", tags: "array" },
   },
@@ -1184,7 +1200,7 @@ export const NODE_REGISTRY: NodeDefinition[] = [
     inputs: [
       { key: "lead", label: "Lead / conversation", type: "textarea", required: true },
       { key: "provider_id", label: "AI Provider", type: "reference", reference: "ai_provider" },
-      { key: "model", label: "Model", type: "select", options: AI_MODEL_OPTIONS },
+      { key: "model", label: "Model", type: "model" },
     ],
     outputSchema: { score: "number", grade: "string", reasons: "array", next_action: "string", buying_intent: "string" },
   },
@@ -1199,7 +1215,7 @@ export const NODE_REGISTRY: NodeDefinition[] = [
       { key: "text", label: "Text", type: "textarea", required: true },
       { key: "fields", label: "Fields (JSON array)", type: "json", helpText: `e.g. [{"name":"email"},{"name":"budget","type":"number"}]` },
       { key: "provider_id", label: "AI Provider", type: "reference", reference: "ai_provider" },
-      { key: "model", label: "Model", type: "select", options: AI_MODEL_OPTIONS },
+      { key: "model", label: "Model", type: "model" },
     ],
     outputSchema: { data: "object" },
   },
@@ -1220,7 +1236,7 @@ export const NODE_REGISTRY: NodeDefinition[] = [
       ] },
       { key: "goal", label: "Goal", type: "text" },
       { key: "provider_id", label: "AI Provider", type: "reference", reference: "ai_provider" },
-      { key: "model", label: "Model", type: "select", options: AI_MODEL_OPTIONS },
+      { key: "model", label: "Model", type: "model" },
     ],
     outputSchema: { message: "string" },
   },
@@ -1236,7 +1252,7 @@ export const NODE_REGISTRY: NodeDefinition[] = [
       { key: "options", label: "Options (JSON array)", type: "json", required: true, helpText: `e.g. ["approve","reject","needs_review"]` },
       { key: "criteria", label: "Decision criteria", type: "textarea" },
       { key: "provider_id", label: "AI Provider", type: "reference", reference: "ai_provider" },
-      { key: "model", label: "Model", type: "select", options: AI_MODEL_OPTIONS },
+      { key: "model", label: "Model", type: "model" },
     ],
     outputSchema: { decision: "string", confidence: "number", reason: "string" },
   },

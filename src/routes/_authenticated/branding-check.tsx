@@ -168,7 +168,7 @@ function BrandingCheckPage() {
                 Resolved on this page from platform branding, workspace white-label and the active accent.
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={refreshLocal} className="h-8 px-2 text-xs">
+            <Button variant="outline" size="sm" onClick={refreshLocal} className="text-xs">
               <RefreshCcw className="h-3.5 w-3.5 " /> Refresh
             </Button>
           </CardHeader>
@@ -206,7 +206,7 @@ function BrandingCheckPage() {
                 Loads each route in a hidden frame and compares its computed tokens with this page.
               </CardDescription>
             </div>
-            <Button size="sm" onClick={runCheck} disabled={running} className="h-8 px-3 text-xs">
+            <Button size="sm" onClick={runCheck} disabled={running} className="text-xs">
               {running ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
               {running ? "Checking" : "Run check"}
             </Button>

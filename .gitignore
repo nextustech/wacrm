@@ -41,6 +41,7 @@ dist-ssr
 .env.production
 .env.*.local
 !.env.example
+dokploy.env
 deploy/certs/*
 !deploy/certs/.gitkeep
 
@@ -55,6 +56,11 @@ playwright/.cache
 
 # Migration recovery snapshots (temporary, may contain sensitive dumps)
 .migration-recovery/
+
+# Local build/tool artifacts (not part of the project)
+.npm-cache/
+.continue/
+*.zip
 
 # Local sync tooling (not part of the project)
 auto-pull.ps1

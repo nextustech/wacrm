@@ -209,7 +209,6 @@ function SurveysPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-9"
                   onClick={() => {
                     setEditing(s);
                     setOpen(true);
@@ -220,20 +219,18 @@ function SurveysPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-9"
                   onClick={() => copyLink(s.public_token)}
                 >
                   <ExternalLink className="w-3 h-3 " />
                   Link
                 </Button>
-                <Button size="sm" variant="outline" className="h-9" onClick={() => sendTest(s.id)}>
+                <Button size="sm" variant="outline" onClick={() => sendTest(s.id)}>
                   <Send className="w-3 h-3 " />
                   Send
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-9"
                   onClick={() => dup.mutate(s.id)}
                 >
                   <Copy className="w-3 h-3" />
@@ -241,7 +238,7 @@ function SurveysPage() {
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-9 text-destructive"
+                  className="text-destructive"
                   onClick={() => {
                     if (confirm("Delete survey?")) del.mutate(s.id);
                   }}
@@ -379,7 +376,7 @@ function SurveysPage() {
               <div className="space-y-2 border-t pt-4">
                 <div className="flex items-center justify-between">
                   <Label>Questions</Label>
-                  <Button size="sm" variant="outline" className="h-9" onClick={addQ}>
+                  <Button size="sm" variant="outline" onClick={addQ}>
                     <Plus className="w-3 h-3 " />
                     Add
                   </Button>
@@ -414,7 +411,6 @@ function SurveysPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8 w-8 p-0"
                           onClick={() => removeQ(i)}
                         >
                           <X className="w-4 h-4" />

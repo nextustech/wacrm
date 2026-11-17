@@ -211,6 +211,7 @@ function Pricing() {
     maxTrialDays,
   } = usePublicPlans("month");
   const { subscription } = useMyPlanSummary();
+  const { supportEmail } = usePlatformBranding();
 
   // Was a literal "All prices in USD", which contradicted the prices above it
   // once the platform currency changed. Taken from the plans on display.

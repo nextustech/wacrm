@@ -5,7 +5,7 @@
  * persisted per session under config.authDir so a worker restart reconnects
  * without a new QR scan.
  */
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Boom } from '@hapi/boom';
 import makeWASocket, {
@@ -21,6 +21,49 @@ import { emit } from './webhook.js';
 const sessions = new Map();
 
 const QR_TTL_MS = 60_000;
+
+/** Reconnect delays for a dropped socket, in ms. Caps rather than gives up. */
+const RECONNECT_BACKOFF_MS = [3_000, 10_000, 30_000, 60_000, 120_000];
+
+/** Written next to the Baileys credentials so a restart knows the tenant. */
+const SESSION_META_FILE = 'wacrm-session.json';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Re-open every session that has credentials on disk.
+ *
+ * The sessions live in memory, so before this a worker restart (a deploy, a
+ * crash, `pm2 reload`) left every connected number silently offline: the
+ * credentials were still on disk, but nothing opened a socket until someone
+ * pressed reconnect in the UI. Inbound messages in that window were lost.
+ */
+export async function restoreSessions() {
+  let dirs;
+  try {
+    dirs = await readdir(config.authDir, { withFileTypes: true });
+  } catch {
+    return 0; // No auth directory yet — nothing has ever connected.
+  }
+
+  let restored = 0;
+  for (const dirent of dirs) {
+    if (!dirent.isDirectory() || !UUID_RE.test(dirent.name)) continue;
+    const dir = path.join(config.authDir, dirent.name);
+    try {
+      // Without creds.json the folder is a half-finished scan, not a session.
+      await readFile(path.join(dir, 'creds.json'), 'utf8');
+      const meta = JSON.parse(await readFile(path.join(dir, SESSION_META_FILE), 'utf8'));
+      if (!UUID_RE.test(meta?.workspace_id ?? '')) continue;
+      await startSession(dirent.name, meta.workspace_id);
+      restored += 1;
+    } catch (err) {
+      logger.warn({ sessionId: dirent.name, err: String(err) }, 'could not restore session');
+    }
+  }
+  if (restored > 0) logger.info({ restored }, 'sessions restored from disk');
+  return restored;
+}
 
 export function getSession(sessionId) {
   return sessions.get(sessionId) ?? null;
@@ -45,28 +88,56 @@ function toJid(phone) {
   return `${digits}@s.whatsapp.net`;
 }
 
-export async function startSession(sessionId, workspaceId) {
+/** Statuses that mean "a socket is already working on it, leave it alone". */
+const LIVE_STATUSES = new Set(['pending', 'awaiting_scan', 'scanned', 'connected']);
+
+export async function startSession(sessionId, workspaceId, { reconnect = false } = {}) {
   const existing = sessions.get(sessionId);
-  if (existing && existing.status !== 'disconnected' && existing.status !== 'error') {
+  // `reconnect` is the internal retry path. Without it this guard also
+  // swallowed the retry — a dropped socket is left at 'connecting', which is
+  // not 'disconnected' or 'error', so the scheduled restart returned here and
+  // the session stayed dead until someone restarted the worker by hand.
+  if (!reconnect && existing && LIVE_STATUSES.has(existing.status)) {
     return { worker_session_id: sessionId };
   }
 
   const dir = authPath(sessionId);
   await mkdir(dir, { recursive: true });
+  // Baileys persists the credentials but not which workspace they belong to,
+  // and the worker needs that to address webhooks after a restart.
+  await writeFile(
+    path.join(dir, SESSION_META_FILE),
+    JSON.stringify({ workspace_id: workspaceId }),
+  ).catch(() => {});
 
   const { state, saveCreds } = await useMultiFileAuthState(dir);
   const { version } = await fetchLatestBaileysVersion();
 
-  const entry = {
+  // Reuse the entry across reconnects so the idempotency records survive;
+  // dropping them would let a retried send deliver the message twice.
+  const entry = existing ?? {
+    sends: new Map(), // client_message_id -> { message_id, status, at }
+  };
+  Object.assign(entry, {
     sock: null,
     status: 'pending',
     qr: null,
     qrExpiresAt: null,
     workspaceId,
-    meta: {},
-    sends: new Map(), // client_message_id -> { message_id, status, at }
+    meta: entry.meta ?? {},
     closing: false,
-  };
+  });
+
+  // Detach the previous socket before replacing it, or its listeners keep
+  // firing against this entry and events arrive twice.
+  if (existing?.sock) {
+    try {
+      existing.sock.ev.removeAllListeners?.();
+      existing.sock.end?.(undefined);
+    } catch {
+      /* already gone */
+    }
+  }
   sessions.set(sessionId, entry);
 
   const sock = makeWASocket({
@@ -101,6 +172,8 @@ export async function startSession(sessionId, workspaceId) {
       entry.status = 'connected';
       entry.qr = null;
       entry.qrExpiresAt = null;
+      entry.retries = 0;
+      entry.error = null;
       entry.meta = {
         phone_number: sock.user?.id ? `+${sock.user.id.split(':')[0]}` : null,
         display_name: sock.user?.name ?? null,
@@ -126,13 +199,20 @@ export async function startSession(sessionId, workspaceId) {
 
       // Transient drop — Baileys needs a fresh socket, reconnect with backoff.
       entry.status = 'connecting';
-      logger.warn({ sessionId, code }, 'connection closed, reconnecting');
+      entry.retries = (entry.retries ?? 0) + 1;
+      const delay = RECONNECT_BACKOFF_MS[
+        Math.min(entry.retries - 1, RECONNECT_BACKOFF_MS.length - 1)
+      ];
+      logger.warn({ sessionId, code, attempt: entry.retries, delay }, 'connection closed, reconnecting');
       setTimeout(() => {
-        startSession(sessionId, workspaceId).catch((err) => {
+        // Nothing to do if the session was revoked while we were waiting.
+        if (sessions.get(sessionId) !== entry || entry.closing) return;
+        startSession(sessionId, workspaceId, { reconnect: true }).catch((err) => {
           entry.status = 'error';
+          entry.error = String(err);
           emit(sessionId, workspaceId, 'session.error', { error: String(err) });
         });
-      }, 3_000).unref?.();
+      }, delay).unref?.();
     }
   });
 

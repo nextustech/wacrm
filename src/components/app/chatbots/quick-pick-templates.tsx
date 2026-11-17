@@ -31,7 +31,7 @@ export function QuickPickTemplates({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground">
+        <Button type="button" variant="ghost" size="sm" className="text-xs text-muted-foreground">
           <MessageSquareText className="w-3.5 h-3.5 mr-1.5" />
           {label}
         </Button>

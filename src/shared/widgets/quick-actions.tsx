@@ -47,7 +47,7 @@ export function QuickActions({ actions, columns = 2, ...card }: QuickActionsProp
               <span className="min-w-0 flex-1 text-left">
                 <span className="block truncate text-sm font-medium text-foreground">{a.label}</span>
                 {a.description && (
-                  <span className="block truncate text-xs text-muted-foreground">{a.description}</span>
+                  <span className="block truncate text-sm text-muted-foreground">{a.description}</span>
                 )}
               </span>
               {a.shortcut && (

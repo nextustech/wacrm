@@ -684,7 +684,7 @@ function RetentionPanel() {
                     <TableCell>
                       <Button
                         size="icon"
-                        variant="ghost"
+                        variant="outline"
                         onClick={() => deleteMut.mutate(p.id)}
                         aria-label="Delete policy"
                       >

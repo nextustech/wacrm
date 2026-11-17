@@ -215,7 +215,8 @@ export async function runLivechatAction(
           run_at: runAt,
           priority: 5,
           max_attempts: 3,
-          status: "pending",
+          // wf_queue_lease only leases 'queued' rows — "pending" never runs.
+          status: "queued",
         })
         .select("id")
         .single();

@@ -349,7 +349,6 @@ function Inventory() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8"
                           onClick={() => setHistoryRow(r)}
                           title="Movement history"
                         >
@@ -358,7 +357,6 @@ function Inventory() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="h-8"
                           onClick={() => openReorder(r)}
                           title="Reorder rules"
                         >
@@ -367,7 +365,6 @@ function Inventory() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-8"
                           onClick={() => {
                             setAdjustRow(r);
                             setMovementType("receive");

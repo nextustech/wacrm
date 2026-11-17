@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>WACRM — Documentation v6.8.9</title>
+<title>WACRM — Documentation v7.3.4</title>
 <meta name="description" content="Production-grade documentation for WACRM: setup, deployment, configuration, features, demo mode, setup wizard, changelog, troubleshooting and FAQ." />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
@@ -19,7 +19,7 @@
     <span class="logo">W</span>
     <div>
       <div class="brand-name">WACRM Docs</div>
-      <div class="brand-ver">v6.8.9 · Production</div>
+      <div class="brand-ver">v7.3.4 · Production</div>
     </div>
   </div>
   <div class="search">
@@ -162,12 +162,12 @@
 
     <!-- ===== A. INTRODUCTION ===== -->
     <section id="introduction">
-      <h1>WACRM <span class="badge">v6.8.9</span> <span class="badge success">Production</span></h1>
+      <h1>WACRM <span class="badge">v7.3.4</span> <span class="badge success">Production</span></h1>
       <p class="lead">WACRM is an enterprise-grade omnichannel SaaS platform for customer conversations, CRM, sales, marketing automation, billing, and workflow orchestration — self-hostable and CodeCanyon-ready.</p>
 
       <h2>Overview</h2>
       <p>WACRM unifies WhatsApp, Instagram, Messenger, Telegram, Email, SMS, Live Chat, TikTok direct messages and Facebook, YouTube, LinkedIn and TikTok comments into a single omnichannel inbox, powered by an AI Assistant, no-code Workflow Builder, and a full Business Intelligence suite. It ships with a Setup Wizard, PWA, role-based access, demo mode, and multi-tenant SaaS billing.</p>
-      <p>Version 6.8.9 adds tenant-owned OpenAI/Gemini keys, social comments in the Inbox, TikTok direct messages with an AI chatbot, long-lived YouTube connections and unified notifications. See the changelog and detailed release notes below.</p>
+      <p>Version 7.3.4 adds LINE, WeChat and Viber as inbox channels, makes the AI Reply Assistant faster and attachment-aware, rebuilds Theme Manager to support multiple independently editable themes, and fixes a tenant-admin crash plus an app-wide email/domain search bug. See the changelog and detailed release notes below.</p>
       <p>The reference library near the end of this page contains historical design and audit snapshots. For the pending Lovable Cloud removal, follow the <a href="./UNRELEASED.md">unreleased change record</a> and current <a href="./DEPLOYMENT.md">deployment guide</a>.</p>
 
       <h2>Features Summary</h2>
@@ -873,7 +873,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: registry.example.com/wacrm:6.8.9
+          image: registry.example.com/wacrm:7.3.4
           ports: [{ containerPort: 3000 }]
           envFrom: [{ secretRef: { name: wacrm-env } }]
           livenessProbe:  { httpGet: { path: /api/public/health,       port: 3000 }, periodSeconds: 30 }
@@ -1342,7 +1342,19 @@ WHERE scope = 'platform' AND key = 'setup_complete';</code></pre>
       <h2>Changelog</h2>
       <p>Full release notes: <a href="./changelog.html">changelog.html</a></p>
 
-      <h3>Version 6.8.9 <span class="badge success">Current</span></h3>
+      <h3>Version 7.3.4 <span class="badge success">Current</span></h3>
+      <p><em>November 13, 2026 · LINE/WeChat/Viber channels, faster attachment-aware AI replies, Theme Manager rebuild.</em></p>
+      <p>Adds LINE, WeChat and Viber as inbox channels, makes the AI Reply Assistant faster and attachment-aware (image, PDF, DOCX, XLSX, CSV, TXT), rebuilds Theme Manager for multiple independently editable themes with an unambiguous live-vs-editing sidebar, and fixes a Super Admin tenant-creation crash plus an app-wide email/domain search bug. See <a href="/api/public/changelog.pdf">downloadable v7.3.4 release notes</a>.</p>
+
+      <h3>Version 7.2.3</h3>
+      <p><em>November 5, 2026 · Gmail channel, voice-to-text, first-run setup, super-admin recovery.</em></p>
+      <p>Adds Gmail as an inbox channel, makes voice notes and dictation work reliably in any language, opens the setup wizard on a fresh installation and checks the database before it starts, lets installations stranded without a super admin recover themselves, links every task back to the chat it came from, and makes plugin publishing a clear two-step flow. See <a href="/api/public/changelog.pdf">downloadable v7.2.3 release notes</a>.</p>
+
+      <h3>Version 7.0.1</h3>
+      <p><em>October 31, 2026 · AI reply quality, rich link previews, live chat and knowledge base.</em></p>
+      <p>Makes AI replies trustworthy: a tone rewrite now keeps every offer, discount, price, deadline and commitment the agent wrote, and a generated reply follows what the conversation has already agreed instead of substituting the knowledge base's general process or leading with an upsell. Adds clickable rich link-preview cards (thumbnail, site name, title) and Markdown rendering in the Inbox and live chat widget. Fixes the live chat embed stub, knowledge-base grounding, Live Chat automations, SLA escalations reaching the workflow engine, and AI settings permission errors. Also switches the app's typography to Geist, standardizes icon buttons to a consistent <code>outline</code> style app-wide, declutters the Inbox header into a single options menu, and fixes several layout/spacing inconsistencies (channel switcher, conversation list, Assignment &amp; SLA panel). See <a href="/api/public/changelog.pdf">downloadable v7.2.3 release notes</a>.</p>
+
+      <h3>Version 6.8.9</h3>
       <p><em>October 26, 2026 · AI keys, social inbox, TikTok, YouTube and notifications.</em></p>
       <p>Adds bring-your-own OpenAI/Gemini keys with a cost-tiered model catalog, Facebook/YouTube/LinkedIn/TikTok comments and TikTok direct messages in the Inbox, a TikTok DM chatbot, auto-renewing YouTube connections, unified module notifications and a responsive inbox. See <a href="/api/public/changelog.pdf">downloadable v6.8.9 release notes</a>.</p>
       <p><strong>Upgrade:</strong> Apply pending migrations through <code>20261026003000_byok_reuse_orphan_vault_secret.sql</code>, set the TikTok Business and YouTube OAuth environment variables, and store the cron Vault secrets <code>wacrm_cron_base_url</code> and <code>wacrm_cron_token</code>.</p>
@@ -1700,7 +1712,7 @@ WHERE scope = 'platform' AND key = 'setup_complete';</code></pre>
 
     <!-- ===== FOOTER ===== -->
     <footer class="footer">
-      <div>© 2026 WACRM · v6.8.9 · Built by <a href="https://wrapcoders.com/" target="_blank" rel="noopener">WRAPCODERS</a></div>
+      <div>© 2026 WACRM · v7.3.4 · Built by <a href="https://wrapcoders.com/" target="_blank" rel="noopener">WRAPCODERS</a></div>
       <div>
         <a href="./index.html">Docs</a> ·
         <a href="./changelog.html">Changelog</a> ·

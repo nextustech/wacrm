@@ -215,7 +215,6 @@ export function GatewaySettingsPanel({ compact = false }: { compact?: boolean })
         </div>
         <Button
           size="sm"
-          className="h-8"
           onClick={() => setEditing({ mode: "add", form: emptyForm() })}
         >
           <Plus className="w-4 h-4 " /> Add gateway
@@ -288,7 +287,6 @@ export function GatewaySettingsPanel({ compact = false }: { compact?: boolean })
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8"
                   onClick={() => setEditing({ mode: "edit", form: fromGateway(p) })}
                 >
                   <Settings2 className="w-4 h-4 " /> Configure
@@ -296,7 +294,6 @@ export function GatewaySettingsPanel({ compact = false }: { compact?: boolean })
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-8"
                   disabled={p.isDefault || defaultMut.isPending}
                   onClick={() => defaultMut.mutate({ provider_id: p.id })}
                 >
@@ -305,7 +302,6 @@ export function GatewaySettingsPanel({ compact = false }: { compact?: boolean })
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8"
                   disabled={modeMut.isPending}
                   onClick={() =>
                     modeMut.mutate({

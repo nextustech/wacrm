@@ -196,7 +196,7 @@ export function WidgetScheduleEditor({ schedule, onChange }: Props) {
                         onChange={(e) => setWindow(day, i, "to", e.target.value)}
                       />
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
                         aria-label="Remove window"
                         onClick={() => removeWindow(day, i)}

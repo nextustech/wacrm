@@ -13,6 +13,7 @@ import {
   revokeSession,
   sendMessage,
   listSessions,
+  restoreSessions,
 } from './sessions.js';
 
 const app = express();
@@ -81,9 +82,14 @@ app.post('/sessions/:session_id/send', requireUuid, async (req, res) => {
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 
-const server = app.listen(config.port, config.host, () =>
-  logger.info({ port: config.port }, 'QR worker listening'),
-);
+const server = app.listen(config.port, config.host, () => {
+  logger.info({ port: config.port }, 'QR worker listening');
+  // Credentials on disk are useless until a socket is opened for them, so a
+  // restart would otherwise leave every connected number quietly offline.
+  restoreSessions().catch((err) =>
+    logger.error({ err: String(err) }, 'session restore failed'),
+  );
+});
 
 for (const signal of ['SIGTERM', 'SIGINT']) {
   process.on(signal, () => {

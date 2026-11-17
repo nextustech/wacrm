@@ -1,0 +1,36 @@
+# fly.toml app configuration file generated for wacrm-qr-worker on 2026-11-12T13:57:25+06:00
+#
+# See https://docs.fly.io/reference/configuration for information about how to use this file.
+#
+
+app = 'wacrm-qr-worker'
+primary_region = 'sin'
+
+[build]
+[env]
+  HOST = '0.0.0.0'
+  NODE_ENV = 'production'
+  PORT = '8787'
+  WACRM_WEBHOOK_URL = 'https://wrapcoders.bid/api/public/whatsapp/qr-webhook'
+  WA_AUTH_DIR = '/data/auth'
+
+[[mounts]]
+  source = 'wa_auth_data'
+  destination = '/data'
+  initial_size = '1gb'
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = 'connections'
+    hard_limit = 100
+    soft_limit = 80
+
+[[vm]]
+  size = 'shared-cpu-1x'
+  memory = '512mb'

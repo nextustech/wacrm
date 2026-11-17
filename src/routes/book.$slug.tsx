@@ -433,7 +433,7 @@ function PublicBookingPage() {
                     <div className="flex gap-1">
                       <Button
                         size="icon"
-                        variant="ghost"
+                        variant="outline"
                         onClick={() => setMonthAnchor(addMonths(monthAnchor, -1))}
                         disabled={isBefore(startOfMonth(monthAnchor), startOfMonth(new Date()))}
                         aria-label="Previous month"
@@ -442,7 +442,7 @@ function PublicBookingPage() {
                       </Button>
                       <Button
                         size="icon"
-                        variant="ghost"
+                        variant="outline"
                         onClick={() => setMonthAnchor(addMonths(monthAnchor, 1))}
                         aria-label="Next month"
                       >

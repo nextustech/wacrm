@@ -140,9 +140,9 @@ export function SystemTemplatesManager() {
                     Edit
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className="h-8 w-8 text-destructive"
+                    className="text-destructive"
                     onClick={() => confirm("Delete template?") && mDelete.mutate(t.id)}
                   >
                     <Trash2 className="w-4 h-4" />

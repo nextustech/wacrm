@@ -575,8 +575,8 @@ function NotesTab({ companyId }: { companyId: string }) {
                 <p className="whitespace-pre-wrap flex-1">{n.body}</p>
                 <Button
                   size="icon"
-                  variant="ghost"
-                  className="opacity-0 group-hover:opacity-100 h-6 w-6"
+                  variant="outline"
+                  className="opacity-0 group-hover:opacity-100"
                   onClick={() => remove.mutate({ id: n.id, companyId })}
                 >
                   <X className="w-3.5 h-3.5" />

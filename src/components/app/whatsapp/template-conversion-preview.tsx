@@ -67,7 +67,7 @@ export function TemplateConversionPreview({ draft, plan }: Props) {
   return (
     <Collapsible open={open} onOpenChange={setOpen} data-testid="wa-template-convert-preview">
       <CollapsibleTrigger asChild>
-        <Button type="button" size="sm" variant="ghost" className="h-8 gap-1 px-2 text-xs">
+        <Button type="button" size="sm" variant="ghost" className="gap-1 text-xs">
           <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
           {open ? "Hide" : "Review"} full mapping ({plan.renames.length} variable
           {plan.renames.length > 1 ? "s" : ""} across {changedCount} of {sections.length} section

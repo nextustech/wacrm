@@ -204,7 +204,7 @@ export function CustomerActivityTimeline({ customerId }: { customerId: string })
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="outline" className="h-9">
+            <Button size="sm" variant="outline">
               <Filter className="w-3.5 h-3.5 mr-1.5" /> Filter
               <ChevronDown className="w-3 h-3 ml-1" />
             </Button>

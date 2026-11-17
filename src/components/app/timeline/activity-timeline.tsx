@@ -95,7 +95,7 @@ export function ActivityTimeline({ entityType, entityId, compact }: Props) {
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="outline" className="h-9">
+            <Button size="sm" variant="outline">
               <Filter className="w-3.5 h-3.5 mr-1.5" /> Filter <ChevronDown className="w-3 h-3 ml-1" />
             </Button>
           </DropdownMenuTrigger>
@@ -277,17 +277,17 @@ function NoteCard({
           )}
         </div>
         <div className="opacity-0 group-hover:opacity-100 transition flex gap-1">
-          <Button size="icon" variant="ghost" className="h-7 w-7"
+          <Button size="icon" variant="outline"
             onClick={() => updateNote.mutate({ id: note.id, is_pinned: !note.is_pinned })}>
             {note.is_pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
           </Button>
           {canEdit && !editing && (
-            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditing(true)}>
+            <Button size="icon" variant="outline" onClick={() => setEditing(true)}>
               <Pencil className="w-3.5 h-3.5" />
             </Button>
           )}
           {canEdit && (
-            <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+            <Button size="icon" variant="outline" className="text-destructive"
               onClick={async () => {
                 await deleteNote.mutateAsync({ id: note.id, entity_type: note.entity_type as TimelineEntity, entity_id: note.entity_id });
                 toast.success("Note deleted");
@@ -435,7 +435,7 @@ function NoteComposer({ entityType, entityId }: { entityType: TimelineEntity; en
           </div>
         )}
         <div className="flex items-center gap-1 border-t border-border p-1.5">
-          <Button size="sm" variant="ghost" className="h-7" onClick={() => fileRef.current?.click()} disabled={uploading}>
+          <Button size="sm" variant="ghost" onClick={() => fileRef.current?.click()} disabled={uploading}>
             <Paperclip className="w-3.5 h-3.5 " /> Attach
           </Button>
           <input ref={fileRef} type="file" className="hidden" onChange={(e) => {
@@ -443,11 +443,11 @@ function NoteComposer({ entityType, entityId }: { entityType: TimelineEntity; en
             if (f) handleFile(f);
             e.target.value = "";
           }} />
-          <Button size="sm" variant={pinned ? "default" : "ghost"} className="h-7" onClick={() => setPinned((p) => !p)}>
+          <Button size="sm" variant={pinned ? "default" : "ghost"} onClick={() => setPinned((p) => !p)}>
             <Pin className="w-3.5 h-3.5 " /> {pinned ? "Pinned" : "Pin"}
           </Button>
           <div className="ml-auto">
-            <Button size="sm" className="h-7" onClick={submit} disabled={!body.trim() || create.isPending}>
+            <Button size="sm" onClick={submit} disabled={!body.trim() || create.isPending}>
               <Send className="w-3.5 h-3.5 " /> Post
             </Button>
           </div>

@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Rocket } from "lucide-react";
+import { AlertTriangle, Plus, Rocket } from "lucide-react";
 import { AppTopbar } from "@/components/app/app-topbar";
 import { DeveloperOrgSwitcher } from "@/components/app/developer/developer-org-switcher";
 
@@ -27,6 +27,9 @@ export const Route = createFileRoute("/_authenticated/developer/plugins")({
 function DeveloperPlugins() {
   const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
+  // The slug just saved: its code step opens on its own, so nobody has to
+  // discover the second step for themselves.
+  const [justCreatedSlug, setJustCreatedSlug] = useState<string | null>(null);
   const [form, setForm] = useState({
     slug: "",
     name: "",
@@ -42,7 +45,8 @@ function DeveloperPlugins() {
     mutationFn: () =>
       upsertMyPlugin({ data: { ...form, tags: [], price_cents: 0, pricing_model: "free" } }),
     onSuccess: () => {
-      toast.success("Plugin draft saved");
+      toast.success("Listing saved — now add your plugin code (step 2)");
+      setJustCreatedSlug(form.slug);
       setCreating(false);
       qc.invalidateQueries({ queryKey: ["my-plugins"] });
       setForm({
@@ -75,9 +79,20 @@ function DeveloperPlugins() {
         {creating && (
           <Card>
             <CardHeader>
-              <CardTitle>Create plugin</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <span className="rounded-control bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">
+                  Step 1 of 2
+                </span>
+                Create the listing
+              </CardTitle>
+              {/* Publishers kept asking where to put their code, because this
+               * form has no code field and the second step only appears once
+               * the listing exists. Say so before they hit Save. */}
               <p className="text-sm text-muted-foreground">
-                This step saves the listing. Add the plugin code as an HTTPS JavaScript bundle when you create a release below.
+                Name and describe the plugin. <strong>The code comes next:</strong> after you save,
+                the plugin appears below with a{" "}
+                <strong>&ldquo;Step 2 — Add plugin code&rdquo;</strong> button, which is where the
+                version and the code bundle URL go.
               </p>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -171,6 +186,7 @@ function DeveloperPlugins() {
               <PluginRow
                 key={p.id}
                 plugin={p}
+                defaultOpen={p.slug === justCreatedSlug}
                 onChange={() => qc.invalidateQueries({ queryKey: ["my-plugins"] })}
               />
             ))}
@@ -181,9 +197,25 @@ function DeveloperPlugins() {
   );
 }
 
-function PluginRow({ plugin, onChange }: { plugin: any; onChange: () => void }) {
-  const [showPublish, setShowPublish] = useState(false);
-  const [ver, setVer] = useState({ version: "1.0.0", changelog: "", permissions: "", entryUrl: "" });
+function PluginRow({
+  plugin,
+  onChange,
+  defaultOpen = false,
+}: {
+  plugin: any;
+  onChange: () => void;
+  defaultOpen?: boolean;
+}) {
+  const [showPublish, setShowPublish] = useState(defaultOpen);
+  // A plugin only leaves "draft" when a release is submitted, so a draft is
+  // exactly a listing with no code behind it yet.
+  const needsCode = plugin.status === "draft";
+  const [ver, setVer] = useState({
+    version: "1.0.0",
+    changelog: "",
+    permissions: "",
+    entryUrl: "",
+  });
   const validEntryUrl = (() => {
     try {
       return new URL(ver.entryUrl).protocol === "https:";
@@ -208,7 +240,9 @@ function PluginRow({ plugin, onChange }: { plugin: any; onChange: () => void }) 
         },
       }),
     onSuccess: () => {
-      toast.success(plugin.status === "published" ? "Plugin update published" : "Release submitted for review");
+      toast.success(
+        plugin.status === "published" ? "Plugin update published" : "Release submitted for review",
+      );
       setShowPublish(false);
       onChange();
     },
@@ -240,25 +274,59 @@ function PluginRow({ plugin, onChange }: { plugin: any; onChange: () => void }) 
             {Number(plugin.rating_avg).toFixed(1)}★ ({plugin.rating_count})
           </span>
         </div>
+        {needsCode && !showPublish && (
+          <div className="flex items-start gap-2 rounded-control border border-amber-500/40 bg-amber-500/10 p-2.5 text-xs">
+            <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-600" />
+            <span>
+              <strong>No code added yet.</strong> This is only the listing. Add a code release below
+              to make the plugin installable.
+            </span>
+          </div>
+        )}
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setShowPublish(!showPublish)}>
+          <Button
+            size="sm"
+            variant={needsCode ? "default" : "outline"}
+            onClick={() => setShowPublish(!showPublish)}
+          >
             <Rocket className="size-3.5 mr-1.5" />
-            Add code release
+            {needsCode ? "Step 2 — Add plugin code" : "Add code release"}
           </Button>
         </div>
         {showPublish && (
           <div className="space-y-2 border-t pt-3">
-            <p className="text-xs text-muted-foreground">
-              Bundle your plugin functions into a CommonJS JavaScript file and host it over HTTPS. The app loads this URL after installation. See the{" "}
-              <Link to="/developer-tools/publishing" className="text-primary underline">publishing guide</Link>.
-            </p>
+            {/* The question every publisher asks here: "where do I upload my
+             * file?" There is no upload — say it plainly, and point at the
+             * generator that produces the file in the first place. */}
+            <div className="rounded-control border bg-muted/40 p-2.5 text-xs text-muted-foreground">
+              <p className="font-medium text-foreground">Plugin code is linked, not uploaded.</p>
+              <p className="mt-1">
+                Bundle your plugin functions into a single <strong>CommonJS JavaScript file</strong>
+                , host it anywhere over <strong>HTTPS</strong> (your own server, a CDN, GitHub
+                Releases), and paste that link below. The app loads it after installation, so you
+                can ship updates without re-submitting files.
+              </p>
+              <p className="mt-1">
+                No starter yet? Use the{" "}
+                <Link to="/developer-tools/plugin-generator" className="text-primary underline">
+                  plugin generator
+                </Link>{" "}
+                to download one, or read the{" "}
+                <Link to="/developer-tools/publishing" className="text-primary underline">
+                  publishing guide
+                </Link>
+                .
+              </p>
+            </div>
             <Input
               placeholder="Semver (e.g. 1.0.0)"
               value={ver.version}
               onChange={(e) => setVer((v) => ({ ...v, version: e.target.value }))}
             />
             <div className="space-y-1">
-              <label htmlFor={`plugin-entry-${plugin.id}`} className="text-xs font-medium">Code bundle URL</label>
+              <label htmlFor={`plugin-entry-${plugin.id}`} className="text-xs font-medium">
+                Code bundle URL
+              </label>
               <Input
                 id={`plugin-entry-${plugin.id}`}
                 type="url"
@@ -268,7 +336,9 @@ function PluginRow({ plugin, onChange }: { plugin: any; onChange: () => void }) 
                 aria-invalid={ver.entryUrl.length > 0 && !validEntryUrl}
               />
               {ver.entryUrl.length > 0 && !validEntryUrl && (
-                <p className="text-xs text-destructive">Enter an HTTPS URL for the built JavaScript file.</p>
+                <p className="text-xs text-destructive">
+                  Enter an HTTPS URL for the built JavaScript file.
+                </p>
               )}
             </div>
             <Textarea
@@ -282,7 +352,11 @@ function PluginRow({ plugin, onChange }: { plugin: any; onChange: () => void }) 
               value={ver.permissions}
               onChange={(e) => setVer((v) => ({ ...v, permissions: e.target.value }))}
             />
-            <Button size="sm" onClick={() => publish.mutate()} disabled={publish.isPending || !validEntryUrl}>
+            <Button
+              size="sm"
+              onClick={() => publish.mutate()}
+              disabled={publish.isPending || !validEntryUrl}
+            >
               {plugin.status === "published" ? "Publish update" : "Submit for review"}
             </Button>
           </div>

@@ -140,7 +140,9 @@ export async function resolveWaConversation(
       channel: "whatsapp",
       status: "open",
       priority: "normal",
-      metadata: { wa_session_id: opts.sessionId, source: "wa_qr" },
+      // account_id lets the inbox account selector/filter attribute this
+      // thread to the QR session (synthetic id `whatsapp:<session>`).
+      metadata: { wa_session_id: opts.sessionId, account_id: opts.sessionId, source: "wa_qr" },
     })
     .select("id")
     .single();
@@ -188,18 +190,26 @@ export async function ingestInboundWaMessage(
   // Idempotency — the same WhatsApp message id must never double-insert.
   const providerMessageId = msg.message_id ?? msg.waba_message_id ?? null;
   if (providerMessageId) {
-    const { data: dup } = await db
+    // `.limit(1)`, not `.maybeSingle()`: the latter errors when more than one
+    // row already matches, which would silently disable this guard for the
+    // very message id that most needs it.
+    const { data: dups } = await db
       .from("messages")
       .select("id")
       .eq("conversation_id", resolved.conversationId)
       .eq("external_message_id", providerMessageId)
-      .maybeSingle();
-    if (dup) return { conversationId: resolved.conversationId, botPaused: resolved.botPaused };
+      .limit(1);
+    if ((dups?.length ?? 0) > 0) {
+      return { conversationId: resolved.conversationId, botPaused: resolved.botPaused };
+    }
   }
 
   const body = msg.text ?? msg.caption ?? null;
   const replyToId = await findReplyTarget(
-    db, session.workspace_id, resolved.conversationId, msg.context_message_id,
+    db,
+    session.workspace_id,
+    resolved.conversationId,
+    msg.context_message_id,
   );
   const { error } = await sbAny(db)
     .from("messages")
@@ -217,7 +227,11 @@ export async function ingestInboundWaMessage(
       external_message_id: providerMessageId,
       reply_to_id: replyToId,
       delivered_at: new Date().toISOString(),
-      metadata: { wa_session_id: sessionId, source: "wa_qr", context_message_id: msg.context_message_id ?? null },
+      metadata: {
+        wa_session_id: sessionId,
+        source: "wa_qr",
+        context_message_id: msg.context_message_id ?? null,
+      },
     });
   if (error) return { conversationId: resolved.conversationId, botPaused: resolved.botPaused };
 

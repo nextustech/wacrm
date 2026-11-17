@@ -285,6 +285,103 @@ export const slaReport = createServerFn({ method: "GET" })
     return Array.from(buckets.values()).sort((a, b) => a.day.localeCompare(b.day));
   });
 
+/* ------------------------- WORKFLOW BRIDGE ------------------------- */
+
+/**
+ * Trigger node an automation uses to subscribe to SLA escalations.
+ * Its optional `event` config narrows the subscription to one event name.
+ */
+export const SLA_WORKFLOW_TRIGGER = "trigger.helpdesk.sla_escalated";
+
+type SlaSubscriber = {
+  id: string;
+  version: number | null;
+  trigger_type: string | null;
+  graph: { nodes?: Array<{ type: string; config?: Record<string, unknown> }> } | null;
+};
+
+/**
+ * Bridges an SLA escalation to the Workflow engine.
+ *
+ * `sla_escalation_rules.workflow_event` is a free-text event name (e.g.
+ * "sla.escalated"). An automation subscribes to it the same way
+ * `emitWorkflowEvent` expects — by storing that name in
+ * `automations.trigger_type` — or by using the SLA trigger node, whose
+ * `event` config may narrow it to a single name (empty = every SLA event).
+ *
+ * A workflow_queue row needs a real `automation_id` (NOT NULL) and
+ * `status = 'queued'`, because `wf_queue_lease` leases nothing else. So the
+ * subscribers are resolved first and one row is enqueued per subscriber.
+ */
+export async function enqueueSlaWorkflowEvent(
+  admin: any,
+  opts: {
+    workspaceId: string;
+    eventName: string;
+    ticketId: string;
+    level: number;
+    escalationRuleId?: string | null;
+    slaPolicyId?: string | null;
+  },
+): Promise<{ enqueued: number }> {
+  const eventName = opts.eventName.trim();
+  if (!eventName) return { enqueued: 0 };
+
+  const { data: subs, error: subErr } = await sbAny(admin)
+    .from("automations")
+    .select("id, version, trigger_type, graph")
+    .eq("workspace_id", opts.workspaceId)
+    .eq("status", "active")
+    .in("trigger_type", [eventName, SLA_WORKFLOW_TRIGGER])
+    .limit(200);
+  if (subErr) {
+    console.warn("[helpdesk] SLA workflow lookup failed:", subErr.message);
+    return { enqueued: 0 };
+  }
+
+  const matched = ((subs ?? []) as SlaSubscriber[]).filter((a) => {
+    if (a.trigger_type !== SLA_WORKFLOW_TRIGGER) return true;
+    const node = a.graph?.nodes?.find((n) => n.type === SLA_WORKFLOW_TRIGGER);
+    const want = String(node?.config?.event ?? "").trim();
+    return !want || want === eventName;
+  });
+  if (!matched.length) return { enqueued: 0 };
+
+  const input = {
+    event: eventName,
+    ticket_id: opts.ticketId,
+    workspace_id: opts.workspaceId,
+    level: opts.level,
+    escalation_rule_id: opts.escalationRuleId ?? null,
+    sla_policy_id: opts.slaPolicyId ?? null,
+  };
+  const rows = matched.map((a) => ({
+    workspace_id: opts.workspaceId,
+    automation_id: a.id,
+    version: a.version ?? 1,
+    trigger_source: "sla",
+    event_type: eventName,
+    input,
+    run_at: new Date().toISOString(),
+    priority: 5,
+    max_attempts: 3,
+    status: "queued",
+    // One escalation level fires once per ticket, so this key makes a repeated
+    // scan a no-op instead of a duplicate run.
+    idempotency_key: `sla:${opts.escalationRuleId ?? eventName}:${opts.ticketId}:${opts.level}`,
+  }));
+
+  const { error } = await sbAny(admin).from("workflow_queue").insert(rows);
+  if (error) {
+    // 23505 = workflow_queue_idem_uidx caught a replay; nothing to do.
+    if (error.code !== "23505") {
+      console.warn("[helpdesk] SLA workflow enqueue failed:", error.message);
+    }
+    return { enqueued: 0 };
+  }
+  return { enqueued: rows.length };
+}
+
 /* ------------------------- SCANNER (called by pg_cron) ------------------------- */
 type Rule = {
   id: string;
@@ -440,13 +537,16 @@ export async function scanBreaches(admin: any): Promise<{ scanned: number; event
       });
       events++;
 
-      // Workflow event bridge — insert a workflow_queue row when configured
+      // Workflow event bridge — enqueue a job for every subscribed automation
       if (rule.workflow_event) {
-        await sbAny(admin).from("workflow_queue").insert({
-          workspace_id: wsId, trigger_type: "sla_event",
-          trigger_data: { event: rule.workflow_event, ticket_id: ticketId, level: rule.level },
-          status: "pending",
-        }).then(() => {}, () => {});
+        await enqueueSlaWorkflowEvent(admin, {
+          workspaceId: wsId,
+          eventName: rule.workflow_event,
+          ticketId,
+          level: rule.level,
+          escalationRuleId: rule.id,
+          slaPolicyId: t.sla_policy_id ?? null,
+        });
       }
     }
 

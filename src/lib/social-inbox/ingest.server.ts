@@ -30,7 +30,11 @@ export async function resolveContact(
     .eq("channel", account.platform)
     .eq("external_id", comment.authorId)
     .maybeSingle();
-  const existing = identity as { id: string; contact_id: string | null; display_name: string | null } | null;
+  const existing = identity as {
+    id: string;
+    contact_id: string | null;
+    display_name: string | null;
+  } | null;
   const now = new Date().toISOString();
 
   if (existing?.contact_id) {
@@ -86,6 +90,7 @@ async function hasMessage(admin: Admin, conversationId: string, providerId: stri
     .select("id")
     .eq("conversation_id", conversationId)
     .eq("provider_message_id", providerId)
+    .limit(1)
     .maybeSingle();
   return !!data;
 }
@@ -107,7 +112,12 @@ function messageMetadata(account: SocialInboxAccount, c: SocialComment) {
 async function insertMessage(admin: Admin, row: Record<string, unknown>): Promise<boolean> {
   const { error } = await sbAny(admin).from("messages").insert(row);
   if (!error) return true;
-  if (String(error.message ?? "").toLowerCase().includes("duplicate")) return false;
+  if (
+    String(error.message ?? "")
+      .toLowerCase()
+      .includes("duplicate")
+  )
+    return false;
   throw new Error(error.message);
 }
 
@@ -203,7 +213,12 @@ export async function ingestSocialComments(
       else result.skipped++;
     } catch (err) {
       result.failed++;
-      console.warn("[social-inbox] ingest failed:", c.platform, c.commentId, (err as Error).message);
+      console.warn(
+        "[social-inbox] ingest failed:",
+        c.platform,
+        c.commentId,
+        (err as Error).message,
+      );
     }
   }
   return result;

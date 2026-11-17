@@ -449,8 +449,8 @@ export function FloatingChatWidget() {
             <Button
               type="button"
               size="icon"
-              variant="ghost"
-              className="h-10 w-10 shrink-0"
+              variant="outline"
+              className="shrink-0"
               onClick={() => fileInputRef.current?.click()}
               disabled={!conversationId || attachments.items.length >= 10}
               aria-label="Attach files"
@@ -475,7 +475,7 @@ export function FloatingChatWidget() {
             <Button
               type="button"
               size="icon"
-              className="h-10 w-10 shrink-0"
+              className="shrink-0"
               onClick={submit}
               disabled={!conversationId || (!draft.trim() && !attachments.anyReady) || attachments.anyUploading || !attachments.canSend}
               aria-label="Send message"

@@ -113,7 +113,7 @@ export function TelegramWebhookEventsPanel({ workspaceId }: { workspaceId: strin
               key={f.id || "all"}
               size="sm"
               variant={status === f.id ? "secondary" : "ghost"}
-              className="h-7 px-2.5 text-xs"
+              className="text-xs"
               onClick={() => setStatus(f.id)}
               aria-pressed={status === f.id}
             >

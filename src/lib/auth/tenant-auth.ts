@@ -28,14 +28,35 @@ export const requireTenantAccess = createMiddleware({ type: "function" })
       });
     }
 
-    const targetId = workspaceId || orgId;
-    
+    let targetOrgId = orgId;
+    if (!targetOrgId && workspaceId) {
+      const { data: ws } = await context.supabase
+        .from("workspaces")
+        .select("organization_id")
+        .eq("id", workspaceId)
+        .maybeSingle();
+      targetOrgId = ws?.organization_id ?? null;
+    }
+
+    if (!targetOrgId) {
+      return next({
+        context: {
+          activeOrgId: null as string | null,
+          activeWorkspaceId: null as string | null,
+        },
+      });
+    }
+
     // Verify membership using the authenticated Supabase client from context.
-    // This leverages RLS on the membership tables.
+    // This leverages RLS on the membership tables. Must filter by the caller's
+    // own user_id too: an org with more than one member otherwise returns
+    // multiple rows, and `.maybeSingle()` throws — which this function was
+    // treating as "not a member", 403ing every request for any multi-member org.
     const { data: membership, error } = await context.supabase
       .from("organization_members")
       .select("organization_id")
-      .eq("organization_id", targetId!)
+      .eq("organization_id", targetOrgId)
+      .eq("user_id", context.userId)
       .maybeSingle();
 
     if (error || !membership) {
@@ -43,7 +64,7 @@ export const requireTenantAccess = createMiddleware({ type: "function" })
       await recordServerAuditEvent({
         eventType: "tenant.access_denied",
         severity: "critical",
-        workspaceId: targetId,
+        workspaceId: workspaceId ?? targetOrgId,
         actorId: context.userId,
         data: {
           requested_org: orgId,
@@ -59,7 +80,7 @@ export const requireTenantAccess = createMiddleware({ type: "function" })
 
     return next({
       context: {
-        activeOrgId: orgId as string | null,
+        activeOrgId: targetOrgId as string | null,
         activeWorkspaceId: workspaceId as string | null,
       },
     });

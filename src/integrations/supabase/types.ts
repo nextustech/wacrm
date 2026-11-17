@@ -23522,7 +23522,10 @@ export type Database = {
         | "facebook"
         | "youtube"
         | "linkedin"
-        | "tiktok";
+        | "tiktok"
+        | "viber"
+        | "line"
+        | "wechat";
       invoice_status:
         "draft" | "sent" | "viewed" | "partial" | "paid" | "overdue" | "void" | "refunded";
       kb_article_status: "draft" | "published" | "archived";
@@ -23877,6 +23880,9 @@ export const Constants = {
         "youtube",
         "linkedin",
         "tiktok",
+        "viber",
+        "line",
+        "wechat",
       ],
       invoice_status: ["draft", "sent", "viewed", "partial", "paid", "overdue", "void", "refunded"],
       kb_article_status: ["draft", "published", "archived"],

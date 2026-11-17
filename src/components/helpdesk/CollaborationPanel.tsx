@@ -231,7 +231,7 @@ export function CollaborationPanel({ ticketId }: { ticketId: string }) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 text-xs"
+                      className="text-xs"
                       onClick={() =>
                         updateNoteFn({ data: { id: n.id, isPinned: !n.is_pinned } }).then(() =>
                           inv(),
@@ -253,7 +253,7 @@ export function CollaborationPanel({ ticketId }: { ticketId: string }) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 text-xs text-destructive"
+                      className="text-xs text-destructive"
                       onClick={() =>
                         deleteNoteFn({ data: { id: n.id } }).then(() => {
                           inv();
@@ -337,7 +337,7 @@ export function CollaborationPanel({ ticketId }: { ticketId: string }) {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 text-xs text-destructive"
+                      className="text-xs text-destructive"
                       onClick={() => unlinkFn({ data: { id: l.id } }).then(() => inv())}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -373,7 +373,7 @@ export function CollaborationPanel({ ticketId }: { ticketId: string }) {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 text-xs text-destructive"
+                    className="text-xs text-destructive"
                     onClick={() => rmCrmFn({ data: { id: c.id } }).then(() => inv())}
                   >
                     <Trash2 className="h-3 w-3" />
@@ -624,7 +624,7 @@ function TaskRow({
         {task.assigned_to && (
           <span className="text-xs text-muted-foreground">{agentMap.get(task.assigned_to)}</span>
         )}
-        <Button size="sm" variant="ghost" className="h-7" onClick={() => setOpen((o) => !o)}>
+        <Button size="sm" variant="ghost" onClick={() => setOpen((o) => !o)}>
           <ChevronRight className={`h-3 w-3 transition ${open ? "rotate-90" : ""}`} />
         </Button>
       </div>
@@ -652,7 +652,6 @@ function TaskRow({
             />
             <Button
               size="sm"
-              className="h-9"
               disabled={!sub.trim()}
               onClick={() => {
                 onAddSub(sub).then(() => setSub(""));

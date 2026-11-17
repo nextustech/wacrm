@@ -592,11 +592,11 @@ function StageEditor({
           className="h-9 w-16 text-center"
         />
         <span className="text-xs text-muted-foreground w-6">%</span>
-        <Button size="icon" variant="ghost" className="h-7 w-7"
+        <Button size="icon" variant="outline"
           onClick={() => setExpanded((e) => !e)}>
           <Palette className="w-3.5 h-3.5" />
         </Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+        <Button size="icon" variant="outline" className="text-destructive"
           onClick={handleDelete} disabled={total === 1}>
           <Trash2 className="w-3.5 h-3.5" />
         </Button>
@@ -715,19 +715,19 @@ function AutomationEditor({
             {a.type === "set_priority" && `→ ${a.priority}`}
             {a.type === "add_tag" && `#${a.tag}`}
           </span>
-          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => remove(i)}>
+          <Button size="icon" variant="outline" onClick={() => remove(i)}>
             <CloseX className="w-3 h-3" />
           </Button>
         </div>
       ))}
       <div className="flex flex-wrap gap-1.5 pt-1">
-        <Button size="sm" variant="outline" className="h-7 text-xs"
+        <Button size="sm" variant="outline" className="text-xs"
           onClick={() => add({ type: "notify_owner" })}>+ Notify owner</Button>
-        <Button size="sm" variant="outline" className="h-7 text-xs"
+        <Button size="sm" variant="outline" className="text-xs"
           onClick={() => add({ type: "create_task", title: "Follow up", due_days: 2 })}>+ Create task</Button>
-        <Button size="sm" variant="outline" className="h-7 text-xs"
+        <Button size="sm" variant="outline" className="text-xs"
           onClick={() => add({ type: "set_priority", priority: "high" })}>+ Set priority</Button>
-        <Button size="sm" variant="outline" className="h-7 text-xs"
+        <Button size="sm" variant="outline" className="text-xs"
           onClick={() => {
             const tag = prompt("Tag to add:");
             if (tag) add({ type: "add_tag", tag });

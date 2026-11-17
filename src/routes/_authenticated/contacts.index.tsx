@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AppTopbar } from "@/components/app/app-topbar";
 import { ActionBar } from "@/components/app/action-bar";
 import { Button } from "@/components/ui/button";
@@ -131,7 +131,7 @@ function SortableHead({
   );
 }
 
-export function ContactsPage() {
+export function ContactsPage({ topbarTabs }: { topbarTabs?: ReactNode } = {}) {
   useContactsRealtime();
   const { active } = useCurrentWorkspace();
   const { data: members } = useWorkspaceMembers(active?.id);
@@ -334,6 +334,7 @@ export function ContactsPage() {
       <AppTopbar
         title="Contacts"
         subtitle={`${rows.length} contact${rows.length === 1 ? "" : "s"}`}
+        tabs={topbarTabs}
         actions={
           <div className="hidden md:block">
             <ActionBar
@@ -768,7 +769,7 @@ export function ContactsPage() {
                       <td className="px-3 py-3">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <Button variant="outline" size="icon">
                               <MoreHorizontal className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -827,7 +828,6 @@ export function ContactsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7"
                   disabled={currentPage <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                 >
@@ -839,7 +839,6 @@ export function ContactsPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7"
                   disabled={currentPage >= pageCount}
                   onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
                 >

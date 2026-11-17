@@ -19,6 +19,9 @@ export type WebhookProvider =
   | "messenger"
   | "instagram"
   | "telegram"
+  | "viber"
+  | "line"
+  | "wechat"
   | "email"
   | "sms"
   | "integration";

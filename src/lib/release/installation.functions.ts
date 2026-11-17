@@ -122,6 +122,156 @@ export const checkSystemRequirements = createServerFn({ method: "GET" }).handler
 // 2) Environment Validator
 // ────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Schema readiness, as seen from the client side.
+ *
+ * The migration ledger (`supabase_migrations.schema_migrations`) is not exposed
+ * over PostgREST, so "are all migrations applied" cannot be asked directly.
+ * What can be asked is whether the things the app actually needs are there, in
+ * three groups, each of which fails for a different reason:
+ *
+ *   - core tables   → nothing has been migrated at all
+ *   - SQL functions → the RPCs the app calls for permissions and provisioning
+ *   - recent columns → an older schema that stopped short of the newest
+ *     migrations, which is the failure that looks like a working install
+ *
+ * A missing relation is `42P01`/`PGRST205`, a missing column `42703`, and a
+ * missing function `PGRST202`. Any other error means the object exists and
+ * something else (permissions, row filters) answered — so it is not reported
+ * as missing.
+ */
+const SETUP_CORE_TABLES = [
+  "profiles",
+  "user_roles",
+  "settings",
+  "organizations",
+  "workspaces",
+  "workspace_members",
+  "inboxes",
+  "contacts",
+  "conversations",
+  "messages",
+  "channel_accounts",
+  "conversation_labels",
+] as const;
+
+/** Read-only RPCs only — nothing here may write while merely being probed. */
+const CORE_FUNCTIONS: Array<{ name: string; args: Record<string, unknown> }> = [
+  { name: "is_super_admin", args: { _user_id: "00000000-0000-0000-0000-000000000000" } },
+  {
+    name: "is_workspace_admin",
+    args: {
+      _workspace_id: "00000000-0000-0000-0000-000000000000",
+      _user_id: "00000000-0000-0000-0000-000000000000",
+    },
+  },
+  {
+    name: "is_active_workspace_member",
+    args: {
+      _workspace_id: "00000000-0000-0000-0000-000000000000",
+      _user_id: "00000000-0000-0000-0000-000000000000",
+    },
+  },
+];
+
+/** Columns from the newest migrations — the tell-tale of a half-updated schema. */
+const RECENT_COLUMNS: Array<{ table: string; column: string; migration: string }> = [
+  {
+    table: "conversations",
+    column: "last_message_status",
+    migration: "20261105140000_conversation_last_message_status",
+  },
+  {
+    table: "profiles",
+    column: "personal_org_provisioned_at",
+    migration: "20261105100000_deleting_an_organization_sticks",
+  },
+];
+
+type DbError = { code?: string | null; message?: string | null } | null;
+const missingRelation = (e: DbError) =>
+  !!e &&
+  (e.code === "42P01" ||
+    e.code === "PGRST205" ||
+    /schema cache|does not exist/i.test(e.message ?? ""));
+const missingColumn = (e: DbError) =>
+  !!e && (e.code === "42703" || /column .* does not exist/i.test(e.message ?? ""));
+const missingFunction = (e: DbError) =>
+  !!e && (e.code === "PGRST202" || /could not find the function/i.test(e.message ?? ""));
+
+// The point of this function is to ask for tables and RPCs the generated types
+// may not know about — that is exactly what it is testing — so it works
+// against an untyped handle, like the migration probe further down.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function inspectSchema(db: any): Promise<Probe[]> {
+  const out: Probe[] = [];
+
+  const missingTables: string[] = [];
+  for (const table of SETUP_CORE_TABLES) {
+    const { error } = await db.from(table).select("*", { head: true }).limit(1);
+    if (missingRelation(error)) missingTables.push(table);
+  }
+  out.push({
+    id: "db.tables",
+    label: "Database migrations",
+    status: missingTables.length === 0 ? "pass" : "fail",
+    detail:
+      missingTables.length === 0
+        ? `All ${SETUP_CORE_TABLES.length} core tables are present`
+        : `${missingTables.length} of ${SETUP_CORE_TABLES.length} core tables are missing: ${missingTables.join(", ")}`,
+    fix:
+      missingTables.length === 0
+        ? undefined
+        : "The migrations have not been applied to this database. Run `supabase db push` (or apply supabase/migrations in order), then re-run this check.",
+  });
+
+  // Tables first: probing a function against an empty database only repeats
+  // the same answer more loudly.
+  if (missingTables.length < SETUP_CORE_TABLES.length) {
+    const missingFunctions: string[] = [];
+    for (const fn of CORE_FUNCTIONS) {
+      const { error } = await db.rpc(fn.name, fn.args);
+      if (missingFunction(error)) missingFunctions.push(`${fn.name}()`);
+    }
+    out.push({
+      id: "db.functions",
+      label: "SQL functions",
+      status: missingFunctions.length === 0 ? "pass" : "fail",
+      detail:
+        missingFunctions.length === 0
+          ? "Permission and provisioning functions are installed"
+          : `Missing: ${missingFunctions.join(", ")}`,
+      fix:
+        missingFunctions.length === 0
+          ? undefined
+          : "These come from the migrations. Apply them, then reload the PostgREST schema cache (Supabase → API → Restart).",
+    });
+
+    const staleColumns: string[] = [];
+    for (const item of RECENT_COLUMNS) {
+      const { error } = await db.from(item.table).select(item.column, { head: true }).limit(1);
+      if (missingColumn(error) || missingRelation(error)) {
+        staleColumns.push(`${item.table}.${item.column} (${item.migration})`);
+      }
+    }
+    out.push({
+      id: "db.schema_version",
+      label: "Schema is up to date",
+      status: staleColumns.length === 0 ? "pass" : "warn",
+      detail:
+        staleColumns.length === 0
+          ? "The newest migrations have been applied"
+          : `The database is behind the application: ${staleColumns.join("; ")}`,
+      fix:
+        staleColumns.length === 0
+          ? undefined
+          : "Apply the remaining migrations with `supabase db push --include-all`.",
+    });
+  }
+
+  return out;
+}
+
 export const validateEnvironment = createServerFn({ method: "GET" }).handler(async () => {
   const required: Array<{ key: string; label: string; secret?: boolean }> = [
     { key: "SUPABASE_URL", label: "Backend URL" },
@@ -173,16 +323,7 @@ export const validateEnvironment = createServerFn({ method: "GET" }).handler(asy
   if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const { supabaseAdmin } = await import("@/lib/demo/admin-write-guard.server");
-      for (const table of ["settings", "user_roles"] as const) {
-        const { error } = await supabaseAdmin.from(table).select("id", { head: true }).limit(1);
-        probes.push({
-          id: `db.${table}`,
-          label: `${table} table`,
-          status: error ? "fail" : "pass",
-          detail: error ? `Database is not ready: ${error.message}` : "Available",
-          fix: error ? "Apply the database migrations before creating a super admin." : undefined,
-        });
-      }
+      probes.push(...(await inspectSchema(supabaseAdmin)));
     } catch (error) {
       probes.push({
         id: "db.admin",
@@ -380,119 +521,177 @@ export const activateLicense = createServerFn({ method: "POST" })
  * be used to escalate on a live tenant.
  */
 export const bootstrapSuperAdmin = createServerFn({ method: "POST" })
-  .validator((data: { email: string; password: string; setup_token: string; full_name?: string }) =>
-    z
-      .object({
-        email: z.string().email(),
-        password: z.string().min(8).max(200),
-        setup_token: z.string().min(16).max(256),
-        full_name: z.string().max(160).optional(),
-      })
-      .parse(data),
+  .validator(
+    (data: { email: string; password: string; setup_token?: string; full_name?: string }) =>
+      z
+        .object({
+          email: z.string().email(),
+          password: z.string().min(8).max(200),
+          // Optional on purpose — see the handler. An installation that never
+          // set SETUP_BOOTSTRAP_TOKEN would otherwise have no way to ever get
+          // its first administrator.
+          setup_token: z.string().max(256).optional().default(""),
+          full_name: z.string().max(160).optional(),
+        })
+        .parse(data),
   )
-  .handler(async ({ data }): Promise<{ ok: boolean; user_id?: string; message: string }> => {
-    // The first admin must be authorized by an operator-held server secret.
-    // A public first-run URL alone must never be enough to seize a fresh install.
-    const expectedToken = process.env.SETUP_BOOTSTRAP_TOKEN;
-    if (!expectedToken || expectedToken.length < 16) {
-      return { ok: false, message: "Set SETUP_BOOTSTRAP_TOKEN (at least 16 characters) on the server before creating the first administrator." };
-    }
-    const { timingSafeEqual } = await import("node:crypto");
-    const expected = Buffer.from(expectedToken, "utf8");
-    const supplied = Buffer.from(data.setup_token, "utf8");
-    if (expected.length !== supplied.length || !timingSafeEqual(expected, supplied)) {
-      return { ok: false, message: "Invalid setup token." };
-    }
-    const { supabaseAdmin } = await import("@/lib/demo/admin-write-guard.server");
+  .handler(
+    async ({
+      data,
+    }): Promise<{ ok: boolean; user_id?: string; promoted?: boolean; message: string }> => {
+      // When the operator has set SETUP_BOOTSTRAP_TOKEN, it is required: a public
+      // first-run URL alone must not be enough to seize a fresh install.
+      //
+      // When it is NOT set, this endpoint stays open — because refusing is worse.
+      // Installations shipped before this build had no working way to create the
+      // first administrator, and a deployment that never set the variable would
+      // be permanently stranded with no admin and no way to make one. Everything
+      // below still applies: it works only while `setup_complete` is unset AND no
+      // superadmin exists anywhere, so it can be used exactly once, to recover an
+      // installation that has nobody in charge of it.
+      const expectedToken = process.env.SETUP_BOOTSTRAP_TOKEN;
+      if (expectedToken && expectedToken.length >= 16) {
+        const { timingSafeEqual } = await import("node:crypto");
+        const expected = Buffer.from(expectedToken, "utf8");
+        const supplied = Buffer.from(data.setup_token ?? "", "utf8");
+        if (expected.length !== supplied.length || !timingSafeEqual(expected, supplied)) {
+          return { ok: false, message: "Invalid setup token." };
+        }
+      }
+      const { supabaseAdmin } = await import("@/lib/demo/admin-write-guard.server");
 
-    // Hard lock once the install wizard has been completed: this endpoint is
-    // unauthenticated, so it must never mint an admin on a live instance.
-    try {
-      const { data: flag, error: flagErr } = await supabaseAdmin
-        .from("settings")
-        .select("value")
-        .eq("scope", "platform")
-        .eq("key", "setup_complete")
-        .maybeSingle();
-      if (flagErr) {
+      // Hard lock once the install wizard has been completed: this endpoint is
+      // unauthenticated, so it must never mint an admin on a live instance.
+      try {
+        const { data: flag, error: flagErr } = await supabaseAdmin
+          .from("settings")
+          .select("value")
+          .eq("scope", "platform")
+          .eq("key", "setup_complete")
+          .maybeSingle();
+        if (flagErr) {
+          return {
+            ok: false,
+            message: "Unable to verify installation state. Bootstrap is disabled.",
+          };
+        }
+        const v = (flag?.value ?? null) as { complete?: boolean } | null;
+        if (v?.complete) {
+          return {
+            ok: false,
+            message: "Setup is already complete. Sign in as an administrator to continue.",
+          };
+        }
+      } catch {
         return {
           ok: false,
           message: "Unable to verify installation state. Bootstrap is disabled.",
         };
       }
-      const v = (flag?.value ?? null) as { complete?: boolean } | null;
-      if (v?.complete) {
-        return {
-          ok: false,
-          message: "Setup is already complete. Sign in as an administrator to continue.",
-        };
-      }
-    } catch {
-      return { ok: false, message: "Unable to verify installation state. Bootstrap is disabled." };
-    }
 
-    // Refuse if a superadmin already exists — fail closed when unreadable.
-    try {
-      const { data: existing, error: exErr } = await (supabaseAdmin as any)
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "superadmin")
-        .limit(1);
-      if (exErr) {
+      // Refuse if a superadmin already exists — fail closed when unreadable.
+      try {
+        const { data: existing, error: exErr } = await (supabaseAdmin as any)
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "superadmin")
+          .limit(1);
+        if (exErr) {
+          return {
+            ok: false,
+            message: "Unable to verify existing administrators. Bootstrap is disabled.",
+          };
+        }
+        if (existing && existing.length > 0) {
+          return {
+            ok: false,
+            message: "A superadmin already exists. Sign in with that account to continue.",
+          };
+        }
+      } catch {
         return {
           ok: false,
           message: "Unable to verify existing administrators. Bootstrap is disabled.",
         };
       }
-      if (existing && existing.length > 0) {
+
+      // An installation that has been running without an administrator already
+      // has accounts in it, and the owner's is usually one of them. Creating a
+      // user then fails on "already registered" and the wizard dead-ends. So:
+      // if the address is already here, promote that account instead.
+      //
+      // Its password is deliberately left alone — the account belongs to a real
+      // person, and this endpoint is unauthenticated. They sign in with the
+      // password they already have; the message below says so.
+      const existingUser = await findAuthUserByEmail(supabaseAdmin, data.email);
+
+      let userId: string;
+      let promoted = false;
+      if (existingUser) {
+        userId = existingUser;
+        promoted = true;
+      } else {
+        // Create the auth user (email pre-confirmed so the wizard can sign in immediately).
+        const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+          email: data.email,
+          password: data.password,
+          email_confirm: true,
+          user_metadata: { full_name: data.full_name ?? null, bootstrapped: true },
+        });
+        if (createErr || !created?.user) {
+          return {
+            ok: false,
+            message: createErr?.message ?? "Failed to create administrator account.",
+          };
+        }
+        userId = created.user.id;
+      }
+
+      // Assign the superadmin role. Later steps (license activation) require it,
+      // so a failure must stop the wizard. Roll back the auth user so the
+      // operator can fix the database (e.g. apply migrations) and retry with
+      // the same email.
+      const { error: roleErr } = await (supabaseAdmin as any)
+        .from("user_roles")
+        .insert({ user_id: userId, role: "superadmin" });
+      if (roleErr) {
+        // Only roll back an account this call created. Deleting a pre-existing
+        // user because a role insert failed would destroy a real person's data.
+        if (!promoted) await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => undefined);
         return {
           ok: false,
-          message: "A superadmin already exists. Sign in with that account to continue.",
+          message: `Could not grant the super admin role (${roleErr.message}). Make sure the database migrations are applied, then try again.`,
         };
       }
-    } catch {
-      return {
-        ok: false,
-        message: "Unable to verify existing administrators. Bootstrap is disabled.",
-      };
-    }
 
-    // Create the auth user (email pre-confirmed so the wizard can sign in immediately).
-    const { data: created, error: createErr } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: data.password,
-      email_confirm: true,
-      user_metadata: { full_name: data.full_name ?? null, bootstrapped: true },
-    });
-    if (createErr || !created?.user) {
       return {
-        ok: false,
-        message: createErr?.message ?? "Failed to create administrator account.",
+        ok: true,
+        user_id: userId,
+        promoted,
+        message: promoted
+          ? "This email already had an account here, so it was promoted to super administrator. Sign in with its existing password — the one you typed above was not applied."
+          : "Administrator account created. You can now sign in and continue the install.",
       };
-    }
-    const userId = created.user.id;
+    },
+  );
 
-    // Assign the superadmin role. Later steps (license activation) require it,
-    // so a failure must stop the wizard. Roll back the auth user so the
-    // operator can fix the database (e.g. apply migrations) and retry with
-    // the same email.
-    const { error: roleErr } = await (supabaseAdmin as any)
-      .from("user_roles")
-      .insert({ user_id: userId, role: "superadmin" });
-    if (roleErr) {
-      await supabaseAdmin.auth.admin.deleteUser(userId).catch(() => undefined);
-      return {
-        ok: false,
-        message: `Could not grant the super admin role (${roleErr.message}). Make sure the database migrations are applied, then try again.`,
-      };
-    }
-
-    return {
-      ok: true,
-      user_id: userId,
-      message: "Administrator account created. You can now sign in and continue the install.",
-    };
-  });
+/** Returns the auth user id for an email, or null. Paged: the admin API has no lookup-by-email. */
+async function findAuthUserByEmail(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabaseAdmin: any,
+  email: string,
+): Promise<string | null> {
+  const wanted = email.trim().toLowerCase();
+  for (let page = 1; page <= 20; page += 1) {
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+    if (error) return null;
+    const users: Array<{ id: string; email?: string | null }> = data?.users ?? [];
+    const hit = users.find((u) => (u.email ?? "").trim().toLowerCase() === wanted);
+    if (hit) return hit.id;
+    if (users.length < 200) return null;
+  }
+  return null;
+}
 
 export const verifyLicense = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

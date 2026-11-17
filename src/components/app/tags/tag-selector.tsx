@@ -90,7 +90,7 @@ export function TagSelector({ entityType, entityId, compact }: Props) {
           <Button
             variant="outline"
             size={compact ? "sm" : "sm"}
-            className="h-6 gap-1 px-2 text-xs"
+            className="gap-1 text-xs"
           >
             <Plus className="h-3 w-3" />
             Tag

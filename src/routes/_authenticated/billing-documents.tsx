@@ -609,7 +609,7 @@ function NewDocumentDialog({
                 </Select>
                 <Button
                   size="icon"
-                  variant="ghost"
+                  variant="outline"
                   className="col-span-1"
                   onClick={() => setItems((s) => s.filter((_, i) => i !== idx))}
                 >

@@ -64,7 +64,7 @@ export function AdvancedFilters({
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold">Filters</p>
           {onClear && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onClear}>
+            <Button variant="ghost" size="sm" className="text-xs" onClick={onClear}>
               Clear all
             </Button>
           )}

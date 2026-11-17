@@ -157,7 +157,7 @@ export function ContactListMembersSheet({
                       </div>
                       {isStatic && (
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="icon"
                           aria-label="Remove from list"
                           disabled={remove.isPending}

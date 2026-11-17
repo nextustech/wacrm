@@ -344,7 +344,7 @@ export function ExportCenter({ workspaceId, canManage }: Props) {
                   {canManage && (
                     <Button
                       size="icon"
-                      variant="ghost"
+                      variant="outline"
                       onClick={async () => {
                         await cancel({ data: { id: j.id } });
                         qc.invalidateQueries({ queryKey: ["exports.jobs", workspaceId] });
@@ -413,7 +413,7 @@ export function ExportCenter({ workspaceId, canManage }: Props) {
                         )}
                         <Button
                           size="icon"
-                          variant="ghost"
+                          variant="outline"
                           onClick={async () => {
                             await remove({ data: { id: j.id } });
                             qc.invalidateQueries({ queryKey: ["exports.jobs", workspaceId] });

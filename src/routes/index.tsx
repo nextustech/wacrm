@@ -130,7 +130,9 @@ export const Route = createFileRoute("/")({
   beforeLoad: redirectSignedInFromMarketing,
   loader: ({ context }) => context.queryClient.ensureQueryData(platformBrandingQueryOptions()),
   head: ({ loaderData: branding }) => {
-    const content = getLandingContent(branding.platformName);
+    // `head` can run before the loader has resolved, so branding may be absent.
+    const platformName = branding?.platformName ?? BRAND_NAME;
+    const content = getLandingContent(platformName);
     return {
       meta: [
         { title: content.title },
@@ -153,7 +155,7 @@ export const Route = createFileRoute("/")({
       scripts: [
         {
           type: "application/ld+json",
-          children: JSON.stringify(landingJsonLd(branding.platformName)),
+          children: JSON.stringify(landingJsonLd(platformName)),
         },
       ],
     };

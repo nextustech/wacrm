@@ -116,7 +116,7 @@ export function DateTimePicker({
                       type="button"
                       variant={active ? "default" : "ghost"}
                       size="sm"
-                      className="justify-center rounded-control px-2"
+                      className="justify-center"
                       onClick={() => setPart("h", h)}
                     >
                       {String(h).padStart(2, "0")}
@@ -135,7 +135,7 @@ export function DateTimePicker({
                       type="button"
                       variant={active ? "default" : "ghost"}
                       size="sm"
-                      className="justify-center rounded-control px-2"
+                      className="justify-center"
                       onClick={() => setPart("m", m)}
                     >
                       {String(m).padStart(2, "0")}

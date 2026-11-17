@@ -36,7 +36,7 @@ export function requireGeminiApiKey(): string {
 
 /**
  * Maps a model id to one Gemini accepts.
- * - "google/gemini-2.5-flash" (gateway style) becomes "gemini-2.5-flash".
+ * - "google/gemini-3.8-flash" (gateway style) becomes "gemini-3.8-flash".
  * - Any "gemini-*" id passes through unchanged.
  * - Non-Gemini ids (openai/*, anthropic/*, auto, free, ...) fall back to the
  *   default chat model, because those providers are no longer reachable.

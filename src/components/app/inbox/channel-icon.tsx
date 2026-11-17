@@ -10,6 +10,9 @@ export type ChannelKey =
   | "instagram"
   | "messenger"
   | "telegram"
+  | "viber"
+  | "line"
+  | "wechat"
   | "email"
   | "sms"
   | "livechat"
@@ -164,6 +167,37 @@ const TikTokIcon: BrandIcon = (p) => (
   </Badge>
 );
 
+const ViberIcon: BrandIcon = (p) => (
+  <Badge {...p} bg="#7360F2">
+    <path
+      fill="#fff"
+      d="M256 96c-66 0-120 44-120 98 0 34 20 64 52 82l-8 54c-1 7 6 12 12 8l60-38c2 0 3 0 4 0 66 0 120-44 120-104S322 96 256 96zm-52 150a16 16 0 110-32 16 16 0 010 32zm52 0a16 16 0 110-32 16 16 0 010 32zm52 0a16 16 0 110-32 16 16 0 010 32z"
+    />
+  </Badge>
+);
+
+const LineIcon: BrandIcon = (p) => (
+  <Badge {...p} bg="#06C755">
+    <path
+      fill="#fff"
+      d="M256 104c-88 0-160 56-160 126 0 62 56 114 132 124 6 1 13 3 15 8 2 4 1 11 1 15l-3 15c-1 4-4 16 15 9s101-60 138-102c25-27 37-55 37-86 0-70-72-109-175-109zm-62 166h-34a9 9 0 01-9-9v-67a9 9 0 0118 0v58h25a9 9 0 010 18zm35-9a9 9 0 01-18 0v-67a9 9 0 0118 0zm81 0a9 9 0 01-16 5l-35-47v42a9 9 0 01-18 0v-67a9 9 0 0116-5l35 47v-42a9 9 0 0118 0zm55-43a9 9 0 010 18h-25v16h25a9 9 0 010 18h-34a9 9 0 01-9-9v-67a9 9 0 019-9h34a9 9 0 010 18h-25v15z"
+    />
+  </Badge>
+);
+
+const WeChatIcon: BrandIcon = (p) => (
+  <Badge {...p} bg="#07C160">
+    <path
+      fill="#fff"
+      d="M206 118c-62 0-112 41-112 92 0 29 17 55 43 72l-9 30 34-18c14 4 29 7 44 7h7c-3-9-5-18-5-28 0-50 50-90 112-90h7c-9-37-55-65-121-65zm-38 65a14 14 0 110-28 14 14 0 010 28zm76 0a14 14 0 110-28 14 14 0 010 28z"
+    />
+    <path
+      fill="#fff"
+      d="M418 273c0-43-43-77-96-77s-96 34-96 77 43 78 96 78c11 0 22-2 32-5l29 15-8-25c25-15 43-38 43-63zm-126-13a12 12 0 110-24 12 12 0 010 24zm62 0a12 12 0 110-24 12 12 0 010 24z"
+    />
+  </Badge>
+);
+
 const EmailIcon = assetIcon(emailIconAsset);
 const LiveChatIcon = assetIcon(liveChatIconAsset);
 
@@ -196,6 +230,9 @@ const MAP: Record<string, { label: string; color: string; Icon: BrandIcon }> = {
   instagram: { label: "Instagram", color: "#D8267A", Icon: InstagramIcon },
   messenger: { label: "Messenger", color: "#0078FF", Icon: MessengerIcon },
   telegram: { label: "Telegram", color: "#039BE5", Icon: TelegramIcon },
+  viber: { label: "Viber", color: "#7360F2", Icon: ViberIcon },
+  line: { label: "LINE", color: "#06C755", Icon: LineIcon },
+  wechat: { label: "WeChat", color: "#07C160", Icon: WeChatIcon },
   facebook: { label: "Facebook", color: "#1877F2", Icon: FacebookIcon },
   youtube: { label: "YouTube", color: "#FF0000", Icon: YouTubeIcon },
   linkedin: { label: "LinkedIn", color: "#0A66C2", Icon: LinkedInIcon },

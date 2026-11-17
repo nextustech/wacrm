@@ -418,7 +418,7 @@ function ChartCard({
       <div className="flex items-center justify-between mb-3">
         <div className="font-display font-semibold text-sm">{title}</div>
         {onExport && (
-          <Button size="sm" variant="ghost" onClick={onExport} className="h-7 gap-1 text-xs">
+          <Button size="sm" variant="ghost" onClick={onExport} className="gap-1 text-xs">
             <Download className="w-3.5 h-3.5" /> CSV
           </Button>
         )}

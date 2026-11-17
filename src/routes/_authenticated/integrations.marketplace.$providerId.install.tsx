@@ -80,7 +80,7 @@ function InstallPage() {
       />
       <div className="p-6 space-y-6 max-w-3xl w-full mx-auto">
         <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-          <Button asChild variant="ghost" size="sm" className="-ml-2 h-7">
+          <Button asChild variant="ghost" size="sm" className="-ml-2">
             <Link to="/integrations/marketplace">
               <ArrowLeft className="h-3.5 w-3.5 " /> Marketplace
             </Link>

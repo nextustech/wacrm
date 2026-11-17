@@ -89,7 +89,7 @@ export function TimePicker({
                   type="button"
                   variant={hh === h ? "default" : "ghost"}
                   size="sm"
-                  className="justify-center rounded-control px-2"
+                  className="justify-center"
                   onClick={() => set(h, mm || "00")}
                 >
                   {h}
@@ -105,7 +105,7 @@ export function TimePicker({
                   type="button"
                   variant={mm === m ? "default" : "ghost"}
                   size="sm"
-                  className="justify-center rounded-control px-2"
+                  className="justify-center"
                   onClick={() => set(hh || "00", m)}
                 >
                   {m}

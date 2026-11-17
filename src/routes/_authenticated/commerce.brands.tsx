@@ -206,14 +206,13 @@ function Brands() {
             <Button
               variant="outline"
               size="sm"
-              className="h-9"
               onClick={exportCsv}
               disabled={filtered.length === 0}
             >
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
-            <Button size="sm" className="h-9" onClick={openNew}>
+            <Button size="sm" onClick={openNew}>
               <Plus className="h-4 w-4 mr-2" />
               New Brand
             </Button>
@@ -302,18 +301,16 @@ function Brands() {
                   </div>
                   <div className="flex gap-1 shrink-0">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-9 w-9"
                       onClick={() => openEdit(b)}
                       aria-label="Edit"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-9 w-9"
                       onClick={() => setConfirmDelete(b)}
                       aria-label="Delete"
                     >

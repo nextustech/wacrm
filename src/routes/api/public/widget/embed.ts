@@ -69,7 +69,7 @@ function loader(widgetId: string, origin: string, pos: LauncherPosition, delayMs
   var src = origin + "/embed/w/" + wid + "?url=" + encodeURIComponent(location.href) + "&ref=" + encodeURIComponent(document.referrer||"") + (cfg.locale ? "&lang=" + encodeURIComponent(cfg.locale) : "");
   var wrap = document.createElement("div");
   wrap.id = "wacrm-widget-root";
-  var transition = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "0s" : ".3s cubic-bezier(.22,1,.36,1)";
+  var transition = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "0s" : ".42s cubic-bezier(.16,1,.3,1)";
   wrap.style.cssText = "position:fixed;inset:${wrapInset(pos)};width:min(420px,100vw);height:min(720px,100vh);z-index:2147483000;pointer-events:none;transition:width " + transition + ",height " + transition + ",border-radius " + transition + ",box-shadow " + transition + ";";
   var iframe = document.createElement("iframe");
   iframe.title = "Chat widget";

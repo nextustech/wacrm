@@ -426,7 +426,7 @@ function TicketManagementPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Button size="icon" variant="ghost" onClick={() => navigate({ to: "/helpdesk/$id", params: { id } })}>
+                    <Button size="icon" variant="outline" onClick={() => navigate({ to: "/helpdesk/$id", params: { id } })}>
                       <ExternalLink className="h-4 w-4" />
                     </Button>
                   </TableCell>

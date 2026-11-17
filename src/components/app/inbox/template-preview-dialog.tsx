@@ -335,7 +335,7 @@ export function TemplatePreviewDialog({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-7 text-xs"
+                  className="text-xs"
                   onClick={() => applySuggestions(true)}
                   title="Fill from contact, CRM fields or last used values"
                 >
@@ -356,7 +356,7 @@ export function TemplatePreviewDialog({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-7 text-xs"
+                      className="text-xs"
                       disabled={Object.values(values).every((v) => !v?.trim())}
                       onClick={() => setSavingPreset(true)}
                     >
@@ -383,7 +383,6 @@ export function TemplatePreviewDialog({
                     />
                     <Button
                       size="sm"
-                      className="h-8"
                       disabled={!presetName.trim()}
                       onClick={handleSavePreset}
                     >
@@ -392,7 +391,6 @@ export function TemplatePreviewDialog({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8"
                       onClick={() => setSavingPreset(false)}
                     >
                       Cancel

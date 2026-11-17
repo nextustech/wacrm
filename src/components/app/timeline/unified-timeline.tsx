@@ -394,7 +394,7 @@ export function UnifiedTimeline({ workspaceId, contactId, className }: UnifiedTi
             <Button
               size="sm"
               variant="outline"
-              className="h-8 gap-1.5"
+              className="gap-1.5"
               onClick={download}
               disabled={filtered.length === 0}
             >
@@ -443,7 +443,7 @@ export function UnifiedTimeline({ workspaceId, contactId, className }: UnifiedTi
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline" className="h-8 gap-1.5">
+              <Button size="sm" variant="outline" className="gap-1.5">
                 <Filter className="h-3.5 w-3.5" />
                 Channels
                 {channels.size > 0 && (
@@ -486,7 +486,7 @@ export function UnifiedTimeline({ workspaceId, contactId, className }: UnifiedTi
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline" className="h-8 gap-1.5">
+              <Button size="sm" variant="outline" className="gap-1.5">
                 <Filter className="h-3.5 w-3.5" />
                 Types
                 {kinds.size > 0 && (
@@ -526,7 +526,7 @@ export function UnifiedTimeline({ workspaceId, contactId, className }: UnifiedTi
           </DropdownMenu>
 
           {activeFilterCount > 0 && (
-            <Button size="sm" variant="ghost" className="h-8 gap-1 text-xs" onClick={clearFilters}>
+            <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={clearFilters}>
               <X className="h-3.5 w-3.5" />
               Clear
             </Button>

@@ -216,8 +216,7 @@ export function PlanGatewayLinksDialog({
                     </div>
                     <Button
                       size="icon"
-                      variant="ghost"
-                      className="h-9 w-9"
+                      variant="outline"
                       aria-label="Remove link"
                       onClick={() => delMut.mutate(l.id)}
                     >

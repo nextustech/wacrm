@@ -214,7 +214,7 @@ function CodeBlock({ code, lang }: { code: string; lang?: string }) {
       {lang && (
         <div className="flex items-center justify-between px-4 py-1.5 border-b border-zinc-800 bg-zinc-900/50">
           <span className="text-[11px] uppercase   text-zinc-400 font-mono">{lang}</span>
-          <Button size="sm" variant="ghost" onClick={copy} className="h-6 px-2 text-zinc-400 hover:text-zinc-100">
+          <Button size="sm" variant="ghost" onClick={copy} className="text-zinc-400 hover:text-zinc-100">
             {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
           </Button>
         </div>

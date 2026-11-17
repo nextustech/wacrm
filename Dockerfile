@@ -24,27 +24,21 @@ ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_PUBLISHABLE_KEY
 ARG VITE_APP_ENV=production
 ARG VITE_APP_MODE=production
-ARG VITE_BRAND_NAME=WACRM
-ARG VITE_BRAND_SLUG=wacrm
-ARG VITE_BRAND_API_HOST=api.wacrm.io
-ARG APP_VERSION=6.8.9
+ARG APP_VERSION=7.3.4
 ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_SUPABASE_PUBLISHABLE_KEY=$VITE_SUPABASE_PUBLISHABLE_KEY \
     VITE_APP_ENV=$VITE_APP_ENV \
     VITE_APP_MODE=$VITE_APP_MODE \
-    VITE_BRAND_NAME=$VITE_BRAND_NAME \
-    VITE_BRAND_SLUG=$VITE_BRAND_SLUG \
-    VITE_BRAND_API_HOST=$VITE_BRAND_API_HOST \
     APP_VERSION=$APP_VERSION \
     APP_MODE=$VITE_APP_MODE
-# Build a standalone Node server (not the Cloudflare Worker bundle).
-# `npm run build` targets Cloudflare, so use the server build + required post-steps here.
+# Without a preset the build targets Cloudflare Workers and `node .output/server/index.mjs`
+# below would not start a server. node-server emits a standalone HTTP server.
 ENV NITRO_PRESET=node-server
-RUN npm run build:server && node scripts/fix-ssr-export-all-cycle.mjs
+RUN npm run build
 
 # ---------- 3. Runtime ----------
 FROM node:20-alpine AS runtime
-ARG APP_VERSION=6.8.9
+ARG APP_VERSION=7.3.4
 LABEL org.opencontainers.image.title="WACRM" \
       org.opencontainers.image.description="WACRM omnichannel messaging platform" \
       org.opencontainers.image.version="$APP_VERSION" \

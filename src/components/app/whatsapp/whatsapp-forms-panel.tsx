@@ -289,7 +289,7 @@ export function WhatsAppFormsPanel() {
                     </Button>
                     <Button
                       size="icon"
-                      variant="ghost"
+                      variant="outline"
                       disabled={togglePublish.isPending || removeForm.isPending}
                       onClick={() => {
                         if (confirm(`Delete "${form.name}"?`)) removeForm.mutate(form);

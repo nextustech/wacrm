@@ -183,8 +183,8 @@ export function WhatsAppIntegrationStatus() {
                 <code className="text-xs break-all">{callbackUrl}</code>
                 <Button
                   size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 shrink-0"
+                  variant="outline"
+                  className="shrink-0"
                   aria-label="Copy callback URL"
                   onClick={() => {
                     void navigator.clipboard.writeText(callbackUrl);

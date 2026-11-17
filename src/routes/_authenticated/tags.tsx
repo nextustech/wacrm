@@ -164,7 +164,7 @@ function TagsPage() {
                             </TableCell>
                             <TableCell>{t.is_favorite ? "★" : "—"}</TableCell>
                             <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => setEditing(t)}>
+                              <Button variant="outline" size="icon" onClick={() => setEditing(t)}>
                                 <Pencil className="h-4 w-4" />
                               </Button>
                               <DeleteBtn id={t.id} name={t.name} />
@@ -230,7 +230,7 @@ function DeleteBtn({ id, name }: { id: string; name: string }) {
   const del = useDeleteTag();
   return (
     <Button
-      variant="ghost"
+      variant="outline"
       size="icon"
       onClick={() => {
         if (!confirm(`Delete tag "${name}"?`)) return;

@@ -185,7 +185,7 @@ function QueueCard({ queue }: { queue: any }) {
         </div>
         <div className="flex gap-1">
           <QueueDialog queue={queue} />
-          <Button size="icon" variant="ghost" onClick={() => removeMut.mutate()}>
+          <Button size="icon" variant="outline" onClick={() => removeMut.mutate()}>
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>

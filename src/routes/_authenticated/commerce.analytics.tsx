@@ -295,12 +295,11 @@ function Analytics() {
                 key="refresh"
                 variant="outline"
                 size="sm"
-                className="h-9"
                 onClick={() => refetch()}
               >
                 <RefreshCw className="h-4 w-4 " /> Refresh
               </Button>,
-              <Button key="export" variant="outline" size="sm" className="h-9" onClick={exportAll}>
+              <Button key="export" variant="outline" size="sm" onClick={exportAll}>
                 <Download className="h-4 w-4 " /> Export
               </Button>,
             ]}

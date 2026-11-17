@@ -195,9 +195,9 @@ function SavedAudienceRow({ audience, onLoad }: { audience: SavedAudienceRow; on
         </div>
       </button>
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
-        className="h-6 w-6 opacity-0 group-hover:opacity-100"
+        className="opacity-0 group-hover:opacity-100"
         onClick={() =>
           upsert.mutate({ id: audience.id, is_favorite: !audience.is_favorite })
         }
@@ -205,9 +205,9 @@ function SavedAudienceRow({ audience, onLoad }: { audience: SavedAudienceRow; on
         <Star className={`h-3 w-3 ${audience.is_favorite ? "text-yellow-500 fill-yellow-500" : ""}`} />
       </Button>
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
-        className="h-6 w-6 opacity-0 group-hover:opacity-100"
+        className="opacity-0 group-hover:opacity-100"
         onClick={() => {
           if (confirm(`Delete "${audience.name}"?`)) del.mutate(audience.id);
         }}

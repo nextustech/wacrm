@@ -6,6 +6,19 @@
  */
 
 import type { AIMessage, TokenUsage } from "./types";
+import { toParts } from "./content";
+
+/**
+ * What one attached file costs in prompt tokens, approximately.
+ *
+ * Providers charge images by pixel area (Anthropic is roughly width*height/750)
+ * and PDFs by extracted page, neither of which is knowable from the base64
+ * blob without decoding it. These are deliberately generous stand-ins: the
+ * estimate is only used for pre-flight rate limiting and as the cost fallback
+ * when a provider omits usage, so over-counting is the safe direction.
+ */
+const IMAGE_TOKENS = 1_200;
+const DOCUMENT_TOKENS = 3_000;
 
 export function estimateTokens(text: string): number {
   if (!text) return 0;
@@ -18,7 +31,12 @@ export function estimateTokens(text: string): number {
 export function estimateMessageTokens(messages: AIMessage[]): number {
   let total = 0;
   for (const m of messages) {
-    total += estimateTokens(m.content) + 4; // ~4 token overhead per message
+    total += 4; // ~4 token overhead per message
+    for (const part of toParts(m.content)) {
+      if (part.type === "text") total += estimateTokens(part.text);
+      else if (part.type === "image") total += IMAGE_TOKENS;
+      else total += DOCUMENT_TOKENS;
+    }
     if (m.tool_calls) {
       for (const tc of m.tool_calls) {
         total += estimateTokens(JSON.stringify(tc.arguments)) + 6;

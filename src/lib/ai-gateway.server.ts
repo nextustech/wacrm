@@ -8,7 +8,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { GEMINI_OPENAI_BASE, geminiChatModel } from "@/lib/ai/gemini.server";
 
 /**
- * Gateway-style model ids ("google/gemini-2.5-flash", "openai/gpt-5") are
+ * Gateway-style model ids ("google/gemini-3.8-flash", "openai/gpt-5") are
  * rewritten to ids Gemini accepts before the request leaves the server.
  */
 function withGeminiModelId(inner: typeof fetch): typeof fetch {

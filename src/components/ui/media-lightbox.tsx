@@ -116,7 +116,7 @@ function LightboxOverlay({
     >
       {/* Toolbar */}
       <div
-        className="flex items-center gap-2 border-b border-border/60 px-3 py-2"
+        className="flex items-center gap-1 border-b border-border/60 px-3 py-2"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="min-w-0 flex-1">
@@ -129,34 +129,33 @@ function LightboxOverlay({
         </div>
         {kind === "image" && (
           <>
-            <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Zoom out" onClick={() => setZoom((z) => Math.max(z - 0.25, 0.25))}>
+            <Button variant="outline" size="iconSM" aria-label="Zoom out" onClick={() => setZoom((z) => Math.max(z - 0.25, 0.25))}>
               <Minus className="h-4 w-4" />
             </Button>
             <span className="w-12 text-center text-xs  text-muted-foreground">{Math.round(zoom * 100)}%</span>
-            <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(z + 0.25, 5))}>
+            <Button variant="outline" size="iconSM" aria-label="Zoom in" onClick={() => setZoom((z) => Math.min(z + 0.25, 5))}>
               <Plus className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Rotate" onClick={() => setRotation((r) => (r + 90) % 360)}>
+            <Button variant="outline" size="iconSM" aria-label="Rotate" onClick={() => setRotation((r) => (r + 90) % 360)}>
               <RotateCw className="h-4 w-4" />
             </Button>
           </>
         )}
         <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9"
+          variant="outline"
+          size="iconSM"
           aria-label="Download"
           onClick={() => void downloadRemoteFile(item.url, item.name)}
         >
           <Download className="h-4 w-4" />
         </Button>
 
-        <Button asChild variant="ghost" size="icon" className="h-9 w-9" aria-label="Open in new tab">
+        <Button asChild variant="outline" size="iconSM" aria-label="Open in new tab">
           <a href={item.url} target="_blank" rel="noreferrer">
             <ExternalLink className="h-4 w-4" />
           </a>
         </Button>
-        <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Close" onClick={onClose}>
+        <Button variant="outline" size="iconSM" aria-label="Close" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
       </div>
@@ -166,8 +165,8 @@ function LightboxOverlay({
         {items.length > 1 && (
           <Button
             variant="secondary"
-            size="icon"
-            className="absolute left-3 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full shadow"
+            size="iconSM"
+            className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full shadow"
             aria-label="Previous"
             onClick={(e) => {
               e.stopPropagation();
@@ -200,8 +199,8 @@ function LightboxOverlay({
         {items.length > 1 && (
           <Button
             variant="secondary"
-            size="icon"
-            className="absolute right-3 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full shadow"
+            size="iconSM"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full shadow"
             aria-label="Next"
             onClick={(e) => {
               e.stopPropagation();

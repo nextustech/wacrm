@@ -332,10 +332,10 @@ function DealCard({
         <Button
           type="button"
           size="icon"
-          variant="ghost"
+          variant="outline"
           aria-label="Copy quote link for this deal"
           title="Copy quote link"
-          className="h-8 w-8 flex-shrink-0"
+          className="flex-shrink-0"
           disabled={shareQuote.isPending}
           onClick={async (e) => {
             // Sits inside the card <Link>, so keep the click from navigating.

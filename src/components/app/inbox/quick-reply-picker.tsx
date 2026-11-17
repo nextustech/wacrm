@@ -269,7 +269,7 @@ export function QuickReplyPicker({
               <Button
                 variant="ghost"
                 size="sm"
-                className="mr-auto h-8 px-2 text-xs"
+                className="mr-auto text-xs"
                 onClick={() => {
                   setBody("");
                   setTitle("");

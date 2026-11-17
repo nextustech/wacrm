@@ -189,8 +189,7 @@ function LiveChatBotsPage() {
                         action={
                           <Button
                             size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
+                            variant="outline"
                             onClick={() => copy(a.id)}
                             aria-label="Copy inbox account id"
                           >
@@ -205,8 +204,7 @@ function LiveChatBotsPage() {
                         action={
                           <Button
                             size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
+                            variant="outline"
                             onClick={() => copy(botId)}
                             aria-label="Copy chatbot id"
                           >

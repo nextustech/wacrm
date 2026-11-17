@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { RichTextarea } from "@/shared/components/rich-textarea";
 import { Label } from "@/components/ui/label";
+import { ModelSelect } from "@/components/app/ai/model-select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -649,7 +650,7 @@ function PromptTestingPanel({ bot }: { bot: Chatbot }) {
   const selected = prompts.data?.find((p) => p.id === selectedId);
   const [content, setContent] = useState("");
   const [userInput, setUserInput] = useState("What are your business hours?");
-  const [model, setModel] = useState(bot.model ?? "google/gemini-2.5-flash");
+  const [model, setModel] = useState(bot.model ?? "google/gemini-3.8-flash");
 
   const run = useMutation({
     mutationFn: () =>
@@ -708,7 +709,12 @@ function PromptTestingPanel({ bot }: { bot: Chatbot }) {
         </div>
         <div>
           <Label>Model</Label>
-          <Input value={model} onChange={(e) => setModel(e.target.value)} />
+          <ModelSelect
+            workspaceId={bot.workspace_id}
+            providerId={bot.provider_id}
+            value={model}
+            onChange={setModel}
+          />
         </div>
         <Button onClick={() => run.mutate()} disabled={run.isPending || !userInput}>
           {run.isPending ? (

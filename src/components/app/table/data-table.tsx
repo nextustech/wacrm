@@ -193,11 +193,11 @@ export function Pagination({
         </select>
       )}
       <div className="ml-auto flex items-center gap-1">
-        <Button variant="outline" size="sm" className="h-7" onClick={() => onPage(1)} disabled={page <= 1}>First</Button>
-        <Button variant="outline" size="sm" className="h-7" onClick={() => onPage(page - 1)} disabled={page <= 1}>Prev</Button>
+        <Button variant="outline" size="sm" onClick={() => onPage(1)} disabled={page <= 1}>First</Button>
+        <Button variant="outline" size="sm" onClick={() => onPage(page - 1)} disabled={page <= 1}>Prev</Button>
         <span className="px-2">Page {page} / {totalPages}</span>
-        <Button variant="outline" size="sm" className="h-7" onClick={() => onPage(page + 1)} disabled={page >= totalPages}>Next</Button>
-        <Button variant="outline" size="sm" className="h-7" onClick={() => onPage(totalPages)} disabled={page >= totalPages}>Last</Button>
+        <Button variant="outline" size="sm" onClick={() => onPage(page + 1)} disabled={page >= totalPages}>Next</Button>
+        <Button variant="outline" size="sm" onClick={() => onPage(totalPages)} disabled={page >= totalPages}>Last</Button>
       </div>
     </div>
   );

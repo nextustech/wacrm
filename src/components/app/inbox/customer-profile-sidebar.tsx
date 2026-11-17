@@ -90,19 +90,13 @@ export function CustomerProfileSidebar({ contactId, onClose }: Props) {
       <div className="flex items-center shrink-0 h-12 border-b border-border px-4 justify-between">
         <div className="text-sm font-semibold">Customer profile</div>
         {onClose && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-9 w-9"
-            onClick={onClose}
-            aria-label="Close"
-          >
+          <Button variant="ghost" size="iconXS" onClick={onClose} aria-label="Close">
             <X className="h-4 w-4" />
           </Button>
         )}
       </div>
 
-      <ScrollArea className="flex-1 max-h-full">
+      <ScrollArea className="flex-1 max-h-full" viewportClassName="[&>div]:!block [&>div]:!w-full">
         <div className="p-4">
           {!contactId ? (
             <div className="text-sm text-muted-foreground text-center py-8 space-y-1">
@@ -385,7 +379,7 @@ function ProfileBody({
 
       <Accordion type="multiple" defaultValue={["deals", "tasks", "activity"]}>
         <AccordionItem value="deals">
-          <AccordionTrigger className="text-[11px] font-medium uppercase text-muted-foreground py-2">
+          <AccordionTrigger className="text-[11px] font-semibold uppercase text-muted-foreground py-2">
             <span className="flex items-center gap-2">
               <Handshake className="h-3.5 w-3.5" />
               Related deals ({deals.length})
@@ -428,7 +422,7 @@ function ProfileBody({
         </AccordionItem>
 
         <AccordionItem value="tasks">
-          <AccordionTrigger className="text-[11px] font-medium uppercase text-muted-foreground py-2">
+          <AccordionTrigger className="text-[11px] font-semibold uppercase text-muted-foreground py-2">
             <span className="flex items-center gap-2">
               <ListTodo className="h-3.5 w-3.5" />
               Open tasks ({tasks.length})
@@ -444,17 +438,18 @@ function ProfileBody({
                     <Link
                       key={`crm-${t.id}`}
                       to="/tasks"
-                      className="block rounded-control border border-border p-2 text-sm hover:bg-muted transition-colors"
+                      search={{ taskId: undefined }}
+                      className="block w-full min-w-0 rounded-control border border-border p-2 text-sm hover:bg-muted transition-colors"
                     >
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex min-w-0 items-center gap-1.5">
                         <Badge variant="secondary" className="text-[10px] h-4 shrink-0">
                           CRM
                         </Badge>
-                        <div className="truncate font-medium">{t.title}</div>
+                        <div className="min-w-0 truncate font-medium">{t.title}</div>
                       </div>
-                      <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
+                      <div className="flex min-w-0 items-center gap-2 mt-1 text-[11px] text-muted-foreground">
                         {t.priority && (
-                          <Badge variant="outline" className="text-[11px] capitalize">
+                          <Badge variant="outline" className="text-[11px] capitalize shrink-0">
                             {t.priority}
                           </Badge>
                         )}
@@ -477,16 +472,17 @@ function ProfileBody({
                       key={`pm-${t.id}`}
                       to="/projects/$projectId"
                       params={{ projectId: t.projectId }}
-                      className="block rounded-control border border-border p-2 text-sm hover:bg-muted transition-colors"
+                      search={{ taskId: undefined }}
+                      className="block w-full min-w-0 rounded-control border border-border p-2 text-sm hover:bg-muted transition-colors"
                     >
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex min-w-0 items-center gap-1.5">
                         <Badge variant="secondary" className="text-[10px] h-4 shrink-0">
                           Project
                         </Badge>
-                        <div className="truncate font-medium">{t.title}</div>
+                        <div className="min-w-0 truncate font-medium">{t.title}</div>
                       </div>
-                      <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
-                        <span className="truncate">{t.projectName}</span>
+                      <div className="flex min-w-0 items-center gap-2 mt-1 text-[11px] text-muted-foreground">
+                        <span className="min-w-0 truncate">{t.projectName}</span>
                         {t.priority && (
                           <Badge variant="outline" className="text-[11px] capitalize shrink-0">
                             {t.priority}
@@ -511,7 +507,7 @@ function ProfileBody({
         </AccordionItem>
 
         <AccordionItem value="notes">
-          <AccordionTrigger className="text-[11px] font-medium uppercase text-muted-foreground py-2">
+          <AccordionTrigger className="text-[11px] font-semibold uppercase text-muted-foreground py-2">
             <span className="flex items-center gap-2">
               <StickyNote className="h-3.5 w-3.5" />
               Notes ({notes.length})
@@ -532,7 +528,7 @@ function ProfileBody({
         </AccordionItem>
 
         <AccordionItem value="attachments">
-          <AccordionTrigger className="text-[11px] font-medium uppercase text-muted-foreground py-2">
+          <AccordionTrigger className="text-[11px] font-semibold uppercase text-muted-foreground py-2">
             <span className="flex items-center gap-2">
               <Paperclip className="h-3.5 w-3.5" />
               Attachments ({attachments.length})
@@ -558,7 +554,7 @@ function ProfileBody({
         </AccordionItem>
 
         <AccordionItem value="campaigns">
-          <AccordionTrigger className="text-[11px] font-medium uppercase text-muted-foreground py-2">
+          <AccordionTrigger className="text-[11px] font-semibold uppercase text-muted-foreground py-2">
             <span className="flex items-center gap-2">
               <Megaphone className="h-3.5 w-3.5" />
               Campaign history ({campaigns.length})
@@ -591,7 +587,7 @@ function ProfileBody({
         </AccordionItem>
 
         <AccordionItem value="activity">
-          <AccordionTrigger className="text-[11px] font-medium uppercase text-muted-foreground py-2">
+          <AccordionTrigger className="text-[11px] font-semibold uppercase text-muted-foreground py-2">
             <span className="flex items-center gap-2">
               <Activity className="h-3.5 w-3.5" />
               Recent activity
@@ -636,7 +632,7 @@ function ProfileBody({
 
 function SectionTitle({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="flex flex-1 items-center transition-all text-left text-[11px] font-medium uppercase text-muted-foreground py-2">
+    <div className="flex flex-1 items-center transition-all text-left text-[11px] font-semibold uppercase text-muted-foreground py-2">
       {label}
     </div>
   );
@@ -667,7 +663,8 @@ function Field({
       </div>
     </>
   );
-  const cls = "flex items-start gap-2 rounded-control p-1.5 px-2.5 -mx-1.5 hover:bg-muted transition-colors";
+  const cls =
+    "flex items-start gap-2 rounded-control p-1.5 px-2.5 -mx-1.5 hover:bg-muted transition-colors";
   if (to && params) {
     return (
       <Link to={to as never} params={params as never} className={cls}>
@@ -829,7 +826,7 @@ export function NoteRow({
           <Button
             size="sm"
             variant="ghost"
-            className="h-7 text-xs"
+            className="text-xs"
             onClick={() => {
               setBody(note.body);
               setEditing(false);
@@ -839,7 +836,7 @@ export function NoteRow({
           </Button>
           <Button
             size="sm"
-            className="h-7 text-xs"
+            className="text-xs"
             disabled={!body.trim() || update.isPending}
             onClick={() => update.mutate(body.trim())}
           >
@@ -882,7 +879,7 @@ export function NoteRow({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 px-1.5 text-[11px] text-destructive hover:text-destructive"
+                  className="text-[11px] text-destructive hover:text-destructive"
                   disabled={remove.isPending}
                   onClick={() => remove.mutate()}
                 >
@@ -891,7 +888,7 @@ export function NoteRow({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 px-1.5 text-[11px]"
+                  className="text-[11px]"
                   onClick={() => setConfirmingDelete(false)}
                 >
                   No
@@ -901,8 +898,7 @@ export function NoteRow({
               <>
                 <Button
                   size="icon"
-                  variant="ghost"
-                  className="h-6 w-6"
+                  variant="outline"
                   aria-label="Edit note"
                   onClick={() => setEditing(true)}
                 >
@@ -910,8 +906,8 @@ export function NoteRow({
                 </Button>
                 <Button
                   size="icon"
-                  variant="ghost"
-                  className="h-6 w-6 text-destructive hover:text-destructive"
+                  variant="outline"
+                  className="text-destructive hover:text-destructive"
                   aria-label="Delete note"
                   onClick={() => setConfirmingDelete(true)}
                 >
@@ -963,7 +959,7 @@ function AddNoteComposer({ contactId, workspaceId }: { contactId: string; worksp
       <div className="flex justify-end">
         <Button
           size="sm"
-          className="h-7 text-xs"
+          className="text-xs"
           onClick={() => body.trim() && create.mutate(body.trim())}
           disabled={!body.trim() || create.isPending}
         >

@@ -39,6 +39,7 @@ import {
   type PmTask,
   type PmWorkspaceUser,
 } from "@/lib/project-management/client";
+import { TaskSourceLink } from "@/components/app/tasks/task-source-link";
 import { TASK_PRIORITY_LABELS, TASK_STATUS_LABELS, errorMessage } from "./labels";
 
 type Draft = {
@@ -175,6 +176,12 @@ export function TaskFormDialog({
                 : "Define the next action, owner, and deadline."}
             </DialogDescription>
           </DialogHeader>
+          {/* Where this task came from. Outside the form on purpose: the
+           * fieldset below is disabled in read-only mode, and a disabled
+           * fieldset would swallow the link back to the chat. */}
+          {current?.conversation_id && (
+            <TaskSourceLink conversationId={current.conversation_id} className="mb-1" />
+          )}
           <form onSubmit={save} noValidate className="min-w-0 space-y-4">
             <fieldset disabled={readOnly} className="min-w-0 space-y-4">
               <div className="space-y-1.5">

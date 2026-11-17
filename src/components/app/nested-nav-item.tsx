@@ -121,8 +121,8 @@ export function NestedNavItem({
           "gap-2.5 px-2 text-sidebar-item font-medium text-sidebar-foreground/90 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         depth === 0 && (touch ? "h-11 text-[15px]" : "h-9"),
         isCategory &&
-          "gap-2 pl-2 pr-1.5 font-semibold  text-sidebar-foreground/55 hover:text-sidebar-accent-foreground",
-        isCategory && (touch ? "h-8 text-[11px]" : "h-7 text-[11px]"),
+          "gap-2 pl-2 pr-1.5 font-medium text-sidebar-foreground/75 hover:text-sidebar-accent-foreground",
+        isCategory && (touch ? "h-8 text-[12px]" : "h-7 text-[13px]"),
         isChild &&
           isLeaf &&
           "gap-2 pl-2 pr-1.5 text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",

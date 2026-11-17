@@ -118,7 +118,7 @@ function RuleRow({ rule, workspaceId }: { rule: MatchingRule; workspaceId: strin
           </span>
         </div>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
           onClick={() => del.mutate(rule.id)}
           title="Delete rule"

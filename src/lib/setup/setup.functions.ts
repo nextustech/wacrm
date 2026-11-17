@@ -12,14 +12,40 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const SETUP_FLAG_KEY = "setup_complete";
 
+/**
+ * A brand-new project has no tables at all, so the status query fails instead
+ * of answering "no admin yet". That is not an outage — it is the clearest
+ * possible signal that the app is not installed, and it has to be told apart
+ * from a momentary database problem, which must never open the wizard on a
+ * live install. PostgREST reports a missing relation as 42P01, and its schema
+ * cache reports it as PGRST205/PGRST202.
+ */
+function isSchemaMissing(error: { code?: string | null; message?: string | null } | null): boolean {
+  if (!error) return false;
+  const code = error.code ?? "";
+  if (code === "42P01" || code === "PGRST205" || code === "PGRST202") return true;
+  const message = error.message ?? "";
+  return /does not exist|schema cache/i.test(message);
+}
+
 async function readSetupStatus() {
   const { supabaseAdmin } = await import("@/lib/demo/admin-write-guard.server");
 
   const { data: roles, error: rolesError } = await supabaseAdmin
     .from("user_roles")
-    .select("user_id")
+    .select("user_id, created_at")
     .eq("role", "superadmin")
+    .order("created_at", { ascending: true })
     .limit(1);
+  if (rolesError && isSchemaMissing(rolesError)) {
+    // No schema: nothing is installed, nobody is an admin, setup is wide open.
+    return {
+      superAdminExists: false,
+      setupComplete: false,
+      completedAt: null as string | null,
+      databaseReady: false,
+    };
+  }
   if (rolesError) throw new Error(`Unable to check super admin status: ${rolesError.message}`);
   const superAdminExists = (roles?.length ?? 0) > 0;
 
@@ -31,18 +57,51 @@ async function readSetupStatus() {
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
+  if (settingError && isSchemaMissing(settingError)) {
+    return {
+      superAdminExists,
+      setupComplete: false,
+      completedAt: null as string | null,
+      databaseReady: false,
+    };
+  }
   if (settingError) throw new Error(`Unable to check setup status: ${settingError.message}`);
   const v = (setting?.value ?? null) as { complete?: boolean; completed_at?: string } | null;
-  const setupComplete = !!v?.complete;
-  const completedAt = v?.completed_at ?? setting?.updated_at ?? null;
+  const flagged = !!v?.complete;
 
-  return { superAdminExists, setupComplete, completedAt };
+  /**
+   * Legacy installations never wrote the flag: their super admin was created
+   * outside the wizard, before the flag existed. Migration 20261105160000
+   * backfills them, but the app gate must not depend on a migration having
+   * been applied first — deploying the code before the SQL would otherwise
+   * route a live installation into the wizard, whose later steps overwrite
+   * branding, SMTP and SaaS settings with blanks.
+   *
+   * The age of the oldest super-admin role tells the two cases apart: a wizard
+   * run that is genuinely in progress created its admin minutes ago, never a
+   * day. Nothing is written here — the answer is derived on every read, so it
+   * is correct whether or not the migration has run.
+   */
+  const firstAdminAt = (roles?.[0] as { created_at?: string } | undefined)?.created_at ?? null;
+  const LEGACY_AFTER_MS = 24 * 60 * 60 * 1000;
+  const legacyInstall =
+    superAdminExists &&
+    !!firstAdminAt &&
+    Date.now() - new Date(firstAdminAt).getTime() > LEGACY_AFTER_MS;
+
+  const setupComplete = flagged || legacyInstall;
+  const completedAt =
+    v?.completed_at ?? setting?.updated_at ?? (legacyInstall ? firstAdminAt : null);
+
+  return { superAdminExists, setupComplete, completedAt, databaseReady: true };
 }
 
 async function assertSetupOpen() {
   const status = await readSetupStatus();
   if (status.setupComplete) {
-    const err = new Error("Setup is already complete. Sign in as an administrator to change these settings.");
+    const err = new Error(
+      "Setup is already complete. Sign in as an administrator to change these settings.",
+    );
     (err as Error & { status?: number }).status = 423;
     throw err;
   }
@@ -51,7 +110,8 @@ async function assertSetupOpen() {
 
 async function assertSetupAdmin(supabase: unknown, userId: string) {
   const status = await assertSetupOpen();
-  if (!status.superAdminExists) throw new Error("Create or assign the first super admin before saving setup.");
+  if (!status.superAdminExists)
+    throw new Error("Create or assign the first super admin before saving setup.");
   const { assertSuperAdmin } = await import("@/lib/admin/platform-guard.server");
   await assertSuperAdmin(supabase, userId);
   return status;
@@ -63,18 +123,20 @@ export const getSetupStatus = createServerFn({ method: "GET" }).handler(async ()
 
 async function upsertPlatformSetting(key: string, value: Record<string, unknown>) {
   const { supabaseAdmin } = await import("@/lib/demo/admin-write-guard.server");
-  const { error } = await sbAny(supabaseAdmin).from("settings").upsert(
-    {
-      scope: "platform",
-      key,
-      value: value as Json,
-      organization_id: null,
-      workspace_id: null,
-      user_id: null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "scope,organization_id,workspace_id,user_id,key" },
-  );
+  const { error } = await sbAny(supabaseAdmin)
+    .from("settings")
+    .upsert(
+      {
+        scope: "platform",
+        key,
+        value: value as Json,
+        organization_id: null,
+        workspace_id: null,
+        user_id: null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "scope,organization_id,workspace_id,user_id,key" },
+    );
   if (error) throw new Error(error.message);
 }
 

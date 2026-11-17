@@ -186,7 +186,7 @@ function InvoicesPage() {
                     <div className="col-span-1 flex justify-end">
                       <Button
                         size="icon"
-                        variant="ghost"
+                        variant="outline"
                         onClick={async (e) => {
                           e.preventDefault();
                           if (!confirm("Delete this invoice?")) return;

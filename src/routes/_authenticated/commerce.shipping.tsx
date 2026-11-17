@@ -321,14 +321,13 @@ function Shipping() {
             <Button
               size="sm"
               variant="outline"
-              className="h-9"
               onClick={exportCsv}
               disabled={zones.length === 0}
             >
               <Download className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
-            <Button size="sm" className="h-9" onClick={openNewZone}>
+            <Button size="sm" onClick={openNewZone}>
               <Plus className="h-4 w-4 mr-2" />
               New Zone
             </Button>
@@ -407,7 +406,6 @@ function Shipping() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9"
                     onClick={() => openEditZone(z)}
                   >
                     <Pencil className="h-3 w-3 " />
@@ -416,7 +414,6 @@ function Shipping() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9"
                     onClick={() => openNewRate(z.id)}
                   >
                     <Plus className="h-3 w-3 " />
@@ -425,7 +422,7 @@ function Shipping() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-9 text-danger hover:text-danger"
+                    className="text-danger hover:text-danger"
                     onClick={() =>
                       setConfirm({
                         kind: "zone",
@@ -480,7 +477,6 @@ function Shipping() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-7 w-7 p-0"
                             onClick={() => openEditRate(z.id, r)}
                           >
                             <Pencil className="h-3 w-3" />
@@ -488,7 +484,7 @@ function Shipping() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-7 w-7 p-0 text-danger hover:text-danger"
+                            className="text-danger hover:text-danger"
                             onClick={() => setConfirm({ kind: "rate", id: r.id, name: r.name })}
                           >
                             <Trash2 className="h-3 w-3" />

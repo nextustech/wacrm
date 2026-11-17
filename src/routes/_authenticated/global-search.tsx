@@ -210,7 +210,7 @@ function GlobalSearchPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute right-1 top-1/2 h-7 -translate-y-1/2"
+                className="absolute right-1 top-1/2 -translate-y-1/2"
                 onClick={() => setInput("")}
               >
                 <X className="h-4 w-4" />
@@ -235,7 +235,7 @@ function GlobalSearchPage() {
             }
           />
           {activeFilterCount > 0 && (
-            <Button variant="outline" size="sm" onClick={clearFilters} className="ml-auto h-9">
+            <Button variant="outline" size="sm" onClick={clearFilters} className="ml-auto">
               <X className="mr-1 h-3.5 w-3.5" /> Clear {activeFilterCount}
             </Button>
           )}
@@ -349,7 +349,7 @@ function CategoryMenu({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9 gap-1.5">
+        <Button variant="outline" size="sm" className="gap-1.5">
           <CurrentIcon className="h-3.5 w-3.5" />
           {current.label}
           {hasQuery && counts[activeCat] > 0 && (
@@ -499,7 +499,7 @@ function FiltersMenu({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9 gap-1.5">
+        <Button variant="outline" size="sm" className="gap-1.5">
           <SlidersHorizontal className="h-3.5 w-3.5" />
           Filters
           {activeCount > 0 && (
@@ -676,7 +676,7 @@ function HitRow({ hit }: { hit: OmniHit }) {
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-medium">{hit.title}</div>
           {hit.subtitle && (
-            <div className="truncate text-xs text-muted-foreground">{hit.subtitle}</div>
+            <div className="truncate text-sm text-muted-foreground">{hit.subtitle}</div>
           )}
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
             {hit.meta.channel && (

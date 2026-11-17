@@ -885,7 +885,7 @@ export const chatbotChat = createServerFn({ method: "POST" })
         primaryProviderId: bot.provider_id,
         request: {
           messages,
-          model: bot.model || "google/gemini-2.5-flash",
+          model: bot.model || "google/gemini-3.8-flash",
           temperature: bot.temperature ?? 0.4,
           max_tokens: bot.max_tokens ?? 800,
         },

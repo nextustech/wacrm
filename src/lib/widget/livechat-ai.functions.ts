@@ -125,7 +125,7 @@ export const summarizeLiveChatSession = createServerFn({ method: "POST" })
           },
           { role: "user", content: transcript },
         ],
-        model: b.model || "google/gemini-2.5-flash",
+        model: b.model || "google/gemini-3.8-flash",
         temperature: 0.2,
         max_tokens: 500,
       },

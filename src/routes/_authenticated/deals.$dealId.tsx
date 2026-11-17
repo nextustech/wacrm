@@ -849,8 +849,8 @@ function TaskRow({
       </div>
       <Button
         size="icon"
-        variant="ghost"
-        className="h-6 w-6 opacity-0 group-hover:opacity-100"
+        variant="outline"
+        className="opacity-0 group-hover:opacity-100"
         onClick={onDelete}
       >
         <Trash2 className="w-3.5 h-3.5" />

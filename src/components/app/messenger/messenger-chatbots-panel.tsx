@@ -212,7 +212,7 @@ export function MessengerChatbotsPanel() {
                     size="sm"
                     variant="outline"
                     onClick={() => setTestBot(bot)}
-                    className="gap-1.5 h-8"
+                    className="gap-1.5"
                     title="Send a test message and preview replies"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
@@ -220,7 +220,7 @@ export function MessengerChatbotsPanel() {
                   </Button>
                   <Button
                     size="icon"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => setEditBot(bot)}
                     title="Edit templates"
                   >
@@ -228,7 +228,7 @@ export function MessengerChatbotsPanel() {
                   </Button>
                   <Button
                     size="icon"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => toggleStatus.mutate(bot)}
                     title={isActive ? "Pause" : "Activate"}
                   >
@@ -236,7 +236,7 @@ export function MessengerChatbotsPanel() {
                   </Button>
                   <Button
                     size="icon"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => {
                       if (confirm(`Delete "${bot.name}"?`)) removeBot.mutate(bot.id);
                     }}

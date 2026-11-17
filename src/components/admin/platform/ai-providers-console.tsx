@@ -275,7 +275,6 @@ export function AiProvidersConsole() {
           onClick={() => refetch()}
           disabled={isFetching}
           aria-label="Refresh"
-          className="w-9 h-9"
         >
           <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
         </Button>

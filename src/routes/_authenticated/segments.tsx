@@ -245,8 +245,7 @@ function SegmentsPage() {
                     <div className="flex items-center gap-1">
                       <Button
                         size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
+                        variant="outline"
                         title="Recompute count"
                         disabled={recomputingId === s.id}
                         onClick={() => handleRecompute(s)}
@@ -259,8 +258,7 @@ function SegmentsPage() {
                       </Button>
                       <Button
                         size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
+                        variant="outline"
                         title="Duplicate"
                         onClick={() => handleDuplicate(s)}
                       >
@@ -268,8 +266,7 @@ function SegmentsPage() {
                       </Button>
                       <Button
                         size="icon"
-                        variant="ghost"
-                        className="h-7 w-7"
+                        variant="outline"
                         title="Edit"
                         onClick={() => openEdit(s)}
                       >
@@ -277,8 +274,8 @@ function SegmentsPage() {
                       </Button>
                       <Button
                         size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-destructive"
+                        variant="outline"
+                        className="text-destructive"
                         title="Delete"
                         onClick={() => setConfirmDelete(s)}
                       >

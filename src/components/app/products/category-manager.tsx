@@ -50,17 +50,17 @@ export function CategoryManager({ open, onOpenChange }: { open: boolean; onOpenC
                 {editing === c.id ? (
                   <>
                     <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-9" />
-                    <Button size="icon" variant="ghost" onClick={async () => {
+                    <Button size="icon" variant="outline" onClick={async () => {
                       await upsert.mutateAsync({ id: c.id, name: editName.trim() });
                       setEditing(null);
                     }}><Check className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => setEditing(null)}><X className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="outline" onClick={() => setEditing(null)}><X className="h-4 w-4" /></Button>
                   </>
                 ) : (
                   <>
                     <span className="flex-1 text-sm">{c.name}</span>
-                    <Button size="icon" variant="ghost" onClick={() => { setEditing(c.id); setEditName(c.name); }}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => del.mutate(c.id)}><Trash2 className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="outline" onClick={() => { setEditing(c.id); setEditName(c.name); }}><Pencil className="h-4 w-4" /></Button>
+                    <Button size="icon" variant="outline" onClick={() => del.mutate(c.id)}><Trash2 className="h-4 w-4" /></Button>
                   </>
                 )}
               </div>

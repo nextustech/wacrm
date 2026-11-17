@@ -54,10 +54,10 @@ export function WidgetAppearancePreview({ config, widgetName }: Props) {
           <span className="ml-3 text-muted-foreground text-xs">Live preview — unsaved</span>
         </div>
         <div className="flex items-center gap-1">
-          <Button size="sm" variant={device === "desktop" ? "secondary" : "ghost"} className="h-7 px-2" onClick={() => setDevice("desktop")}>
+          <Button size="sm" variant={device === "desktop" ? "secondary" : "ghost"} onClick={() => setDevice("desktop")}>
             <Monitor className="size-3.5" />
           </Button>
-          <Button size="sm" variant={device === "mobile" ? "secondary" : "ghost"} className="h-7 px-2" onClick={() => setDevice("mobile")}>
+          <Button size="sm" variant={device === "mobile" ? "secondary" : "ghost"} onClick={() => setDevice("mobile")}>
             <Smartphone className="size-3.5" />
           </Button>
         </div>

@@ -156,7 +156,7 @@ export function AssignmentSlaPanel({ conversation, onClose }: AssignmentSlaPanel
   const meta = PRIORITY_META[priority];
 
   return (
-    <div className="w-[320px] shrink-0 border-l border-border bg-background flex flex-col min-h-0">
+    <div className="w-full min-w-0 shrink-0 border-l border-border bg-background flex flex-col min-h-0">
       <div className="px-4 py-3 border-b border-border">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -172,8 +172,8 @@ export function AssignmentSlaPanel({ conversation, onClose }: AssignmentSlaPanel
             <Button
               type="button"
               variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
+              size="iconXS"
+              className="shrink-0"
               onClick={onClose}
               aria-label="Close Assignment & SLA panel"
               title="Close panel"
@@ -239,7 +239,7 @@ export function AssignmentSlaPanel({ conversation, onClose }: AssignmentSlaPanel
                   <Button
                     size="sm"
                     variant="secondary"
-                    className="flex-1 h-9"
+                    className="flex-1"
                     disabled={autoAssign.isPending}
                     onClick={() => autoAssign.mutate(conversation.id)}
                   >
@@ -253,7 +253,7 @@ export function AssignmentSlaPanel({ conversation, onClose }: AssignmentSlaPanel
                   <Button
                     size="sm"
                     variant="outline"
-                    className="flex-1 h-9"
+                    className="flex-1"
                     onClick={() =>
                       assign.mutate({
                         conversationId: conversation.id,
@@ -322,7 +322,7 @@ export function AssignmentSlaPanel({ conversation, onClose }: AssignmentSlaPanel
                   </p>
                   <Button
                     size="sm"
-                    className="mt-3 h-9"
+                    className="mt-3"
                     disabled={applySla.isPending}
                     onClick={() => applySla.mutate(conversation.id)}
                   >
@@ -414,7 +414,7 @@ export function AssignmentSlaPanel({ conversation, onClose }: AssignmentSlaPanel
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 px-2 text-xs"
+                      className="text-xs"
                       onClick={() =>
                         assign.mutate({
                           conversationId: conversation.id,

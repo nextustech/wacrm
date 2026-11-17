@@ -72,7 +72,7 @@ export function AiCommercePanel({ workspaceId, contactId, onInsert }: Props) {
                   <Badge variant="outline">${r.price.toFixed(2)}</Badge>
                 </div>
                 <div className="text-muted-foreground">{r.reason}</div>
-                <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => insertRec(r)}>
+                <Button size="sm" variant="ghost" className="text-xs" onClick={() => insertRec(r)}>
                   <Copy className="h-3 w-3 " />Insert
                 </Button>
               </div>

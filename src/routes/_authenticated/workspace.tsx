@@ -275,7 +275,7 @@ function MembersTab({
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{m.display_name ?? "Unnamed"}</div>
-                <div className="truncate text-xs text-muted-foreground font-mono">
+                <div className="truncate text-sm text-muted-foreground font-mono">
                   {m.user_id.slice(0, 8)}
                 </div>
               </div>
@@ -310,7 +310,7 @@ function MembersTab({
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
                         className="text-muted-foreground hover:text-destructive"
                       >

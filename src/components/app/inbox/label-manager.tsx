@@ -32,6 +32,18 @@ const COLORS = [
   "#64748b",
 ];
 
+/** Returns the canonical `#rrggbb` form, or null when the value isn't a hex colour. */
+function normalizeHex(value: string): string | null {
+  const v = value.trim().toLowerCase();
+  if (/^#[0-9a-f]{6}$/.test(v)) return v;
+  // `<input type="color">` only emits 6-digit hex, but a typed 3-digit
+  // shorthand is a reasonable thing for someone to write.
+  if (/^#[0-9a-f]{3}$/.test(v)) return `#${v[1]}${v[1]}${v[2]}${v[2]}${v[3]}${v[3]}`;
+  return null;
+}
+
+const isSameColor = (a: string, b: string) => normalizeHex(a) === normalizeHex(b);
+
 export function LabelManagerDialog({
   open,
   onOpenChange,
@@ -56,12 +68,15 @@ export function LabelManagerDialog({
     setEditingId(null);
     setDraft({ name: "", color: COLORS[5] });
   };
+  const color = normalizeHex(draft.color);
+  const canSubmit = !!draft.name.trim() && !!color;
+
   const submit = async () => {
-    if (!draft.name.trim()) return;
+    if (!canSubmit) return;
     await upsert.mutateAsync({
       id: editingId ?? undefined,
       name: draft.name.trim(),
-      color: draft.color,
+      color: color!,
     });
     clear();
   };
@@ -97,19 +112,51 @@ export function LabelManagerDialog({
                   onClick={() => setDraft((d) => ({ ...d, color: c }))}
                   className={cn(
                     "h-10 w-10 rounded-full border-2 transition-transform",
-                    draft.color === c ? "border-foreground scale-110" : "border-transparent",
+                    isSameColor(draft.color, c)
+                      ? "border-foreground scale-110"
+                      : "border-transparent",
                   )}
                   style={{ backgroundColor: c }}
                 />
               ))}
             </div>
+            {/* The presets are shortcuts, not the whole range — any colour is
+             * reachable through the picker or by typing a hex value. */}
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                aria-label="Choose a custom colour"
+                value={normalizeHex(draft.color) ?? "#64748b"}
+                onChange={(e) => setDraft((d) => ({ ...d, color: e.target.value }))}
+                className="h-9 w-12 shrink-0 cursor-pointer rounded-control border border-border bg-background p-1"
+              />
+              <Input
+                aria-label="Colour hex value"
+                value={draft.color}
+                spellCheck={false}
+                maxLength={7}
+                onChange={(e) => {
+                  const next = e.target.value.trim();
+                  setDraft((d) => ({ ...d, color: next.startsWith("#") ? next : `#${next}` }));
+                }}
+                placeholder="#64748b"
+                className={cn("h-9 font-mono", !normalizeHex(draft.color) && "border-destructive")}
+              />
+              <span
+                className="h-9 w-9 shrink-0 rounded-control border border-border"
+                style={{ backgroundColor: normalizeHex(draft.color) ?? "transparent" }}
+              />
+            </div>
+            {!normalizeHex(draft.color) && (
+              <p className="text-xs text-destructive">Enter a hex colour like #3b82f6.</p>
+            )}
             <div className="flex justify-end gap-2">
               {editingId && (
                 <Button variant="ghost" size="sm" onClick={clear}>
                   <X className="h-3.5 w-3.5" /> Cancel
                 </Button>
               )}
-              <Button size="sm" onClick={submit} disabled={upsert.isPending || !draft.name.trim()}>
+              <Button size="sm" onClick={submit} disabled={upsert.isPending || !canSubmit}>
                 {upsert.isPending ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
@@ -138,6 +185,9 @@ export function LabelManagerDialog({
                   >
                     {l.name}
                   </button>
+                  <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                    {l.usage_count === 1 ? "1 chat" : `${l.usage_count} chats`}
+                  </span>
                   {l.is_system && (
                     <Badge variant="outline" className="text-[11px] h-4 px-1">
                       System
@@ -145,9 +195,9 @@ export function LabelManagerDialog({
                   )}
                   {!l.is_system && (
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                      className="opacity-0 group-hover:opacity-100"
                       onClick={() => del.mutate(l.id)}
                       aria-label="Delete label"
                     >
@@ -172,7 +222,7 @@ export function LabelManagerDialog({
 export function LabelChip({ label }: { label: Pick<LabelRow, "name" | "color"> }) {
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-control px-2 py-0.5 text-[11px] font-medium border"
+      className="inline-flex items-center gap-1 rounded-control px-2 py-0 text-[11px] font-medium border"
       style={{
         borderColor: (label.color ?? "#64748b") + "40",
         backgroundColor: (label.color ?? "#64748b") + "18",

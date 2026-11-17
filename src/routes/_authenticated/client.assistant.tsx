@@ -192,7 +192,7 @@ function AssistantPage() {
                   <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{handoffReason}</p>
                 </div>
                 <Button
-                  size="sm" className="h-7"
+                  size="sm"
                   disabled={handoff.isPending}
                   onClick={() => handoff.mutate({ reason: handoffReason })}
                 >

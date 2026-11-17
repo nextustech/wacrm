@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, redirect, useLocation } from "@tanstack/react-router";
+import { createFileRoute, isRedirect, Outlet, redirect, useLocation } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { AppSidebar } from "@/components/app/app-sidebar";
 import { AppFooter } from "@/components/app/app-footer";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { ensureMyOrganization } from "@/lib/tenant/provision.functions";
 import {
   clearActiveOrgId,
+  clearActiveWorkspaceId,
   readActiveOrgId,
   setHostedTenant,
   writeActiveOrgId,
@@ -21,10 +22,12 @@ import {
   resolveHostedWorkspace,
 } from "@/lib/white-label/hosted-domain";
 import { ThemeApplier } from "@/components/ThemeApplier";
+import { DemoCustomizationCanvas } from "@/components/demo/DemoCustomizationCanvas";
 import type { ReactNode } from "react";
 import { usePlatformRuntime } from "@/hooks/use-platform-runtime";
 import { featureForRoute, isRouteEnabled } from "@/lib/admin/platform-features";
 import { RoutePermissionGate } from "@/components/app/route-permission-gate";
+import { requireInstalledApp } from "@/lib/setup/first-run-guard";
 
 export const Route = createFileRoute("/_authenticated")({
   // The Supabase session lives in localStorage, which the server cannot read.
@@ -32,6 +35,10 @@ export const Route = createFileRoute("/_authenticated")({
   // bounces signed-in users to /auth on hard refresh / direct link.
   ssr: false,
   beforeLoad: async ({ location }) => {
+    // Before anything else: a database with no super admin is an uninstalled
+    // deployment, and no app surface should render against it.
+    await requireInstalledApp();
+
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/auth", search: { next: location.href } });
     setHostedTenant(null);
@@ -40,7 +47,16 @@ export const Route = createFileRoute("/_authenticated")({
       // A server-side failure can resolve to `undefined` instead of throwing
       // (e.g. the request middleware turned the error into an HTML response),
       // so never destructure the result blindly.
-      const result = (await ensureMyOrganization()) as { organizationId?: string } | undefined;
+      const result = (await ensureMyOrganization()) as
+        { organizationId?: string | null } | undefined;
+      // A null id (not undefined) is the server stating the user has no
+      // organization because they deleted it. That beats any cached selection,
+      // which would otherwise point at the organization that is now gone.
+      if (result && result.organizationId === null) {
+        clearActiveOrgId(data.session.user.id);
+        clearActiveWorkspaceId();
+        throw redirect({ to: "/onboarding/organization" });
+      }
       // Provisioning returns the personal/default organization. A navigation
       // triggered by the switcher must preserve the user's current selection.
       // Read after the await so an in-flight provision cannot undo a switch.
@@ -59,6 +75,9 @@ export const Route = createFileRoute("/_authenticated")({
       writeActiveOrgId(organizationId);
       return { user: data.session.user, organizationId };
     } catch (error) {
+      // The "no organization" redirect is a decision, not a failure — it must
+      // not fall through to the cached-organization recovery below.
+      if (isRedirect(error)) throw error;
       console.error("[auth] Failed to provision organization:", error);
       if (error instanceof HostedDomainAccessError || error instanceof HostedDomainResolutionError)
         throw error;
@@ -113,6 +132,7 @@ function AuthenticatedLayout() {
             {!immersiveRoute && <AppFooter />}
           </div>
           <CommandPalette />
+          <DemoCustomizationCanvas />
         </div>
       </RealtimeMessagingProvider>
     </LayoutProvider>

@@ -555,6 +555,7 @@ async function applyInboundReaction(
     .select("id, metadata")
     .eq("workspace_id", workspaceId)
     .eq("external_message_id", targetId)
+    .limit(1)
     .maybeSingle();
   if (!target) return;
 
@@ -581,14 +582,20 @@ export async function processInboundMessage(
   correlationId: string,
 ): Promise<void> {
   // Idempotency at the message level too — we may see the same message id
-  // across multiple envelopes (Meta re-delivers on 5xx).
-  const { data: dup } = await supabaseAdmin
+  // across multiple envelopes (Meta re-delivers on 5xx, and keeps retrying
+  // with backoff while a slow media download holds the response open).
+  //
+  // This deliberately does NOT use `.maybeSingle()`: that errors out when more
+  // than one row matches, which left `data` null and let the duplicate through.
+  // Once two copies existed the guard stayed broken for that message id, so a
+  // single lost race turned into eight copies of the same photo.
+  const { data: dups } = await supabaseAdmin
     .from("messages" as never)
     .select("id")
     .eq("workspace_id", account.workspaceId)
     .eq("external_message_id", ev.externalMessageId)
-    .maybeSingle();
-  if (dup) return;
+    .limit(1);
+  if ((dups?.length ?? 0) > 0) return;
 
   // A reaction is not a message of its own: it belongs on the message it
   // targets, so it is folded into that message's metadata.reactions instead.
@@ -669,6 +676,11 @@ export async function processInboundMessage(
     } as never)
     .select("id")
     .single();
+  // A concurrent delivery of the same webhook won the race while we were
+  // downloading media. The unique index on (workspace_id, external_message_id)
+  // rejects this copy, which is the outcome we want: stop here rather than
+  // re-running the chatbot and answering the customer twice.
+  if (error?.code === "23505") return;
   if (error) throw error;
   const messageId = (inserted as { id: string }).id;
 
@@ -816,6 +828,7 @@ export async function processStatusEvent(
     .select("id, status, sent_at, delivered_at, read_at")
     .eq("workspace_id", account.workspaceId)
     .eq("external_message_id", ev.externalMessageId)
+    .limit(1)
     .maybeSingle();
 
   if (outboxRow) {
@@ -864,7 +877,8 @@ export async function processStatusEvent(
       messagePatch.delivered_at = earliest(raw.delivered_at, ev.timestamp);
     }
     if (ev.status === "failed" && advance) {
-      messagePatch.failed_reason = [ev.errorCode, ev.errorMessage].filter(Boolean).join(": ") || "Delivery failed";
+      messagePatch.failed_reason =
+        [ev.errorCode, ev.errorMessage].filter(Boolean).join(": ") || "Delivery failed";
     }
     await supabaseAdmin
       .from("messages" as never)

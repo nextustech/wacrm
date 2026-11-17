@@ -230,8 +230,7 @@ function NotesSection({
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <Button
                     size="icon"
-                    variant="ghost"
-                    className="w-7 h-7"
+                    variant="outline"
                     onClick={() => patch.mutate({ id: n.id, is_pinned: !n.is_pinned })}
                     title={n.is_pinned ? "Unpin" : "Pin"}
                   >
@@ -243,8 +242,7 @@ function NotesSection({
                   </Button>
                   <Button
                     size="icon"
-                    variant="ghost"
-                    className="w-7 h-7"
+                    variant="outline"
                     onClick={() => setEditing(n)}
                     title="Edit"
                   >
@@ -252,8 +250,8 @@ function NotesSection({
                   </Button>
                   <Button
                     size="icon"
-                    variant="ghost"
-                    className="w-7 h-7 text-destructive hover:text-destructive"
+                    variant="outline"
+                    className="text-destructive hover:text-destructive"
                     onClick={() => setDeleting(n.id)}
                     title="Delete"
                   >
@@ -553,8 +551,7 @@ function TasksSection({
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button
                       size="icon"
-                      variant="ghost"
-                      className="w-7 h-7"
+                      variant="outline"
                       onClick={() => setEditing(t)}
                       title="Edit"
                     >
@@ -562,8 +559,8 @@ function TasksSection({
                     </Button>
                     <Button
                       size="icon"
-                      variant="ghost"
-                      className="w-7 h-7 text-destructive hover:text-destructive"
+                      variant="outline"
+                      className="text-destructive hover:text-destructive"
                       onClick={() => setDeleting(t.id)}
                       title="Delete"
                     >

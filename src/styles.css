@@ -1,13 +1,13 @@
 @import "tailwindcss";
 @source "../src";
 @import "tw-animate-css";
-@import "@fontsource/inter/300.css";
-@import "@fontsource/inter/400.css";
-@import "@fontsource/inter/500.css";
-@import "@fontsource/inter/600.css";
-@import "@fontsource/inter/700.css";
-@import "@fontsource/inter/800.css";
-@import "@fontsource/inter/900.css";
+@import "@fontsource/geist/300.css";
+@import "@fontsource/geist/400.css";
+@import "@fontsource/geist/500.css";
+@import "@fontsource/geist/600.css";
+@import "@fontsource/geist/700.css";
+@import "@fontsource/geist/800.css";
+@import "@fontsource/geist/900.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -230,12 +230,12 @@
   --color-sidebar-ring: var(--sidebar-ring);
 
   /* ── Typography ─────────────────────────────────────────────────────────── */
-  /* Font families — 3 roles */
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-heading: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-body: var(--font-sans);
+  /* Font families — 3 roles (dynamic, driven by CSS variables on :root) */
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+  --font-heading: var(--font-heading);
+  --font-mono: var(--font-mono);
+  --font-body: var(--font-body);
 
   /* Type scale — 8pt-aligned rem values with paired line-heights.
      Naming: 2xs 11 · xs 12 · sm 14 · base 16 · lg 18 · xl 20 · 2xl 24 · 3xl 30 · 4xl 36 · 5xl 48 · 6xl 60 · 7xl 72 · 8xl 84 · 9xl 96 */
@@ -247,7 +247,7 @@
   --text-xs: 0.75rem;
   --text-xs--line-height: 1rem;
   --text-xs--letter-spacing: 0.005em;
-  --text-sm: 0.84375rem;
+  --text-sm: 0.875rem;
   --text-sm--line-height: 1.25rem;
   --text-sm--letter-spacing: 0em;
   --text-base: 0.875rem;
@@ -284,14 +284,15 @@
   --text-9xl--line-height: 6.25rem;
   --text-9xl--letter-spacing: -0.04em;
 
-  /* Font weights — explicit ladder */
+  /* Font weights — explicit ladder (dynamic variables so runtime theme can override) */
   --font-weight-thin: 100;
   --font-weight-extralight: 200;
   --font-weight-light: 300;
-  --font-weight-regular: 400;
-  --font-weight-medium: 500;
-  --font-weight-semibold: 600;
-  --font-weight-bold: 700;
+  --font-weight-regular: var(--font-weight-regular);
+  --font-weight-normal: var(--font-weight-normal);
+  --font-weight-medium: var(--font-weight-medium);
+  --font-weight-semibold: var(--font-weight-semibold);
+  --font-weight-bold: var(--font-weight-bold);
   --font-weight-extrabold: 800;
   --font-weight-black: 900;
 
@@ -677,6 +678,21 @@
  * Light theme (default)
  * ============================================================================ */
 :root {
+  /* Dynamic typography stacks (overridden by ThemeApplier via white-label config) */
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-sans);
+  --font-weight-sans: 400;
+  --font-weight-heading: 600;
+  --font-weight-mono: 400;
+  --font-weight-regular: 400;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
   /* Coolors palette — warm-neutral scale keyed to
      #FFFFFF · #F5F3F4 · #D3D3D3 · #B1A7A6 · #161A1D · #0B090A */
   --neutral-50: oklch(0.966 0.002 20); /* #F5F3F4 */
@@ -774,7 +790,7 @@
   --sidebar-primary-foreground: oklch(100% 0 0);
   --sidebar-accent: oklch(0.194 0.007 240); /* #161A1D */
   --sidebar-accent-foreground: oklch(0.966 0.002 20);
-  --sidebar-border: oklch(0.20 0.007 240);
+  --sidebar-border: oklch(0.2 0.007 240);
   --sidebar-ring: var(--accent);
 
   /* Hero surface — dark gradient in both themes; foreground stays near-white for AA */
@@ -1007,7 +1023,7 @@
   --sidebar-primary-foreground: oklch(100% 0 0);
   --sidebar-accent: oklch(0.194 0.007 240);
   --sidebar-accent-foreground: oklch(0.966 0.002 20);
-  --sidebar-border: oklch(0.20 0.008 240);
+  --sidebar-border: oklch(0.2 0.008 240);
 
   /* Hero surface — dark gradient; foreground near-white for AA */
   --hero-foreground: oklch(0.985 0 0);
@@ -1489,8 +1505,10 @@
   h1,
   h2,
   h3,
-  h4 {
-    font-family: var(--font-display);
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
     letter-spacing: var(--tracking-tight);
   }
   ::selection {
@@ -1616,6 +1634,11 @@
   outline: none;
   svg.lucide {
     color: var(--muted-foreground);
+  }
+  /* A destructive item colours its label with `text-destructive`; the icon has
+   * to follow, or the muted default above leaves a grey icon beside red text. */
+  &.text-destructive svg.lucide {
+    color: var(--destructive);
   }
   &:hover {
     background-color: var(--muted);
@@ -1853,6 +1876,7 @@
   body {
     font-family: var(--font-body);
     font-size: var(--text-sm);
+    font-weight: var(--font-weight-sans, var(--font-weight-regular));
     line-height: var(--leading-normal);
     letter-spacing: 0;
     color: var(--foreground);
@@ -1866,16 +1890,31 @@
   h6 {
     font-family: var(--font-heading);
     color: var(--foreground);
-    font-weight: var(--font-weight-semibold);
+    font-weight: var(--font-weight-heading, var(--font-weight-semibold));
     letter-spacing: -0.02em;
     line-height: var(--leading-tight);
     text-wrap: balance;
+  }
+  h1.font-bold,
+  h2.font-bold,
+  h3.font-bold,
+  h4.font-bold,
+  h5.font-bold,
+  h6.font-bold,
+  h1.font-semibold,
+  h2.font-semibold,
+  h3.font-semibold,
+  h4.font-semibold,
+  h5.font-semibold,
+  h6.font-semibold {
+    font-weight: var(--font-weight-heading, var(--font-weight-semibold));
   }
   code,
   kbd,
   samp,
   pre {
     font-family: var(--font-mono);
+    font-weight: var(--font-weight-mono, inherit);
     font-feature-settings: "calt";
   }
   /* Tabular numerals everywhere numbers appear in data views */
@@ -1893,7 +1932,7 @@
   font-size: clamp(3rem, 4.5vw + 1rem, 5.25rem);
 
   letter-spacing: -0.045em;
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-heading, var(--font-weight-semibold));
   text-wrap: balance;
 }
 @utility text-display-xl {
@@ -1901,7 +1940,7 @@
   font-size: clamp(2.5rem, 3.5vw + 1rem, 4.5rem);
 
   letter-spacing: -0.04em;
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-heading, var(--font-weight-semibold));
   text-wrap: balance;
 }
 @utility text-display-lg {
@@ -1909,7 +1948,7 @@
   font-size: clamp(2rem, 2.5vw + 1rem, 3.75rem);
 
   letter-spacing: -0.035em;
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-heading, var(--font-weight-semibold));
   text-wrap: balance;
 }
 @utility text-display-md {
@@ -1917,7 +1956,7 @@
   font-size: clamp(1.75rem, 1.8vw + 1rem, 3rem);
 
   letter-spacing: -0.03em;
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-heading, var(--font-weight-semibold));
   text-wrap: balance;
 }
 @utility text-display-sm {
@@ -1925,7 +1964,7 @@
   font-size: clamp(1.5rem, 1.2vw + 1rem, 2.25rem);
   line-height: 1.25;
   letter-spacing: -0.025em;
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-heading, var(--font-weight-semibold));
   text-wrap: balance;
 }
 
@@ -1935,7 +1974,7 @@
   font-size: var(--text-4xl);
   line-height: var(--leading-tight);
   letter-spacing: -0.022em;
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-heading, var(--font-weight-semibold));
   text-wrap: balance;
 }
 @utility text-heading-h2 {
@@ -1943,7 +1982,7 @@
   font-size: var(--text-3xl);
   line-height: var(--leading-tight);
   letter-spacing: -0.019em;
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-heading, var(--font-weight-semibold));
   text-wrap: balance;
 }
 @utility text-heading-h3 {
@@ -1951,28 +1990,28 @@
   font-size: var(--text-2xl);
   line-height: var(--leading-snug);
   letter-spacing: -0.017em;
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-heading, var(--font-weight-semibold));
 }
 @utility text-heading-h4 {
   font-family: var(--font-heading);
   font-size: var(--text-xl);
   line-height: var(--leading-snug);
   letter-spacing: -0.014em;
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-heading, var(--font-weight-semibold));
 }
 @utility text-heading-h5 {
   font-family: var(--font-heading);
   font-size: var(--text-lg);
   line-height: var(--leading-snug);
   letter-spacing: -0.011em;
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-heading, var(--font-weight-semibold));
 }
 @utility text-heading-h6 {
   font-family: var(--font-heading);
   font-size: var(--text-base);
   line-height: var(--leading-snug);
   letter-spacing: -0.003em;
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-heading, var(--font-weight-semibold));
 }
 
 /* ── Body — reading text (Inter, dynamic metrics) ───────────────────────── */
@@ -2164,7 +2203,7 @@
   font-variant-numeric:;
 }
 @utility text-metric-sm {
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-size: var(--text-2xl);
 
   font-weight: var(--font-weight-semibold);
@@ -2970,7 +3009,7 @@
   --tw-ring-offset-shadow: 0 0 #0000 !important;
   --tw-ring-color: transparent !important;
   --tw-ring-offset-width: 0px !important;
-  --tw-ring-inset:                         !important;
+  --tw-ring-inset:                          !important;
 }
 *:focus,
 *:focus-visible,
@@ -2990,6 +3029,15 @@
     var(--tw-inset-shadow, 0 0 #0000), var(--tw-inset-ring-shadow, 0 0 #0000),
     var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000),
     var(--tw-shadow, 0 0 #0000) !important;
+}
+
+/* The Demo Customization Canvas trigger wants a real drop shadow to read as
+   a floating button. A class selector (0,1,0) beats the bare `*` suppression
+   above (0,0,0) at equal !important weight — same technique as
+   .landing-shadows above, just inline-style can't carry !important at all
+   (the DOM style-property setter silently drops a value containing it). */
+.demo-canvas-trigger {
+  box-shadow: 0px 1px 3px #000000 !important;
 }
 
 /* ============================================================
@@ -3090,4 +3138,26 @@
   &::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* Reply-reference scroll highlight — fades in with a primary-tinted glow,
+   holds briefly, then fades out. Applied and removed via JS. */
+@keyframes message-highlight {
+  0% {
+    background-color: color-mix(in oklch, var(--primary) 20%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 15%, transparent);
+  }
+  40% {
+    background-color: color-mix(in oklch, var(--primary) 18%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in oklch, var(--primary) 13%, transparent);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: 0 0 0 0px transparent;
+  }
+}
+
+.message-highlight-flash {
+  border-radius: var(--radius-lg);
+  animation: message-highlight 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }

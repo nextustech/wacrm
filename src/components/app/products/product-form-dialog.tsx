@@ -312,7 +312,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
               {Object.entries(attrs).map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between rounded-control border px-3 py-2 text-sm">
                   <div><span className="font-medium">{k}:</span> {String(v)}</div>
-                  <Button size="icon" variant="ghost" onClick={() => {
+                  <Button size="icon" variant="outline" onClick={() => {
                     const next = { ...attrs }; delete next[k];
                     set('attributes', next as unknown as ProductRow['attributes']);
                   }}><Trash2 className="h-4 w-4" /></Button>
@@ -368,7 +368,7 @@ export function ProductFormDialog({ open, onOpenChange, product }: Props) {
               {Object.entries(customFields).map(([k, v]) => (
                 <div key={k} className="flex items-center justify-between rounded-control border px-3 py-2 text-sm">
                   <div><span className="font-medium">{k}:</span> {String(v)}</div>
-                  <Button size="icon" variant="ghost" onClick={() => {
+                  <Button size="icon" variant="outline" onClick={() => {
                     const next = { ...customFields }; delete next[k];
                     set('custom_fields', next as unknown as ProductRow['custom_fields']);
                   }}><Trash2 className="h-4 w-4" /></Button>
@@ -424,7 +424,7 @@ function MediaListEditor({
             ) : (
               <div className="p-2 text-xs break-all">{url}</div>
             )}
-            <Button size="icon" variant="destructive" className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition"
+            <Button size="icon" variant="destructive" className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition"
               onClick={() => onChange(items.filter((_, j) => j !== i))}>
               <Trash2 className="h-3 w-3" />
             </Button>
@@ -490,7 +490,7 @@ function VariantsEditor({ productId }: { productId: string }) {
                 {Object.keys(v.options ?? {}).length > 0 ? ` • ${Object.entries(v.options).map(([k, x]) => `${k}: ${x}`).join(', ')}` : ''}
               </div>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => del.mutate({ id: v.id, productId })}><Trash2 className="h-4 w-4" /></Button>
+            <Button size="icon" variant="outline" onClick={() => del.mutate({ id: v.id, productId })}><Trash2 className="h-4 w-4" /></Button>
           </div>
         ))}
         {(variants ?? []).length === 0 && <div className="text-sm text-muted-foreground">No variants yet.</div>}
@@ -541,7 +541,7 @@ function BundleEditor({ bundleId }: { bundleId: string }) {
                 <div className="font-medium">{p?.name ?? 'Unknown'}</div>
                 <div className="text-xs text-muted-foreground">Qty {it.quantity}</div>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => remove.mutate({ id: it.id, bundleId })}><Trash2 className="h-4 w-4" /></Button>
+              <Button size="icon" variant="outline" onClick={() => remove.mutate({ id: it.id, bundleId })}><Trash2 className="h-4 w-4" /></Button>
             </div>
           );
         })}
@@ -583,7 +583,7 @@ function AttachmentsEditor({ productId }: { productId: string }) {
         {(atts ?? []).map((a) => (
           <div key={a.id} className="flex items-center justify-between rounded-control border px-3 py-2 text-sm">
             <a href={a.url} target="_blank" rel="noreferrer noopener" className="font-medium hover:underline truncate">{a.name}</a>
-            <Button size="icon" variant="ghost" onClick={() => remove.mutate({ id: a.id, productId })}><Trash2 className="h-4 w-4" /></Button>
+            <Button size="icon" variant="outline" onClick={() => remove.mutate({ id: a.id, productId })}><Trash2 className="h-4 w-4" /></Button>
           </div>
         ))}
         {(atts ?? []).length === 0 && <div className="text-sm text-muted-foreground">No attachments yet.</div>}

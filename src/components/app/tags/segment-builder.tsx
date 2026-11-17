@@ -186,7 +186,7 @@ export function SegmentBuilder({ entityType, value, onChange }: Props) {
                 <div />
               )}
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
                 onClick={() => removeCond(i)}
                 className="text-muted-foreground hover:text-destructive"

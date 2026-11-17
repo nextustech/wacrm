@@ -126,12 +126,91 @@ export async function retrieveKb(
       matchCount,
       minSimilarity: 0.2,
     });
-    return rows.slice(0, matchCount).map((r) => ({
-      articleId: (r as { article_id?: string }).article_id ?? "",
-      title: (r as { title?: string }).title ?? "Article",
-      snippet: ((r as { content?: string }).content ?? "").slice(0, 400),
-      similarity: (r as { similarity?: number }).similarity ?? 0,
-      url: (r as { url?: string | null }).url ?? null,
+    if (rows.length) {
+      return rows.slice(0, matchCount).map((r) => ({
+        articleId: (r as { article_id?: string }).article_id ?? "",
+        title: (r as { title?: string }).title ?? "Article",
+        snippet: ((r as { content?: string }).content ?? "").slice(0, 400),
+        similarity: (r as { similarity?: number }).similarity ?? 0,
+        url: (r as { url?: string | null }).url ?? null,
+      }));
+    }
+  } catch {
+    /* fall through to the keyword search below */
+  }
+  return keywordKbFallback(workspaceId, query, matchCount);
+}
+
+/**
+ * Keyword search over published articles, used when the vector path returns
+ * nothing. Without it an embedding outage (quota, billing, provider down)
+ * silently strips the bot of every fact it has and it answers from the model
+ * alone, which is how a grounded assistant starts inventing things.
+ */
+async function keywordKbFallback(
+  workspaceId: string,
+  query: string,
+  matchCount: number,
+): Promise<KbHit[]> {
+  try {
+    const { supabaseAdmin } = await import("@/lib/demo/admin-write-guard.server");
+    const { ilikePattern } = await import("@/lib/api/postgrest-filters");
+    // Visitor-supplied text goes into a PostgREST filter string, so each term
+    // must be sanitised before it is interpolated.
+    const terms = query
+      .split(/\s+/)
+      .filter((word) => word.length > 3)
+      .map((word) => ilikePattern(word))
+      .filter((p): p is string => Boolean(p))
+      .slice(0, 6);
+    if (!terms.length) return [];
+
+    const filter = terms
+      .flatMap((t) => [`title.ilike.${t}`, `summary.ilike.${t}`, `content_md.ilike.${t}`])
+      .join(",");
+
+    // `or` + `limit` alone returns whichever rows Postgres reaches first, so a
+    // single common word ("what", "need") can hand the model a pile of
+    // irrelevant articles. Over-fetch, then rank by how well each one matches.
+    const { data } = await sbAny(supabaseAdmin)
+      .from("kb_articles")
+      .select("id, title, summary, content_md")
+      .eq("workspace_id", workspaceId)
+      .eq("status", "published")
+      .or(filter)
+      .limit(40);
+
+    const words = terms.map((t) => t.replace(/^%|%$/g, "").toLowerCase()).filter(Boolean);
+    const scored = (
+      (data ?? []) as Array<{
+        id: string;
+        title: string;
+        summary: string | null;
+        content_md: string | null;
+      }>
+    )
+      .map((r) => {
+        const title = r.title.toLowerCase();
+        const summary = (r.summary ?? "").toLowerCase();
+        const content = (r.content_md ?? "").toLowerCase();
+        let score = 0;
+        for (const w of words) {
+          if (title.includes(w)) score += 5;
+          if (summary.includes(w)) score += 3;
+          if (content.includes(w)) score += 1;
+        }
+        return { row: r, score };
+      })
+      .filter((s) => s.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, matchCount);
+
+    return scored.map(({ row, score }) => ({
+      articleId: row.id,
+      title: row.title,
+      snippet: `${row.summary ? `${row.summary}\n\n` : ""}${row.content_md ?? ""}`.slice(0, 1200),
+      similarity: score,
+      url: null,
     }));
   } catch {
     return [];
@@ -206,7 +285,7 @@ export async function analyzeConversation(
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        model: bot.model || "google/gemini-2.5-flash",
+        model: bot.model || "google/gemini-3.8-flash",
         temperature: 0.1,
         max_tokens: 500,
       },
@@ -318,7 +397,7 @@ export async function generateAssistantReply(
       primaryProviderId: bot.provider_id,
       request: {
         messages,
-        model: bot.model || "google/gemini-2.5-flash",
+        model: bot.model || "google/gemini-3.8-flash",
         temperature: bot.temperature ?? 0.4,
         max_tokens: bot.max_tokens ?? 700,
       },
@@ -363,7 +442,7 @@ export async function translate(params: {
           },
           { role: "user", content: params.text },
         ],
-        model: "google/gemini-2.5-flash-lite",
+        model: "google/gemini-3.1-flash-lite",
         temperature: 0.1,
         max_tokens: 800,
       },

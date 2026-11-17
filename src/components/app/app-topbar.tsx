@@ -14,6 +14,7 @@ type Props = {
   title: ReactNode;
   subtitle?: string;
   actions?: ReactNode;
+  tabs?: ReactNode;
   showBreadcrumbs?: boolean;
   showPageHeader?: boolean;
   showSidebarToggle?: boolean;
@@ -28,6 +29,7 @@ export function AppTopbar({
   title,
   subtitle,
   actions,
+  tabs,
   showBreadcrumbs = true,
   showPageHeader = true,
   showSidebarToggle = true,
@@ -130,13 +132,13 @@ export function AppTopbar({
           <div className="min-w-0 lg:col-span-8">
             {showBreadcrumbs && <Breadcrumbs />}
             <div className="mt-1 flex min-w-0 items-baseline gap-3">
-              <h1 className="shrink-0 font-display text-lg font-semibold lg:text-xl">{title}</h1>
+              <h1 className="font-display text-lg font-semibold lg:text-xl">{title}</h1>
               {subtitle && (
-                <p className="hidden min-w-0 flex-1 truncate text-xs text-muted-foreground sm:block">{subtitle}</p>
+                <p className="hidden min-w-0 flex-1 truncate text-sm text-muted-foreground sm:block">{subtitle}</p>
               )}
             </div>
             {subtitle && (
-              <p className="sm:hidden truncate text-xs text-muted-foreground">{subtitle}</p>
+              <p className="sm:hidden truncate text-sm text-muted-foreground">{subtitle}</p>
             )}
           </div>
           <div
@@ -147,6 +149,9 @@ export function AppTopbar({
           </div>
         </div>
       )}
+
+      {/* Row 3 — optional in-page tab navigation (e.g. CRM's Contacts/Leads/Messaging switch) */}
+      {tabs && <div className="border-t border-border/50 px-4 lg:px-6">{tabs}</div>}
     </header>
   );
 }

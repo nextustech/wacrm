@@ -184,7 +184,7 @@ export function LinkContactDialog({ open, onOpenChange, conversation, onLinked }
                           disabled={relink.isPending}
                           onClick={() => handlePick(c)}
                           className={cn(
-                            "flex items-center gap-3 w-full text-left px-3 py-2 hover:bg-accent focus:bg-accent outline-none",
+                            "flex items-center gap-3 w-full text-left px-3 py-2 hover:bg-muted focus:bg-muted outline-none",
                             isCurrent && "bg-muted/50",
                           )}
                         >

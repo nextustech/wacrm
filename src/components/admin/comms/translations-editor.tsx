@@ -141,7 +141,7 @@ export function TranslationsEditor({ translations, onChange, showSubject = false
         <Button
           variant="ghost"
           size="sm"
-          className="h-7 text-xs"
+          className="text-xs"
           onClick={() => {
             const next = { ...translations };
             delete next[lang];

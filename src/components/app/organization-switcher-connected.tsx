@@ -553,7 +553,7 @@ export function OrganizationSwitcherConnected({ collapsed = false }: { collapsed
       id: w.id,
       name: w.name,
       organizationId: w.organization_id,
-      plan: organizationPlans[w.organization_id] ?? w.plan,
+      plan: (w.organization_id ? organizationPlans[w.organization_id] : undefined) ?? w.plan,
       avatarUrl: w.avatar_url,
       archived: !!w.archived_at,
       organizationName: orgs.find((org) => org.id === w.organization_id)?.name ?? null,

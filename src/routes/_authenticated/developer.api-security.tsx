@@ -385,7 +385,7 @@ function IpRulesPanel() {
                   {r.is_active ? <Badge>Active</Badge> : <Badge variant="outline">Disabled</Badge>}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button size="icon" variant="ghost" onClick={() => delMut.mutate(r.id)}>
+                  <Button size="icon" variant="outline" onClick={() => delMut.mutate(r.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </TableCell>
@@ -491,8 +491,8 @@ function CodeBlock({ text }: { text: string }) {
       </pre>
       <Button
         size="icon"
-        variant="ghost"
-        className="absolute top-1 right-1 h-7 w-7"
+        variant="outline"
+        className="absolute top-1 right-1"
         onClick={() => {
           navigator.clipboard.writeText(text);
           toast.success("Copied");

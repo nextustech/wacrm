@@ -1,6 +1,6 @@
 import { Brand } from "@/components/brand";
 import { BRAND_NAME } from "@/lib/branding/brand";
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
@@ -22,7 +22,11 @@ import {
   type Probe,
   type ProbeStatus,
 } from "@/lib/release/installation.functions";
-import { completeSetup, getSetupStatus } from "@/lib/setup/setup.functions";
+import { completeSetup } from "@/lib/setup/setup.functions";
+import {
+  markWizardBootstrappedAdmin,
+  requireOpenInstaller,
+} from "@/lib/setup/first-run-guard";
 import { APP_VERSION_LABEL } from "@/lib/app-version";
 import { DEMO_MODE_ENABLED } from "@/lib/demo/mode";
 import { SHOW_RESOURCE_LINKS } from "@/lib/docs/visibility";
@@ -37,30 +41,8 @@ export const Route = createFileRoute("/install")({
     ],
   }),
   beforeLoad: async () => {
-    let status: Awaited<ReturnType<typeof getSetupStatus>>;
-    try {
-      status = await getSetupStatus();
-    } catch (error) {
-      return {
-        existingSuperAdminId: null,
-        setupStatusError: error instanceof Error ? error.message : "Could not check setup status",
-      };
-    }
-    if (status.setupComplete) throw redirect({ to: "/auth" });
-    if (status.superAdminExists) {
-      const { data: sessionResult } = await supabase.auth.getSession();
-      const user = sessionResult.session?.user;
-      if (!user) throw redirect({ to: "/auth", search: { next: "/install" } });
-      const { data: isAdmin, error } = await supabase.rpc("is_super_admin", { _user_id: user.id });
-      if (error || !isAdmin) {
-        throw redirect({
-          to: "/403",
-          search: { scope: "platform", required: "superadmin", from: "/install" },
-        });
-      }
-      return { existingSuperAdminId: user.id, setupStatusError: null };
-    }
-    return { existingSuperAdminId: null, setupStatusError: null };
+    const access = await requireOpenInstaller("/install");
+    return { existingSuperAdminId: access.userId, setupStatusError: access.setupStatusError };
   },
   component: InstallWizard,
 });
@@ -138,6 +120,9 @@ function InstallWizard() {
     mutationFn: async () => {
       const r = await bootstrapFn({ data: { email: adminEmail, password: adminPassword, setup_token: setupToken, full_name: adminName || undefined } });
       if (r.ok) {
+        // Signing in fires router.invalidate(), which re-runs this route's
+        // guard. Claim the session first so it lets the wizard finish.
+        markWizardBootstrappedAdmin();
         // Sign the new admin in immediately so subsequent steps have a session.
         const { error } = await supabase.auth.signInWithPassword({ email: adminEmail, password: adminPassword });
         if (error) throw new Error(`Admin created but sign-in failed: ${error.message}`);

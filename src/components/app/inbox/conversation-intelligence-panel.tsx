@@ -44,20 +44,20 @@ export function ConversationIntelligencePanel({ conversationId, onClose }: Props
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
-            size="sm"
-            className="h-9 gap-1"
+            size="xs"
+            className="gap-1"
             onClick={() => analyze()}
             disabled={analyzing}
           >
             {analyzing ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="h-2.5 w-2.5 animate-spin" />
             ) : (
-              <RefreshCw className="h-3.5 w-3.5" />
+              <RefreshCw className="h-2.5 w-2.5" />
             )}
             <span className="text-xs">Analyze</span>
           </Button>
           {onClose && (
-            <Button variant="ghost" size="sm" className="h-9" onClick={onClose}>
+            <Button variant="ghost" size="xs" onClick={onClose}>
               Close
             </Button>
           )}

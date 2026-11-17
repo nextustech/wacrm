@@ -26,7 +26,7 @@ export type MenuItemVariant =
   | "subtrigger";
 
 const BASE =
-  "relative flex cursor-default select-none items-center rounded-control text-sm outline-none transition-colors menu-item-state";
+  "relative flex cursor-default select-none items-center rounded-control text-[13px] text-foreground/75 outline-none transition-colors menu-item-state";
 
 const VARIANT: Record<MenuItemVariant, string> = {
   default: "gap-2 px-2 py-1.5 [&>svg]:size-4 [&>svg]:shrink-0",

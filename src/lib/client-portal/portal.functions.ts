@@ -809,7 +809,7 @@ export const portalAiChat = createServerFn({ method: "POST" })
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.8-flash",
         messages: [{ role: "system", content: system }, ...data.messages],
         temperature: 0.4,
         max_tokens: 600,
@@ -1891,7 +1891,7 @@ Keep summary under 240 chars. Provide 2-4 concrete self-help steps. Only include
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.8-flash",
         messages: [
           { role: "system", content: "You are a customer support triage assistant. Prefer self-service. Respond in strict JSON only." },
           { role: "user", content: prompt },

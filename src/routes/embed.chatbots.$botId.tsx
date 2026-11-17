@@ -6,6 +6,7 @@
  * so any website visitor can reach it without a session.
  */
 import { createFileRoute } from "@tanstack/react-router";
+import { LiveChatWidget } from "@/components/app/widget/live-chat-widget";
 import { z } from "zod";
 
 const SearchSchema = z.object({
@@ -27,11 +28,11 @@ export const Route = createFileRoute("/embed/chatbots/$botId")({
 });
 
 function EmbedPage() {
+  const { botId } = Route.useParams();
+  const { color } = Route.useSearch();
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-background p-6 text-center">
-      <p className="text-sm text-muted-foreground">
-        This chat embed has moved. Ask the site owner to reinstall the chat widget snippet.
-      </p>
+    <div className="fixed inset-0 flex flex-col bg-background">
+      <LiveChatWidget chatbotId={botId} accent={color || "#075E54"} compact />
     </div>
   );
 }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>WACRM — Changelog v6.8.9</title>
+<title>WACRM — Changelog v7.3.4</title>
 <meta name="description" content="Release history for WACRM — omnichannel inbox, WhatsApp templates, CRM, automation and security updates across every version." />
 <link rel="stylesheet" href="./style.css" />
 </head>
@@ -15,7 +15,7 @@
     <span class="logo">W</span>
     <div>
       <div class="brand-name">WACRM Docs</div>
-      <div class="brand-ver">v6.8.9 · Changelog</div>
+      <div class="brand-ver">v7.3.4 · Changelog</div>
     </div>
   </div>
   <div class="topbar-actions">
@@ -38,11 +38,67 @@
 
   <main class="content" id="content">
     <section id="changelog">
-      <h1>Changelog <span class="badge">v6.8.9</span></h1>
+      <h1>Changelog <span class="badge">v7.3.4</span></h1>
       <p class="lead">Every notable change to WACRM, newest first.</p>
-      <p><a class="btn" href="/api/public/changelog.pdf" download>&#8681; Download v6.8.9 release notes (PDF)</a></p>
+      <p><a class="btn" href="/api/public/changelog.pdf" download>&#8681; Download v7.3.4 release notes (PDF)</a></p>
 
-      <h3>Version 6.8.9 <span class="badge success">Current</span></h3>
+      <h3>Version 7.3.4 <span class="badge success">Current</span></h3>
+      <p><em>November 13, 2026 · LINE/WeChat/Viber channels, faster attachment-aware AI replies, Theme Manager rebuild.</em></p>
+      <ul>
+        <li>Connect LINE Messaging API, WeChat Official Account and Viber Bot as new inbox channels, alongside the existing ones.</li>
+        <li>Coexistence echo messages no longer count against the billing quota.</li>
+        <li>AI Reply Assistant now generates from the full conversation instead of only the latest message, stops ignoring the chosen reply direction mid-generation, responds noticeably faster, and can read image, PDF, DOCX, XLSX, CSV and TXT attachments as part of its context.</li>
+        <li>AI Reply Assistant UI: a clearer Generate reply card with a close button and synced dropdown, an expanded and searchable Translate language list, and fixed popover flicker/position glitches.</li>
+        <li>Theme Manager rebuilt end to end: create and independently edit multiple themes, switch between them from a left sidebar, and always see unambiguously which theme is live versus which one you're editing. Save and Activate are now separate, explicit actions.</li>
+        <li>Replace native browser confirmation popups in Theme Manager with proper dialogs, and require confirmation before deleting a theme (previously instant and irreversible).</li>
+        <li>Workspace typography (heading font and font-weight) now applies consistently app-wide.</li>
+        <li>Fix a crash opening Super Admin &gt; Tenants &gt; Add Tenant, and fix owner search reporting "No matching user found" for a real, existing user (root cause: a stale, empty profile email column).</li>
+        <li>Fix an app-wide search bug where any email or domain containing a "." never matched.</li>
+        <li>Fix an inbound email bug where a text/plain stub was shown instead of falling back to the HTML alternative, and a separate bug that could drop a verification code from an inbound email.</li>
+        <li>Conversation list: relative-time info popover, clearer name/account/time layout, a name-truncation fix, and which connected account a thread arrived on; email bubbles now render only the real message content.</li>
+        <li>Deploy the WhatsApp QR worker to Fly.io; QR-linked WhatsApp numbers now appear in the inbox account selector.</li>
+        <li>Demo mode: a new Customization Canvas lets evaluators live-preview brand colors, fonts and theme presets instantly via local storage, with zero database writes.</li>
+      </ul>
+      <p><strong>Upgrade:</strong> Apply all pending migrations with <code>npx supabase db push --include-all --yes</code>. If you pin the version for Docker builds, set <code>WACRM_VERSION=7.3.4</code> in <code>.env</code>. See <a href="/api/public/changelog.pdf">downloadable v7.3.4 release notes</a>.</p>
+
+      <h3>Version 7.2.3</h3>
+      <p><em>November 5, 2026 · Gmail channel, voice-to-text, first-run setup, super-admin recovery.</em></p>
+      <ul>
+        <li>Gmail is now an inbox channel: connect a mailbox over OAuth and have inbound mail land in the omnichannel Inbox, with replies sent from the connected Gmail account (polled every three minutes).</li>
+        <li>Voice notes record reliably again — rewritten recorder with a live timer, cancel, a five-minute cap and distinct microphone errors, and Chromium's WebM recordings are remuxed to Ogg so they play and send with real audio instead of <code>0:00</code>.</li>
+        <li>Dictation detects the spoken language: speak Bangla, Hindi, English or anything else and it is typed back in that language, with no language picker and no dependency on the browser's speech engine.</li>
+        <li>AI Reply Assistant: "Generate reply" is now the highlighted primary action, the custom instruction accepts voice input, a hint library sits in a dropdown beside it (including suggestions worked out from the conversation itself), and replies no longer attach a paid-service offer by default — never on a complaint.</li>
+        <li>AI failures report the provider's real error, and a timeout is distinguished from a cancelled request.</li>
+        <li>A fresh installation opens the setup wizard instead of a sign-in page: every route except the marketing landing page is gated until setup completes, and <code>/setup</code> stops serving once it does.</li>
+        <li>The wizard checks the database before it starts and names what is missing — unapplied migrations, missing SQL functions or a stale schema.</li>
+        <li>Installations stranded without a super admin can recover, from the wizard or with the standalone <code>supabase/patches/recover-super-admin.sql</code> patch, which does nothing if a super admin already exists.</li>
+        <li>Setup's timezone, language and currency pickers now carry the app's full worldwide lists, with search.</li>
+        <li>Tasks created from a chat now show which conversation they came from, with a one-click link back to that thread.</li>
+        <li>The read tick turns blue in the conversation list, not just in the message bubble, and the empty strip under conversations with no labels, assignee or unread badge is gone.</li>
+        <li>Publishing a plugin is now two clearly marked steps — create the listing, then add the code — with an explanation that plugin code is linked as an HTTPS CommonJS bundle rather than uploaded.</li>
+      </ul>
+      <p><strong>Upgrade:</strong> Apply all pending migrations with <code>npx supabase db push --include-all --yes</code>. If you pin the version for Docker builds, set <code>WACRM_VERSION=7.2.3</code> in <code>.env</code>. See <a href="/api/public/changelog.pdf">downloadable v7.2.3 release notes</a>.</p>
+
+      <h3>Version 7.0.1</h3>
+      <p><em>October 31, 2026 · AI reply quality, rich link previews, live chat and knowledge base.</em></p>
+      <ul>
+        <li>AI Reply Assistant rewrites now keep everything the agent wrote — offers, discounts, prices, deadlines and commitments survive a tone change intact instead of being dropped or watered down.</li>
+        <li>Generated replies follow what the conversation has already agreed: when a customer accepts an offer, the reply carries out that exact arrangement rather than the knowledge base's general process, and an upsell can no longer jump ahead of the step the customer is waiting for.</li>
+        <li>The customer's latest message is answered directly, with per-action temperature and length limits so replies stay to the point.</li>
+        <li>Rich, clickable link-preview cards (thumbnail, site name and title) for links in the Inbox and the live chat widget, served through a domain allowlist with SSRF protection and a shared cache.</li>
+        <li>Markdown now renders in chat: <code>**bold**</code> and <code>[text](url)</code> work alongside WhatsApp-style formatting, and stray asterisks are gone.</li>
+        <li>Live chat: the embed stub is fixed, the bot answers from the knowledge base instead of always falling back to "let me connect you with a human", and Live Chat automations actually run.</li>
+        <li>Knowledge Base reindexed — semantic search is live; model fields are dynamic dropdowns; the chat widget remembers its size and animates from the right corner.</li>
+        <li>SLA escalations now reach the workflow engine; "Content &amp; AI" moved from Marketing into Settings; the "Platform" submenu is now "AI Setup".</li>
+        <li>Clear message when saving AI settings without permission, instead of "Cannot coerce the result to a single JSON object".</li>
+        <li>Application typography switched to Geist; icon buttons are consistently styled <code>outline</code> app-wide (chat composer and message-hover actions stay borderless <code>ghost</code>, at a smaller <code>iconSM</code> size), and buttons no longer carry duplicate height/width/padding/border classes that fought their declared size.</li>
+        <li>Inbox header decluttered: the account filter, live-connection status, sound toggle and keyboard shortcuts are now one "More options" menu instead of four inline widgets.</li>
+        <li>Fixed the channel-switcher's overlapping "Last reply … No connected account" text, an extra blank gap under conversations with no labels/assignee/unread badge, and the Assignment &amp; SLA panel leaving a blank strip on wide screens.</li>
+        <li>Restored the full test suite (1027 tests) and cleared every TypeScript error.</li>
+      </ul>
+      <p><strong>Upgrade:</strong> Apply all pending migrations through <code>20261031155000_link_previews.sql</code>, which adds the <code>link_previews</code> cache table. No new environment variables. See <a href="/api/public/changelog.pdf">downloadable v7.2.3 release notes</a>.</p>
+
+      <h3>Version 6.8.9</h3>
       <p><em>October 26, 2026 · AI keys, social inbox, TikTok, YouTube and notifications.</em></p>
       <ul>
         <li>Bring your own OpenAI or Gemini API key, encrypted in Supabase Vault, with a cost-tiered model catalog, clear provider errors and automatic model fallback.</li>
@@ -362,7 +418,7 @@
     </section>
 
     <footer class="footer">
-      <div>© 2026 WACRM · v6.8.9 · Built by <a href="https://wrapcoders.com/" target="_blank" rel="noopener">WRAPCODERS</a></div>
+      <div>© 2026 WACRM · v7.3.4 · Built by <a href="https://wrapcoders.com/" target="_blank" rel="noopener">WRAPCODERS</a></div>
       <div>
         <a href="./index.html">Docs</a> ·
         <a href="./changelog.html">Changelog</a> ·

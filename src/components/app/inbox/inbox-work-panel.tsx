@@ -48,7 +48,7 @@ export function InboxWorkPanel({ conversationId, workspaceId, channel, recipient
     <aside className="flex min-h-0 w-full flex-col border-l border-border bg-surface" aria-label="Inbox work and reminders">
       <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
         <div className="flex items-center gap-2 text-sm font-semibold"><CalendarClock className="h-4 w-4 text-primary" />Work & reminders</div>
-        {onClose && <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onClose} aria-label="Close work panel"><X className="h-4 w-4" /></Button>}
+        {onClose && <Button variant="outline" size="iconXS" onClick={onClose} aria-label="Close work panel"><X className="h-4 w-4" /></Button>}
       </div>
       <ScrollArea className="flex-1">
         <div className="space-y-5 p-4">
@@ -105,6 +105,7 @@ function DeadlineGroup({ title, items, timezone }: { title: string; items: Retur
       key={`${item.kind}-${item.id}`}
       to={item.kind === "project" ? "/projects/$projectId" : "/tasks"}
       params={item.kind === "project" ? { projectId: item.projectId! } : undefined}
+      search={{ taskId: undefined }}
       className="block rounded-control border border-border px-3 py-2 text-xs transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span className="block truncate font-medium text-foreground">{item.title}</span>

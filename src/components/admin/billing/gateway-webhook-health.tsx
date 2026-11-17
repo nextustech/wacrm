@@ -87,7 +87,6 @@ export function GatewayWebhookHealth({ providerId }: { providerId?: string }) {
           <Button
             variant="outline"
             size="icon"
-            className="h-9 w-9"
             aria-label="Refresh webhook health"
             onClick={() => q.refetch()}
           >

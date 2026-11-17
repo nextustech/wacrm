@@ -35,9 +35,8 @@ function CopyRow({ label, value }: { label: string; value: string }) {
       <div className="flex items-center gap-2">
         <code className="flex-1 min-w-0 truncate rounded bg-muted px-2 py-1 text-xs">{value}</code>
         <Button
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="h-7 w-7"
           aria-label={`Copy ${label}`}
           onClick={() => {
             void navigator.clipboard.writeText(value);
@@ -176,7 +175,7 @@ export function TikTokDmPanel() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 px-2 text-xs"
+                    className="text-xs"
                     onClick={() => disconnect.mutate(a.id)}
                     disabled={disconnect.isPending}
                   >

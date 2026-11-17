@@ -323,10 +323,10 @@ function VisitorContent({
                       </span>
                     </div>
                     {e.url && (
-                      <div className="mt-0.5 truncate text-xs text-muted-foreground">{e.url}</div>
+                      <div className="mt-0.5 truncate text-sm text-muted-foreground">{e.url}</div>
                     )}
                     {e.referrer && (
-                      <div className="mt-0.5 truncate text-xs text-muted-foreground">
+                      <div className="mt-0.5 truncate text-sm text-muted-foreground">
                         from {e.referrer}
                       </div>
                     )}
@@ -431,7 +431,7 @@ function MergeDialog({ visitorId, workspaceId }: { visitorId: string; workspaceI
             >
               <div className="min-w-0">
                 <div className="truncate font-medium">{c.name ?? c.email ?? c.phone}</div>
-                <div className="truncate text-xs text-muted-foreground">
+                <div className="truncate text-sm text-muted-foreground">
                   {[c.email, c.phone].filter(Boolean).join(" · ")}
                 </div>
               </div>

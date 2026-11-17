@@ -191,7 +191,6 @@ export function GatewayWebhookReplay({ gatewayIds }: { gatewayIds: string[] }) {
           <Button
             variant="outline"
             size="sm"
-            className="h-8"
             disabled={busy || !providerId || statuses.length === 0}
             onClick={() => previewMut.mutate()}
           >
@@ -204,7 +203,6 @@ export function GatewayWebhookReplay({ gatewayIds }: { gatewayIds: string[] }) {
           </Button>
           <Button
             size="sm"
-            className="h-8"
             disabled={busy || !providerId || replayableCount === 0}
             onClick={() => replayMut.mutate()}
           >

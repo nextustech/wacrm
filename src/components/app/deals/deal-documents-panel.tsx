@@ -23,7 +23,7 @@ export function DealDocumentsPanel({ dealId }: { dealId: string }) {
             <span className="text-xs text-muted-foreground font-normal">({quotes.length})</span>
           </h3>
           <Link to="/quotes">
-            <Button size="sm" variant="outline" className="h-7">
+            <Button size="sm" variant="outline">
               <Plus className="w-3.5 h-3.5 " /> New quote
             </Button>
           </Link>
@@ -74,7 +74,7 @@ export function DealDocumentsPanel({ dealId }: { dealId: string }) {
             <span className="text-xs text-muted-foreground font-normal">({invoices.length})</span>
           </h3>
           <Link to="/invoices">
-            <Button size="sm" variant="outline" className="h-7">
+            <Button size="sm" variant="outline">
               <Plus className="w-3.5 h-3.5 " /> New invoice
             </Button>
           </Link>

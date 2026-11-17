@@ -2,7 +2,7 @@ import { BRAND_NAME } from "@/lib/branding/brand";
 import { useBrandName } from "@/hooks/use-brand-name";
 import { ImageDropUpload } from "@/components/branding/image-drop-upload";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AdminPageShell } from "@/components/admin/admin-page-shell";

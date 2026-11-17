@@ -89,7 +89,7 @@ export function ActivityCalendar({ activities, view, onViewChange, onSelectActiv
         </div>
         <div className="flex gap-1 rounded-control border p-0.5">
           {(["day","week","month","agenda"] as View[]).map(v => (
-            <Button key={v} size="sm" variant={view === v ? "default" : "ghost"} className="h-7 capitalize" onClick={() => onViewChange(v)}>
+            <Button key={v} size="sm" variant={view === v ? "default" : "ghost"} className="capitalize" onClick={() => onViewChange(v)}>
               {v}
             </Button>
           ))}

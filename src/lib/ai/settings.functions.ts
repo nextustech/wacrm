@@ -126,6 +126,20 @@ const settingsPatchSchema = z
   })
   .strict();
 
+const AI_SETTINGS_WRITE_DENIED =
+  "Only workspace owners and admins can change AI settings.";
+
+/**
+ * Translates the two ways the `ai_settings admins write` RLS policy rejects a
+ * member: a blocked INSERT (42501) and an UPDATE that matches no row, which
+ * PostgREST reports as PGRST116 — "Cannot coerce the result to a single JSON
+ * object", a message that tells the user nothing about what went wrong.
+ */
+export function writeDeniedMessage(error: { code?: string | null } | null): string | null {
+  if (!error) return null;
+  return error.code === "PGRST116" || error.code === "42501" ? AI_SETTINGS_WRITE_DENIED : null;
+}
+
 export const updateAiSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((v: unknown) =>
@@ -146,13 +160,16 @@ export const updateAiSettings = createServerFn({ method: "POST" })
       .select("*")
       .eq("workspace_id", data.workspaceId)
       .maybeSingle();
+    if (existing.error) throw new Error(existing.error.message);
     if (!existing.data) {
       const seed = await db
         .from("ai_settings")
         .insert({ workspace_id: data.workspaceId, ...DEFAULTS })
         .select("*")
         .single();
-      if (seed.error) throw new Error(seed.error.message);
+      // Members may read ai_settings but only owners/admins may write it, so a
+      // seed blocked by RLS is a permission problem, not a missing row.
+      if (seed.error) throw new Error(writeDeniedMessage(seed.error) ?? seed.error.message);
       existing.data = seed.data;
     }
 
@@ -195,7 +212,10 @@ export const updateAiSettings = createServerFn({ method: "POST" })
       .eq("workspace_id", data.workspaceId)
       .select("*")
       .single();
-    if (upd.error) throw new Error(upd.error.message);
+    // The row was just read, so an update that matches nothing means the RLS
+    // write policy filtered it out. Without this, PostgREST's "Cannot coerce
+    // the result to a single JSON object" surfaced to the user instead.
+    if (upd.error) throw new Error(writeDeniedMessage(upd.error) ?? upd.error.message);
 
     // Diff for audit log
     const changes: Record<string, { from: any; to: any }> = {};

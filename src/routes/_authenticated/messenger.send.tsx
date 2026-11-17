@@ -350,7 +350,6 @@ function MessengerSendPage() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            className="rounded-control"
                             disabled={!activeAccountId || syncMut.isPending}
                             onClick={() => syncMut.mutate()}
                           >
@@ -424,7 +423,7 @@ function MessengerSendPage() {
                     />
                     {attachmentUrl && (
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="icon"
                         onClick={() => {
                           setAttachmentUrl("");
@@ -511,7 +510,7 @@ function MessengerSendPage() {
                   <CardDescription>Scheduled Messenger sends</CardDescription>
                 </div>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="icon"
                   onClick={() => qc.invalidateQueries({ queryKey: ["messenger", "scheduled"] })}
                   aria-label="Refresh"
@@ -564,7 +563,7 @@ function MessengerSendPage() {
                       </div>
                       {r.status === "pending" && (
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="icon"
                           onClick={() => cancelMut.mutate(r.id)}
                           aria-label="Cancel scheduled message"

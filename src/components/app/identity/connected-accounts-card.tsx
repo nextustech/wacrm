@@ -106,7 +106,7 @@ export function ConnectedAccountsCard({ contactId }: { contactId: string }) {
     <Card>
       <CardHeader className="pb-2 flex-row items-center justify-between space-y-0">
         <CardTitle className="text-sm font-medium">Connected accounts</CardTitle>
-        <Button size="sm" variant="ghost" className="h-7" onClick={() => setAddOpen(true)}>
+        <Button size="sm" variant="ghost" onClick={() => setAddOpen(true)}>
           <Plus className="h-3.5 w-3.5 " /> Link
         </Button>
       </CardHeader>
@@ -138,8 +138,7 @@ export function ConnectedAccountsCard({ contactId }: { contactId: string }) {
                 )}
                 <Button
                   size="icon"
-                  variant="ghost"
-                  className="h-6 w-6"
+                  variant="outline"
                   onClick={async () => {
                     try {
                       await detach.mutateAsync(i.id);

@@ -717,7 +717,7 @@ function BrandPreview({
         )}
         <div className="min-w-0">
           <p className="truncate text-sm font-medium">{name}</p>
-          {tagline && <p className="truncate text-xs text-muted-foreground">{tagline}</p>}
+          {tagline && <p className="truncate text-sm text-muted-foreground">{tagline}</p>}
         </div>
       </div>
       <div className="flex items-center gap-2 px-3 py-3">

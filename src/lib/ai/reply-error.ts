@@ -15,7 +15,11 @@ export function replyAssistantErrorMessage(error: unknown): string {
     return "The AI provider is temporarily rate limited. Try again shortly.";
   if (/\b50[234]\b|"UNAVAILABLE"|high demand|overloaded/i.test(message))
     return "The AI model is busy right now (high demand at the provider). Try again in a minute, or choose another default model in AI Settings.";
-  if (!message || /^\s*[{[]/.test(message) || message.length > 240)
+  // The server now sends a sentence it wrote itself (see
+  // `describeProviderFailure`), which can run past the old 240-char cut-off —
+  // truncating it back to "something went wrong" is what hid every real cause.
+  // Only a raw body or an empty error falls back now.
+  if (!message || /^\s*[{[]/.test(message) || message.length > 400)
     return "AI reply could not be generated. Check the configured provider in AI Settings and try again.";
   return message;
 }

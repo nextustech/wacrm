@@ -46,7 +46,7 @@ export function SegmentList({ entityType, activeId, onSelect, showAllRecords = t
         <p className="text-xs font-semibold uppercase text-muted-foreground">
           Segments
         </p>
-        <Button variant="ghost" size="icon" onClick={() => setCreating(true)}>
+        <Button variant="outline" size="icon" onClick={() => setCreating(true)}>
           <Plus className="h-4 w-4" />
         </Button>
       </div>

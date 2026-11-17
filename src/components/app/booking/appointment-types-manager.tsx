@@ -858,7 +858,7 @@ function EventTypeDialog({
                     </div>
                     <Button
                       size="icon"
-                      variant="ghost"
+                      variant="outline"
                       onClick={() =>
                         patch({ questions: draft.questions.filter((_, i) => i !== idx) })
                       }
@@ -976,7 +976,7 @@ function EventTypeDialog({
                       />
                       <Button
                         size="icon"
-                        variant="ghost"
+                        variant="outline"
                         onClick={() => {
                           const rules = draft.availability_rules!;
                           patch({

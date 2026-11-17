@@ -40,7 +40,7 @@ export function RecentCustomers({ customers, ...card }: RecentCustomersProps) {
             </Avatar>
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-medium text-foreground">{c.name}</div>
-              <div className="truncate text-xs text-muted-foreground">
+              <div className="truncate text-sm text-muted-foreground">
                 {c.email}
                 {c.joinedAt && <> · joined {formatRelativeTime(c.joinedAt)}</>}
               </div>
@@ -143,7 +143,7 @@ export function RecentDeals({ deals, currency, ...card }: RecentDealsProps) {
           <li key={d.id} className="flex items-center gap-3 px-5 py-3">
             <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-medium text-foreground">{d.name}</div>
-              <div className="truncate text-xs text-muted-foreground">
+              <div className="truncate text-sm text-muted-foreground">
                 {d.company}
                 {d.updatedAt && <> · {formatRelativeTime(d.updatedAt)}</>}
               </div>

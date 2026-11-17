@@ -411,8 +411,20 @@ export function useDeleteOrganization(orgId: string | undefined) {
   return useMutation({
     mutationFn: async () => {
       if (!orgId) throw new Error("No organization selected");
-      const { error } = await sbAny(supabase).from("organizations").delete().eq("id", orgId);
+      // `.select()` matters: a DELETE that matches no row under RLS succeeds
+      // with an empty result and no error, so without it the UI reported
+      // "Organization deleted" for a delete that never happened.
+      const { data, error } = await sbAny(supabase)
+        .from("organizations")
+        .delete()
+        .eq("id", orgId)
+        .select("id");
       if (error) throw error;
+      if (!Array.isArray(data) || data.length === 0) {
+        throw new Error(
+          "The organization was not deleted. Only its owner can delete it — ask the owner, or transfer ownership to yourself first.",
+        );
+      }
     },
     onSuccess: () => {
       // Deleting an organization cascades to its workspaces in Postgres.

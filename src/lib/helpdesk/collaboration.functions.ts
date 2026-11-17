@@ -446,7 +446,7 @@ export const suggestNextActions = createServerFn({ method: "POST" })
         method: "POST",
         headers: { "Content-Type": "application/json"},
         body: JSON.stringify({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.8-flash",
           messages: [
             { role: "system", content: "Return only valid JSON. No prose." },
             { role: "user", content: prompt },

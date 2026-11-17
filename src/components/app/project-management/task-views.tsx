@@ -63,9 +63,8 @@ function StatusMenu({
       <DropdownMenuTrigger asChild>
         <Button
           type="button"
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6"
+          variant="outline"
+          size="iconXS"
           aria-label={`Actions for ${task.title}`}
         >
           <MoreHorizontal className="h-4 w-4" />
@@ -308,7 +307,7 @@ export function TaskList({
               <td className="px-4 py-3 text-nowrap">
                 <button
                   type="button"
-                  className="max-w-[300px] text-left font-medium hover:text-primary focus-visible:rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                  className="max-w-[300px] text-left font-medium hover:text-primary focus-visible:rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring text-wrap"
                   onClick={() => onView(task)}
                 >
                   {task.title}

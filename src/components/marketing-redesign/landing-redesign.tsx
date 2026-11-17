@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 import { SiInstagram, SiMessenger, SiTelegram, SiWhatsapp } from "react-icons/si";
 import { Brand, PlatformLogo } from "@/components/brand";
 import { useBrandName } from "@/hooks/use-brand-name";
+import { usePlatformBranding } from "@/hooks/use-platform-branding";
 import "./landing-redesign.css";
 
 const channels = [
@@ -404,8 +405,10 @@ function Event({
 }
 
 function CommandCenter() {
+  const brandName = useBrandName();
+  const { logoUrl } = usePlatformBranding();
   return (
-    <div className="signal-stage" aria-label={`${useBrandName()} unified inbox preview`}>
+    <div className="signal-stage" aria-label={`${brandName} unified inbox preview`}>
       <div className="signal-app">
         <div className="signal-app-top">
           <span>
@@ -415,7 +418,7 @@ function CommandCenter() {
         </div>
         <div className="signal-app-body">
           <aside className="signal-rail">
-            <img src={logo} alt="" />
+            {logoUrl && <img src={logoUrl} alt="" />}
             <button className="active">
               <MessageCircle />
             </button>

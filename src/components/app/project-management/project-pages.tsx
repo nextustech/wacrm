@@ -269,6 +269,7 @@ export function ProjectsOverviewPage() {
                     <Link
                       to="/projects/$projectId"
                       params={{ projectId: project.id }}
+                      search={{ taskId: undefined }}
                       className="hover:text-primary focus-visible:rounded-control focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
                     >
                       {project.name}
@@ -287,6 +288,7 @@ export function ProjectsOverviewPage() {
                   <Link
                     to="/projects/$projectId"
                     params={{ projectId: project.id }}
+                    search={{ taskId: undefined }}
                     className="inline-flex items-center gap-1 font-medium text-primary hover:underline"
                   >
                     Open project <ArrowRight className="h-3.5 w-3.5" />
@@ -449,12 +451,12 @@ export function ProjectTasksPage({ view }: { view: "board" | "list" }) {
             Assigned to me
           </Button>
           <div className="flex rounded-control border p-0.5 h-9">
-            <Button variant={view === "list" ? "secondary" : "ghost"} size="sm" className="h-7.5" asChild>
+            <Button variant={view === "list" ? "secondary" : "ghost"} size="sm" asChild>
               <Link to="/projects/tasks">
                 <ListTodo className="h-4 w-4" /> List
               </Link>
             </Button>
-            <Button variant={view === "board" ? "secondary" : "ghost"} size="sm" className="h-7.5" asChild>
+            <Button variant={view === "board" ? "secondary" : "ghost"} size="sm" asChild>
               <Link to="/projects/board">
                 <LayoutDashboard className="h-4 w-4" /> Board
               </Link>

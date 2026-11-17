@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Bell, CheckCheck, Archive, Trash2, ArchiveRestore, Send, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +13,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Pagination, PaginationContent, PaginationItem, PaginationLink,
+  PaginationPrevious, PaginationNext, PaginationEllipsis,
+} from "@/components/ui/pagination";
 
 import {
   useNotifications, useMarkRead, useMarkAllRead, useArchiveNotification,
@@ -61,10 +65,27 @@ const CATEGORIES: { value: NotificationCategory; label: string }[] = [
   { value: "platform", label: "Platform" },
 ];
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
+
+/** Page numbers to render, with `null` marking an ellipsis gap. */
+function pageWindow(current: number, total: number): (number | null)[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const out: (number | null)[] = [1];
+  const start = Math.max(2, current - 1);
+  const end = Math.min(total - 1, current + 1);
+  if (start > 2) out.push(null);
+  for (let p = start; p <= end; p++) out.push(p);
+  if (end < total - 1) out.push(null);
+  out.push(total);
+  return out;
+}
+
 function NotificationsPage() {
   const [tab, setTab] = useState<NotificationStatus | "all">("unread");
   const [section, setSection] = useState<NotificationSection | "All">("All");
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const { data: unread = 0 } = useUnreadCount();
   const { data: all = [] } = useNotifications({ status: "all" });
@@ -83,6 +104,16 @@ function NotificationsPage() {
     }
     return list;
   }, [all, tab, section, query]);
+
+  // Any filter change restarts the pager.
+  useEffect(() => { setPage(1); }, [tab, section, query, pageSize]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  // Items can disappear (archive/delete) while on a tail page.
+  const currentPage = Math.min(page, pageCount);
+  const start = (currentPage - 1) * pageSize;
+  const pageItems = filtered.slice(start, start + pageSize);
+  const goTo = (p: number) => setPage(Math.min(Math.max(1, p), pageCount));
 
   const counts = useMemo(() => ({
     unread: all.filter((n) => n.status === "unread").length,
@@ -130,8 +161,69 @@ function NotificationsPage() {
           <TabsTrigger value="archived">Archived <Badge variant="secondary" className="ml-2">{counts.archived}</Badge></TabsTrigger>
           <TabsTrigger value="all">All <Badge variant="secondary" className="ml-2">{counts.all}</Badge></TabsTrigger>
         </TabsList>
-        <TabsContent value={tab} className="mt-4">
-          <NotificationList items={filtered} />
+        <TabsContent value={tab} className="mt-4 space-y-4">
+          <NotificationList items={pageItems} />
+
+          {filtered.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <span>
+                  Showing {start + 1}–{Math.min(start + pageSize, filtered.length)} of{" "}
+                  {filtered.length}
+                </span>
+                <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                  <SelectTrigger className="h-8 w-[88px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PAGE_SIZE_OPTIONS.map((n) => (
+                      <SelectItem key={n} value={String(n)}>{n} / page</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {pageCount > 1 && (
+                <Pagination className="mx-0 w-auto justify-end">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious
+                        className={cn(
+                          "cursor-pointer",
+                          currentPage === 1 && "pointer-events-none opacity-50",
+                        )}
+                        aria-disabled={currentPage === 1}
+                        onClick={() => goTo(currentPage - 1)}
+                      />
+                    </PaginationItem>
+                    {pageWindow(currentPage, pageCount).map((p, i) =>
+                      p === null ? (
+                        <PaginationItem key={`gap-${i}`}><PaginationEllipsis /></PaginationItem>
+                      ) : (
+                        <PaginationItem key={p}>
+                          <PaginationLink
+                            className="cursor-pointer"
+                            isActive={p === currentPage}
+                            onClick={() => goTo(p)}
+                          >
+                            {p}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ),
+                    )}
+                    <PaginationItem>
+                      <PaginationNext
+                        className={cn(
+                          "cursor-pointer",
+                          currentPage === pageCount && "pointer-events-none opacity-50",
+                        )}
+                        aria-disabled={currentPage === pageCount}
+                        onClick={() => goTo(currentPage + 1)}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </main>

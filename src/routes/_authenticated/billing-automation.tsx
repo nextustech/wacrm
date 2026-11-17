@@ -370,7 +370,7 @@ function BillingAutomationPage() {
                       </Badge>
                       <span className="truncate">{n.subject}</span>
                     </div>
-                    <p className="mt-0.5 truncate text-xs text-muted-foreground">{n.body}</p>
+                    <p className="mt-0.5 truncate text-sm text-muted-foreground">{n.body}</p>
                   </div>
                   <div className="text-right text-xs text-muted-foreground">
                     <Badge

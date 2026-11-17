@@ -2,7 +2,10 @@
 import { spawnSync } from "node:child_process";
 
 const build = spawnSync(process.execPath, ["node_modules/vite/bin/vite.js", "build"], {
-  env: { ...process.env, NITRO_PRESET: "cloudflare-module" },
+  // Honour an explicitly set NITRO_PRESET (the Dockerfile sets node-server so
+  // `node .output/server/index.mjs` starts a real HTTP server). Only default
+  // to the Cloudflare target when the caller did not choose one.
+  env: { ...process.env, NITRO_PRESET: process.env.NITRO_PRESET || "cloudflare-module" },
   stdio: "inherit",
 });
 if (build.error) throw build.error;

@@ -589,17 +589,16 @@ function RetentionPoliciesPanel({
                 <td className="p-2 text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-7 w-7"
                       onClick={() => openEdit(r)}
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive"
                       disabled={deletingId === r.id}
                       onClick={() => remove_(r.id)}
                     >

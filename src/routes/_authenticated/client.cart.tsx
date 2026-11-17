@@ -78,14 +78,14 @@ function CartPage() {
                   <p className="text-xs text-muted-foreground mt-1">{money(it.unit_price, cart.currency)} each</p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button size="icon" variant="outline" className="h-9 w-9"
+                  <Button size="icon" variant="outline"
                     onClick={() => updateM.mutate({ itemId: it.id, quantity: Math.max(0, it.quantity - 1) })}><Minus className="w-3 h-3" /></Button>
                   <span className="w-8 text-center text-sm">{it.quantity}</span>
-                  <Button size="icon" variant="outline" className="h-9 w-9"
+                  <Button size="icon" variant="outline"
                     onClick={() => updateM.mutate({ itemId: it.id, quantity: it.quantity + 1 })}><Plus className="w-3 h-3" /></Button>
                 </div>
                 <div className="w-24 text-right font-semibold">{money(it.total, cart.currency)}</div>
-                <Button size="icon" variant="ghost" className="h-9 w-9" onClick={() => removeM.mutate(it.id)}>
+                <Button size="icon" variant="outline" onClick={() => removeM.mutate(it.id)}>
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
@@ -108,7 +108,7 @@ function CartPage() {
               {cart.coupon_code ? (
                 <div className="flex items-center justify-between rounded-control bg-muted/40 px-2 py-1 text-sm">
                   <span className="font-mono">{cart.coupon_code}</span>
-                  <Button variant="ghost" size="sm" className="h-6" onClick={() => removeCM.mutate(cart.id)}>Remove</Button>
+                  <Button variant="ghost" size="sm" onClick={() => removeCM.mutate(cart.id)}>Remove</Button>
                 </div>
               ) : (
                 <div className="flex gap-2">

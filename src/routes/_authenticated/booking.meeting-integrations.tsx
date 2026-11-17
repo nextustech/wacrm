@@ -273,7 +273,7 @@ function ProviderCard({
         {workspaceId ? (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="h-9">
+              <Button size="sm" variant="outline">
                 <Plus className="h-4 w-4 mr-1.5" />
                 Connect
               </Button>
@@ -313,7 +313,6 @@ function ProviderCard({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-9"
                   onClick={() => del.mutate(a.id)}
                   disabled={del.isPending}
                 >

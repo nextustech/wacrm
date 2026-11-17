@@ -51,12 +51,9 @@ export const startQrSession = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
 
-    const worker = await callWorker("/sessions", {
+    const worker = await callWorker<{ worker_session_id?: string }>("/sessions", {
       method: "POST",
-      body: JSON.stringify({
-        session_id: row.id,
-        workspace_id: data.workspaceId,
-      }),
+      body: { session_id: row.id, workspace_id: data.workspaceId },
     });
 
     if (worker.available && worker.ok && worker.data?.worker_session_id) {
@@ -91,7 +88,14 @@ export const pollQrSession = createServerFn({ method: "GET" })
     let qr: string | null = null;
     let worker_available = true;
     if (row.status !== "connected" && row.status !== "revoked" && row.status !== "disconnected") {
-      const worker = await callWorker(`/sessions/${row.id}/qr`, { method: "GET" });
+      const worker = await callWorker<{
+        qr?: string | null;
+        status?: string;
+        phone_number?: string;
+        display_name?: string;
+        device_platform?: string;
+        error?: string;
+      }>(`/sessions/${row.id}/qr`, { method: "GET" });
       worker_available = worker.available;
       if (worker.available && worker.ok && worker.data) {
         qr = worker.data.qr ?? null;
@@ -160,9 +164,9 @@ export const reconnectQrSession = createServerFn({ method: "POST" })
     if (!row) throw new Error("Session not found");
 
     await callWorker(`/sessions/${row.id}`, { method: "DELETE" });
-    const worker = await callWorker("/sessions", {
+    const worker = await callWorker<{ worker_session_id?: string }>("/sessions", {
       method: "POST",
-      body: JSON.stringify({ session_id: row.id, workspace_id: row.workspace_id }),
+      body: { session_id: row.id, workspace_id: row.workspace_id },
     });
 
     const { error: upErr } = await sbAny(context.supabase)
@@ -257,7 +261,7 @@ export const revokeAllQrSessions = createServerFn({ method: "POST" })
 export const qrWorkerHealth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async () => {
-    const worker = await callWorker("/health", { method: "GET" });
+    const worker = await callWorker<{ uptime?: number }>("/health", { method: "GET" });
     return {
       configured: worker.available,
       reachable: worker.available && worker.ok,

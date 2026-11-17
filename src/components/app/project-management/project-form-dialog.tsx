@@ -218,7 +218,7 @@ export function ProjectFormDialog({
                 }}
               />
               {(logoFile || draft.logoUrl) && (
-                <Button type="button" size="icon" variant="ghost" aria-label="Remove project logo" disabled={pending}
+                <Button type="button" size="icon" variant="outline" aria-label="Remove project logo" disabled={pending}
                   onClick={() => {
                     setLogoFile(null);
                     if (logoInputRef.current) logoInputRef.current.value = "";

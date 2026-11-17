@@ -375,13 +375,13 @@ function RescheduleForm({
         <div className="flex gap-1">
           <Button
             size="icon"
-            variant="ghost"
+            variant="outline"
             onClick={() => setMonthAnchor(addMonths(monthAnchor, -1))}
             disabled={isBefore(startOfMonth(monthAnchor), startOfMonth(new Date()))}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="ghost" onClick={() => setMonthAnchor(addMonths(monthAnchor, 1))}>
+          <Button size="icon" variant="outline" onClick={() => setMonthAnchor(addMonths(monthAnchor, 1))}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>

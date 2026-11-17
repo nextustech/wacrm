@@ -122,7 +122,7 @@ export function UnsupportedProviderBanner() {
           <Button
             size="sm"
             variant="outline"
-            className="h-8 shrink-0"
+            className="shrink-0"
             onClick={() => setOpen(true)}
           >
             <Wrench className="h-3.5 w-3.5" aria-hidden />
@@ -181,7 +181,6 @@ export function UnsupportedProviderBanner() {
                   </Select>
                   <Button
                     size="sm"
-                    className="h-8"
                     disabled={!targets[g.provider] || repair.isPending}
                     onClick={() =>
                       repair.mutate({
@@ -197,7 +196,6 @@ export function UnsupportedProviderBanner() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8"
                     disabled={repair.isPending}
                     onClick={() =>
                       repair.mutate({

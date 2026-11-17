@@ -357,7 +357,7 @@ function WebhookEditor({
               {CHATBOT_WEBHOOK_EVENTS.map((evt) => (
                 <label
                   key={evt}
-                  className="flex items-center gap-2 text-sm rounded border p-2 cursor-pointer hover:bg-accent"
+                  className="flex items-center gap-2 text-sm rounded border p-2 cursor-pointer hover:bg-muted "
                 >
                   <Checkbox checked={events.includes(evt)} onCheckedChange={() => toggle(evt)} />
                   <span className="font-mono text-xs">{evt}</span>

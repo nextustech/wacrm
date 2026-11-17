@@ -73,7 +73,7 @@ async function callAI(
 
   const request: ChatRequest = {
     messages,
-    model: common.model || "google/gemini-2.5-flash",
+    model: common.model || "google/gemini-3.8-flash",
     temperature: common.temperature ?? 0.4,
     max_tokens: common.max_tokens ?? 1024,
     response_format: jsonMode ? "json_object" : "text",

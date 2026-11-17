@@ -146,7 +146,7 @@ function CustomFieldsPage() {
                               <TableCell>{f.is_required ? "Yes" : "No"}</TableCell>
                               <TableCell>{f.is_visible ? "Yes" : "Hidden"}</TableCell>
                               <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => setEditing(f)}>
+                                <Button variant="outline" size="icon" onClick={() => setEditing(f)}>
                                   <Pencil className="h-4 w-4" />
                                 </Button>
                                 <DeleteButton id={f.id} label={f.label} />
@@ -182,7 +182,7 @@ function DeleteButton({ id, label }: { id: string; label: string }) {
   const del = useDeleteCustomField();
   return (
     <Button
-      variant="ghost"
+      variant="outline"
       size="icon"
       onClick={() => {
         if (!confirm(`Delete field "${label}"? Existing data will be preserved.`)) return;
@@ -412,7 +412,7 @@ function OptionsEditor({
           />
           <span className="text-xs font-mono text-muted-foreground w-24 truncate">{o.value}</span>
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             onClick={() => onChange(value.filter((_, idx) => idx !== i))}
           >

@@ -13,6 +13,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { sbAny } from "@/lib/supabase/untyped";
 
 export interface EmailAccountSummary {
   id: string;
@@ -26,10 +27,11 @@ export interface EmailAccountSummary {
   status_reason: string | null;
   connected_at: string;
   last_verified_at: string | null;
+  last_synced_at: string | null;
 }
 
 const SELECT =
-  "id, provider, display_name, from_email, from_name, reply_to, inbound_address, status, status_reason, connected_at, last_verified_at";
+  "id, provider, display_name, from_email, from_name, reply_to, inbound_address, status, status_reason, connected_at, last_verified_at, last_synced_at";
 
 const emailField = z.string().trim().toLowerCase().email().max(255);
 
@@ -118,7 +120,61 @@ export const connectEmailAccount = createServerFn({ method: "POST" })
       throw new Error(error.message);
     }
     const account = saved as unknown as EmailAccountSummary;
-    return { account, webhookUrlPath: isResend ? emailWebhookPath(account.id, webhookSecret!) : null };
+    return {
+      account,
+      webhookUrlPath: isResend ? emailWebhookPath(account.id, webhookSecret!) : null,
+    };
+  });
+
+async function assertWorkspaceAdmin(
+  supabase: Parameters<typeof sbAny>[0],
+  userId: string,
+  workspaceId: string,
+): Promise<void> {
+  const { data, error } = await sbAny(supabase).rpc("has_workspace_role", {
+    _workspace_id: workspaceId,
+    _user_id: userId,
+    _roles: ["owner", "admin"],
+  });
+  if (error) throw new Error(error.message);
+  if (!data)
+    throw new Error("Workspace owner or admin access is required to connect a Gmail account.");
+}
+
+/** Start the OAuth popup for the Gmail inbox channel (a shared mailbox, not a personal connection). */
+export const startGmailChannelOAuth = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { workspaceId: string; targetOrigin: string }) =>
+    z.object({ workspaceId: z.string().uuid(), targetOrigin: z.string().url() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertWorkspaceAdmin(context.supabase, context.userId, data.workspaceId);
+    const origin = new URL(data.targetOrigin);
+    if (
+      origin.origin !== data.targetOrigin ||
+      (origin.protocol !== "https:" && !["localhost", "127.0.0.1"].includes(origin.hostname))
+    )
+      throw new Error("Invalid application origin");
+    const canonical = process.env.APP_ORIGIN || origin.origin;
+    if (new URL(canonical).origin !== origin.origin)
+      throw new Error("Open the application at its configured APP_ORIGIN before connecting Gmail.");
+    const { randomUUID } = await import("node:crypto");
+    const { gmailChannelAuthorizationUrl } = await import("@/lib/integrations/google-oauth.server");
+    const state = randomUUID();
+    const authorizationUrl = await gmailChannelAuthorizationUrl(origin.origin, state);
+    const { supabaseAdmin } = await import("@/lib/demo/admin-write-guard.server");
+    const { error } = await sbAny(supabaseAdmin)
+      .from("integration_oauth_states")
+      .insert({
+        state,
+        provider_id: "gmail-channel",
+        workspace_id: data.workspaceId,
+        user_id: context.userId,
+        return_origin: origin.origin,
+        expires_at: new Date(Date.now() + 10 * 60_000).toISOString(),
+      });
+    if (error) throw new Error(error.message);
+    return { authorizationUrl };
   });
 
 function emailWebhookPath(accountId: string, secret: string): string {
@@ -184,13 +240,20 @@ export const updateEmailAccount = createServerFn({ method: "POST" })
       const { supabaseAdmin } = await import("@/lib/demo/admin-write-guard.server");
       const { data: row } = await supabaseAdmin
         .from("email_accounts" as never)
-        .select("provider, api_key_ciphertext")
+        .select("provider, api_key_ciphertext, oauth_refresh_token_ciphertext")
         .eq("id", data.id)
         .maybeSingle();
-      const acc = row as unknown as { provider: string; api_key_ciphertext: string | null } | null;
-      if (!acc || acc.provider !== "resend" || !acc.api_key_ciphertext) {
+      const acc = row as unknown as {
+        provider: string;
+        api_key_ciphertext: string | null;
+        oauth_refresh_token_ciphertext: string | null;
+      } | null;
+      const canConnect =
+        (acc?.provider === "resend" && acc.api_key_ciphertext) ||
+        (acc?.provider === "gmail" && acc.oauth_refresh_token_ciphertext);
+      if (!canConnect) {
         throw new Error(
-          "Only a Resend account with an API key can be connected. Reconnect this sender with Resend.",
+          "Only a Resend account with an API key, or a Gmail account with a valid connection, can be connected.",
         );
       }
     }
@@ -219,6 +282,30 @@ export const deleteEmailAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => z.object({ id: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
+    const { data: visible } = await context.supabase
+      .from("email_accounts" as never)
+      .select("id, provider")
+      .eq("id", data.id)
+      .maybeSingle();
+    const acc = visible as unknown as { id: string; provider: string } | null;
+    if (acc?.provider === "gmail") {
+      const { supabaseAdmin } = await import("@/lib/demo/admin-write-guard.server");
+      const { data: row } = await supabaseAdmin
+        .from("email_accounts" as never)
+        .select("oauth_refresh_token_ciphertext")
+        .eq("id", data.id)
+        .maybeSingle();
+      const cipher = (row as unknown as { oauth_refresh_token_ciphertext: string | null } | null)
+        ?.oauth_refresh_token_ciphertext;
+      if (cipher) {
+        const [{ decryptToken }, { revokeGmailToken }] = await Promise.all([
+          import("@/lib/instagram/token-crypto.server"),
+          import("./gmail.server"),
+        ]);
+        await revokeGmailToken(decryptToken(cipher));
+      }
+    }
+
     const { error } = await context.supabase
       .from("email_accounts" as never)
       .delete()

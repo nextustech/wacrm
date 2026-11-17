@@ -203,7 +203,9 @@ export async function dispatchLivechatAutomations(opts: {
     run_at: now,
     priority: 5,
     max_attempts: 3,
-    status: "pending",
+    // Must be "queued": wf_queue_lease only leases 'queued' (or expired
+    // 'running') rows, so anything enqueued as "pending" is never picked up.
+    status: "queued",
   }));
 
   const { error } = await sbAny(supabase).from("workflow_queue").insert(rowsToInsert);

@@ -224,8 +224,7 @@ export function InstagramCommentAutomationsPanel() {
                 <div className="flex flex-col items-center gap-0.5 pt-0.5">
                   <Button
                     size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
+                    variant="outline"
                     disabled={idx === 0 || bumpPriority.isPending}
                     onClick={() => bumpPriority.mutate({ row, delta: -10 })}
                     title="Higher priority (runs first)"
@@ -235,8 +234,7 @@ export function InstagramCommentAutomationsPanel() {
                   <span className="text-[11px] font-mono text-muted-foreground ">{priority}</span>
                   <Button
                     size="icon"
-                    variant="ghost"
-                    className="h-6 w-6"
+                    variant="outline"
                     disabled={idx === arr.length - 1 || bumpPriority.isPending}
                     onClick={() => bumpPriority.mutate({ row, delta: 10 })}
                     title="Lower priority (runs later)"
@@ -272,7 +270,7 @@ export function InstagramCommentAutomationsPanel() {
                       title="Click to toggle conflict rule"
                       className="inline-flex"
                     >
-                      <Badge variant="outline" className="text-[11px] gap-1 cursor-pointer hover:bg-accent">
+                      <Badge variant="outline" className="text-[11px] gap-1 cursor-pointer hover:bg-muted ">
                         <Layers className="w-3 h-3" />
                         {conflictMode === "stop_on_match" ? "Stop on match" : "Run alongside others"}
                       </Badge>
@@ -299,7 +297,7 @@ export function InstagramCommentAutomationsPanel() {
                 <div className="flex items-center gap-1">
                   <Button
                     size="icon"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => setActivityTarget(row)}
                     title="Activity log"
                   >
@@ -307,7 +305,7 @@ export function InstagramCommentAutomationsPanel() {
                   </Button>
                   <Button
                     size="icon"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => setTestTarget(row)}
                     title="Test"
                   >
@@ -333,7 +331,7 @@ export function InstagramCommentAutomationsPanel() {
 
                   <Button
                     size="icon"
-                    variant="ghost"
+                    variant="outline"
                     onClick={() => {
                       if (confirm(`Delete "${row.name}"?`)) remove.mutate(row.id);
                     }}

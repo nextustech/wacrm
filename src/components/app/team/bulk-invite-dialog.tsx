@@ -154,7 +154,9 @@ export function BulkInviteDialog({
       for (const r of inv?.data ?? [])
         if (r?.email) existingEmails.add(String(r.email).toLowerCase());
       for (const r of mem?.data ?? []) {
-        const em = r?.profiles?.email;
+        // PostgREST types a to-one embed as an array, so it arrives either way.
+        const profile = r?.profiles as { email?: string | null } | { email?: string | null }[] | null;
+        const em = Array.isArray(profile) ? profile[0]?.email : profile?.email;
         if (em) existingEmails.add(String(em).toLowerCase());
       }
     } catch {

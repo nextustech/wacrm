@@ -260,7 +260,7 @@ export const runPromptTest = createServerFn({ method: "POST" })
     }
 
     let output = "";
-    let model = data.model ?? "google/gemini-2.5-flash";
+    let model = data.model ?? "google/gemini-3.8-flash";
     let success = true;
     let errorMsg: string | null = null;
     try {

@@ -1,4 +1,4 @@
-/* WACRM Documentation Portal — v6.8.9 */
+/* WACRM Documentation Portal — v7.0.1 */
 (function () {
   'use strict';
 
@@ -307,7 +307,7 @@
     pager.classList.remove('hidden');
     setActive(topics[idx].id);
     renderPager();
-    document.title = `${topics[idx].title} — WACRM Docs v6.8.9`;
+    document.title = `${topics[idx].title} — WACRM Docs v7.0.1`;
     if (opts.scroll !== false) window.scrollTo({ top: 0, behavior: opts.smooth === false ? 'auto' : 'smooth' });
     prefetchNeighbours();
   };

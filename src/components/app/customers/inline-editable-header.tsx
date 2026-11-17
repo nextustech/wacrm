@@ -127,10 +127,10 @@ export function InlineEditableField({
         <Loader2 className="w-3.5 h-3.5 animate-spin text-muted-foreground" />
       ) : (
         <>
-          <Button size="icon" variant="ghost" onMouseDown={(e) => e.preventDefault()} onClick={commit}>
+          <Button size="icon" variant="outline" onMouseDown={(e) => e.preventDefault()} onClick={commit}>
             <Check className="w-3.5 h-3.5" />
           </Button>
-          <Button size="icon" variant="ghost" onMouseDown={(e) => e.preventDefault()} onClick={() => { setValue(initial ?? ""); setEditing(false); }}>
+          <Button size="icon" variant="outline" onMouseDown={(e) => e.preventDefault()} onClick={() => { setValue(initial ?? ""); setEditing(false); }}>
             <X className="w-3.5 h-3.5" />
           </Button>
         </>

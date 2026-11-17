@@ -238,7 +238,7 @@ function SearchPage() {
                   size="sm"
                   variant="ghost"
                   onClick={() => setSaveDialogOpen(true)}
-                  className="h-9 gap-1.5"
+                  className="gap-1.5"
                 >
                   <BookmarkPlus className="h-3.5 w-3.5" /> Save
                 </Button>
@@ -313,7 +313,7 @@ function SearchPage() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="h-7 text-xs"
+                        className="text-xs"
                         onClick={() => clearRecent.mutate()}
                         disabled={clearRecent.isPending}
                       >

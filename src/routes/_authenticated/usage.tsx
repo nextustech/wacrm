@@ -401,7 +401,7 @@ function AlertsSection({
                     Edit
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
                     onClick={() => {
                       if (confirm("Delete this alert?")) deleteMut.mutate(a.id);

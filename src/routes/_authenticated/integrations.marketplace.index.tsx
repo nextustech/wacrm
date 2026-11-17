@@ -216,7 +216,7 @@ function MarketplacePage() {
                   {state}
                 </Badge>
               )}
-              <Button size="sm" variant="ghost" className="h-6 px-2" onClick={resetFilters}>
+              <Button size="sm" variant="ghost" onClick={resetFilters}>
                 Clear all
               </Button>
             </>

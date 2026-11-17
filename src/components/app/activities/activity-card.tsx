@@ -97,11 +97,11 @@ export function ActivityCard({ activity, onClick, compact }: Props) {
           </div>
           {!compact && activity.status !== "completed" && activity.status !== "cancelled" && (
             <div className="flex gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button size="sm" variant="outline" className="h-7 text-xs"
+              <Button size="sm" variant="outline" className="text-xs"
                 onClick={(e) => { e.stopPropagation(); complete(activity.id); }}>
                 Mark complete
               </Button>
-              <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive"
+              <Button size="sm" variant="ghost" className="text-xs text-destructive"
                 onClick={(e) => { e.stopPropagation(); if (confirm("Delete this activity?")) del.mutate(activity.id); }}>
                 Delete
               </Button>

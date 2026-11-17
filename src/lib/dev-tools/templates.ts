@@ -295,7 +295,7 @@ await ctx.storage.set("config", config);`,
     description: "Invoke Lovable AI with the built-in provider abstraction.",
     code:
 `const reply = await ctx.api.ai.chat({
-  model: "google/gemini-2.5-flash",
+  model: "google/gemini-3.8-flash",
   messages: [{ role: "user", content: "Draft a follow-up." }],
 });`,
   },

@@ -65,7 +65,7 @@ export function ExportTranscriptDialog({ open, onOpenChange, meta }: Props) {
         >
           <Label
             htmlFor="fmt-pdf"
-            className="flex items-start gap-3 rounded-control border p-3 cursor-pointer hover:bg-accent/50"
+            className="flex items-start gap-3 rounded-control border p-3 cursor-pointer hover:bg-muted /50"
           >
             <RadioGroupItem value="pdf" id="fmt-pdf" className="mt-1" />
             <span className="space-y-0.5">
@@ -79,7 +79,7 @@ export function ExportTranscriptDialog({ open, onOpenChange, meta }: Props) {
           </Label>
           <Label
             htmlFor="fmt-csv"
-            className="flex items-start gap-3 rounded-control border p-3 cursor-pointer hover:bg-accent/50"
+            className="flex items-start gap-3 rounded-control border p-3 cursor-pointer hover:bg-muted /50"
           >
             <RadioGroupItem value="csv" id="fmt-csv" className="mt-1" />
             <span className="space-y-0.5">

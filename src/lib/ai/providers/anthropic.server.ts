@@ -7,6 +7,7 @@ import type {
   AIProvider, ChatRequest, ChatResponse, ProviderCapabilities, ProviderCredentials, StreamChunk, TokenUsage,
 } from "../types";
 import { AIError, classifyHttpError } from "../errors";
+import { contentToText, toParts } from "../content";
 
 const DEFAULT_BASE = "https://api.anthropic.com/v1";
 const API_VERSION = "2023-06-01";
@@ -21,12 +22,41 @@ function buildHeaders(creds: ProviderCredentials) {
   return h;
 }
 
+/**
+ * Anthropic content blocks. A plain string stays a plain string: the API
+ * accepts both shapes, and leaving the simple one alone for the calls that
+ * carry no attachment avoids disturbing a request body known to work.
+ */
+type AnthropicBlock =
+  | { type: "text"; text: string }
+  | { type: "image"; source: { type: "base64"; media_type: string; data: string } }
+  | { type: "document"; source: { type: "base64"; media_type: string; data: string } };
+
+function toAnthropicContent(
+  content: ChatRequest["messages"][number]["content"],
+): string | AnthropicBlock[] {
+  if (typeof content === "string") return content;
+  return toParts(content).map((part): AnthropicBlock => {
+    if (part.type === "text") return { type: "text", text: part.text };
+    // A PDF goes through the same base64 source shape as an image, under type
+    // "document"; Anthropic does its own text and page-image extraction.
+    return {
+      type: part.type === "image" ? "image" : "document",
+      source: { type: "base64", media_type: part.mimeType, data: part.dataBase64 },
+    };
+  });
+}
+
 function splitSystem(req: ChatRequest) {
   const sys: string[] = [];
-  const msgs: { role: "user" | "assistant"; content: string }[] = [];
+  const msgs: { role: "user" | "assistant"; content: string | AnthropicBlock[] }[] = [];
   for (const m of req.messages) {
-    if (m.role === "system") sys.push(m.content);
-    else if (m.role === "user" || m.role === "assistant") msgs.push({ role: m.role, content: m.content });
+    // The system prompt is a top-level string here, so an attachment in a
+    // system message has nowhere to go: it degrades to its text label rather
+    // than being silently dropped.
+    if (m.role === "system") sys.push(contentToText(m.content));
+    else if (m.role === "user" || m.role === "assistant")
+      msgs.push({ role: m.role, content: toAnthropicContent(m.content) });
   }
   return { system: sys.join("\n\n") || undefined, messages: msgs };
 }

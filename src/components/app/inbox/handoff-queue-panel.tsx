@@ -88,7 +88,6 @@ export function HandoffQueuePanel({ onOpenConversation }: { onOpenConversation?:
                     <div className="flex flex-col gap-1.5 shrink-0">
                       <Button
                         size="sm"
-                        className="h-9"
                         onClick={() => claim.mutate(q.id)}
                         disabled={claim.isPending}
                       >
@@ -98,7 +97,6 @@ export function HandoffQueuePanel({ onOpenConversation }: { onOpenConversation?:
                         <Button
                           variant="outline"
                           size="sm"
-                          className="h-9"
                           onClick={() => onOpenConversation(q.conversation_id)}
                         >
                           Open

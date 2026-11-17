@@ -29,13 +29,16 @@ const buttonVariants = cva(
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
+        xs: "h-7 px-2.5 text-[11px]",
+        sm: "h-9 px-3 text-sm",
         default: "h-9 px-4 py-2",
-        sm: "h-9 rounded-control px-3 text-xs",
-        lg: "h-10 rounded-control px-5 py-3",
-        xl: "h-12 rounded-control px-6 py-3 text-base",
+        lg: "h-10 px-5 py-3",
+        xl: "h-12 px-6 py-3 text-base",
         // Full-width CTA sized for card footers (pricing tiers, feature cards).
         cta: "h-auto w-full px-4 py-3",
         icon: "h-9 w-9",
+        iconSM: "h-8 w-8",
+        iconXS: "h-7 w-7",
       },
     },
     defaultVariants: {

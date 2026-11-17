@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { useTenantTimezone } from "@/hooks/use-timezone";
 import { isSameZonedDay } from "@/lib/datetime/timezone";
@@ -287,6 +287,27 @@ export function ConversationWindow({ conversation }: Props) {
     return () => io.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const scrollToMessage = useCallback((messageId: string) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const el = container.querySelector(`[data-message-id="${CSS.escape(String(messageId))}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Small delay so the scroll settles before the highlight draws — without
+      // this the animation starts off-screen and the user misses it.
+      setTimeout(() => {
+        // Strip any previous flash first so re-clicking the same ref restarts
+        // the animation cleanly.
+        el.classList.remove("message-highlight-flash");
+        // Force reflow so the browser treats the re-add as a fresh start.
+        void (el as HTMLElement).offsetWidth;
+        el.classList.add("message-highlight-flash");
+        // Clean up the class after the animation finishes (1.6 s).
+        setTimeout(() => el.classList.remove("message-highlight-flash"), 1700);
+      }, 300);
+    }
+  }, []);
+
   const tenantTimezone = useTenantTimezone();
   const groups = useMemo(
     () => groupByDay(safeMessages, tenantTimezone),
@@ -330,7 +351,7 @@ export function ConversationWindow({ conversation }: Props) {
             No messages yet. Say hello 👋
           </div>
         ) : (
-          <div ref={contentRef} className="space-y-2 max-w-4xl mx-auto">
+          <div ref={contentRef} className="space-y-2 max-w-6xl mx-auto">
             {groups.map((g) => (
               <div key={g.key}>
                 <DayDivider date={g.date} />
@@ -353,6 +374,7 @@ export function ConversationWindow({ conversation }: Props) {
                         onForward={setForwardTarget}
                         onAssignTask={setTaskMessage}
                         onAddNote={setNoteMessage}
+                        onScrollToMessage={scrollToMessage}
                       />
                     );
                   })}

@@ -17,6 +17,7 @@ import type {
   TokenUsage,
 } from "../types";
 import { AIError, classifyHttpError } from "../errors";
+import { contentToText, toParts } from "../content";
 
 interface FactoryOpts {
   kind: AIProviderKind;
@@ -27,6 +28,53 @@ interface FactoryOpts {
 
 function defaultAuth(key: string) {
   return { Authorization: `Bearer ${key}` };
+}
+
+/**
+ * OpenAI chat-completions content.
+ *
+ * Images go as a data URL in an image_url part. Documents do not: this API has
+ * no PDF part, and a base64 PDF smuggled into a text field is just noise the
+ * model pays for, so it degrades to its label. A PDF that actually needs
+ * reading is analysed through a provider that supports one (Anthropic or
+ * Gemini) before the text ever reaches here.
+ */
+type OpenAIPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
+function toOpenAIContent(
+  content: ChatRequest["messages"][number]["content"],
+): string | OpenAIPart[] {
+  if (typeof content === "string") return content;
+  const parts = toParts(content);
+  if (!parts.some((p) => p.type === "image")) return contentToText(content);
+  return parts.map((part): OpenAIPart =>
+    part.type === "image"
+      ? {
+          type: "image_url",
+          image_url: { url: `data:${part.mimeType};base64,${part.dataBase64}` },
+        }
+      : { type: "text", text: part.type === "text" ? part.text : contentToText([part]) },
+  );
+}
+
+function toOpenAIMessages(messages: ChatRequest["messages"]) {
+  return messages.map((m) => ({
+    role: m.role,
+    content: toOpenAIContent(m.content),
+    ...(m.name ? { name: m.name } : {}),
+    ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
+    ...(m.tool_calls
+      ? {
+          tool_calls: m.tool_calls.map((tc) => ({
+            id: tc.id,
+            type: "function",
+            function: { name: tc.name, arguments: JSON.stringify(tc.arguments) },
+          })),
+        }
+      : {}),
+  }));
 }
 
 /**
@@ -102,21 +150,7 @@ export function createOpenAICompatProvider(opts: FactoryOpts): AIProvider {
       const url = `${baseUrl(creds)}/chat/completions`;
       const body: Record<string, unknown> = {
         model: normalizeModelId(opts.kind, req.model),
-        messages: req.messages.map((m) => ({
-          role: m.role,
-          content: m.content,
-          ...(m.name ? { name: m.name } : {}),
-          ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
-          ...(m.tool_calls
-            ? {
-                tool_calls: m.tool_calls.map((tc) => ({
-                  id: tc.id,
-                  type: "function",
-                  function: { name: tc.name, arguments: JSON.stringify(tc.arguments) },
-                })),
-              }
-            : {}),
-        })),
+        messages: toOpenAIMessages(req.messages),
       };
       const isCurrentOpenAIReasoningModel =
         opts.kind === "openai" && /^gpt-(?:5|6)(?:\.|-)/i.test(req.model);
@@ -195,7 +229,10 @@ export function createOpenAICompatProvider(opts: FactoryOpts): AIProvider {
         opts.kind === "openai" && /^gpt-(?:5|6)(?:\.|-)/i.test(req.model);
       const body = {
         model: normalizeModelId(opts.kind, req.model),
-        messages: req.messages,
+        // Was req.messages raw, which would have put an AIContentPart array
+        // into the body verbatim. Streaming has to go through the same mapper
+        // as chat() or an attachment would break only when streamed.
+        messages: toOpenAIMessages(req.messages),
         stream: true,
         ...(isCurrentOpenAIReasoningModel && { reasoning_effort: "none" }),
         ...(req.temperature != null && { temperature: req.temperature }),

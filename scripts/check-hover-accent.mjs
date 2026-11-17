@@ -56,9 +56,9 @@ if (errors.length) {
   console.error("\n❌ hover-accent check failed:\n");
   for (const e of errors) console.error("  " + e);
   console.error(
-    `\n${errors.length} violation(s). Replace hover:bg-accent / hover:bg-[var(--accent)] with hover:bg-muted.\n`,
+    `\n${errors.length} violation(s). Replace hover:bg-muted  / hover:bg-[var(--accent)] with hover:bg-muted.\n`,
   );
   process.exit(1);
 }
 
-console.log("✅ hover-accent check passed — no hover:bg-accent references.");
+console.log("✅ hover-accent check passed — no hover:bg-muted  references.");

@@ -208,9 +208,8 @@ export function SocialInboxChannelPanel({ platform }: { platform: SocialInboxPla
           <div className="flex items-center gap-2">
             <code className="flex-1 min-w-0 truncate rounded bg-muted px-2 py-1 text-xs">{webhookUrl}</code>
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="h-7 w-7"
               aria-label="Copy callback URL"
               onClick={() => {
                 void navigator.clipboard.writeText(webhookUrl);

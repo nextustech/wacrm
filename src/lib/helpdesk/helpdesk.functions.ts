@@ -550,7 +550,7 @@ export const aiSuggestReply = createServerFn({ method: "POST" })
         method: "POST",
         headers: { "Content-Type": "application/json"},
         body: JSON.stringify({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.8-flash",
           messages: [
             { role: "system", content: "You draft concise, actionable helpdesk replies. Do not invent facts." },
             { role: "user", content: prompt },
@@ -584,7 +584,7 @@ export const aiTriageTicket = createServerFn({ method: "POST" })
         method: "POST",
         headers: { "Content-Type": "application/json"},
         body: JSON.stringify({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.8-flash",
           messages: [
             { role: "system", content: "You are a support ticket triage classifier. Output only valid JSON." },
             { role: "user", content: prompt },

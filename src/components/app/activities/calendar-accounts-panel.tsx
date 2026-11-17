@@ -72,10 +72,10 @@ export function CalendarAccountsPanel() {
             </div>
             <div className="flex items-center gap-1">
               <Switch checked={a.enabled} onCheckedChange={(v) => update.mutate({ id: a.id, patch: { enabled: v } })} />
-              <Button variant="ghost" size="icon" onClick={() => update.mutate({ id: a.id, patch: { last_synced_at: new Date().toISOString() } })}>
+              <Button variant="outline" size="icon" onClick={() => update.mutate({ id: a.id, patch: { last_synced_at: new Date().toISOString() } })}>
                 <RefreshCw className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="text-destructive"
+              <Button variant="outline" size="icon" className="text-destructive"
                 onClick={() => { if (confirm("Disconnect calendar?")) disconnect.mutate(a.id); }}>
                 <Trash2 className="h-4 w-4" />
               </Button>

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { AppTopbar } from "@/components/app/app-topbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,7 +85,7 @@ export const Route = createFileRoute("/_authenticated/leads/")({
   component: LeadsPage,
 });
 
-export function LeadsPage() {
+export function LeadsPage({ topbarTabs }: { topbarTabs?: ReactNode } = {}) {
   useLeadsRealtime();
   const location = useLocation();
   const formatZonedDate = useZonedDateFormatter();
@@ -152,6 +152,7 @@ export function LeadsPage() {
       <AppTopbar
         title="Leads"
         subtitle="Capture, qualify, and convert"
+        tabs={topbarTabs}
         actions={
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={exportCsv}>
@@ -433,9 +434,9 @@ export function LeadsPage() {
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100"
+                      className="opacity-0 group-hover:opacity-100"
                     >
                       <MoreHorizontal className="w-4 h-4" />
                     </Button>

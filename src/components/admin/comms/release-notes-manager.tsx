@@ -186,9 +186,9 @@ export function ReleaseNotesManager() {
                     Edit
                   </Button>
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="icon"
-                    className="h-8 w-8 text-destructive"
+                    className="text-destructive"
                     onClick={() => confirm("Delete this note?") && mDelete.mutate(r.id)}
                   >
                     <Trash2 className="w-4 h-4" />

@@ -242,7 +242,7 @@ export function MonitoringDashboard() {
                   <span className="text-sm font-medium">{label}</span>
                 </div>
                 {q.failed > 0 && (
-                  <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => handleRetry(key)}>
+                  <Button size="sm" variant="ghost" className="text-xs" onClick={() => handleRetry(key)}>
                     Retry all
                   </Button>
                 )}

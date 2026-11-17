@@ -36,7 +36,7 @@ function ClientPortalLayout() {
     <div className="min-h-dvh bg-background">
       <a
         href="#portal-main"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-control focus:bg-accent focus:text-accent-foreground focus:px-3 focus:py-1.5"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-control focus:bg-muted  focus:text-accent-foreground focus:px-3 focus:py-1.5"
       >
         Skip to content
       </a>

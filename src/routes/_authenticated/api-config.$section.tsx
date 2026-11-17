@@ -28,6 +28,9 @@ import { MetaAppSettingsPanel } from "@/components/app/messenger/meta-app-settin
 import { MessengerAccountsPanel } from "@/components/app/messenger/messenger-accounts-panel";
 import { MessengerChatbotsPanel } from "@/components/app/messenger/messenger-chatbots-panel";
 import { TelegramAccountsPanel } from "@/components/app/telegram/telegram-accounts-panel";
+import { ViberAccountsPanel } from "@/components/app/viber/viber-accounts-panel";
+import { LineAccountsPanel } from "@/components/app/line/line-accounts-panel";
+import { WeChatAccountsPanel } from "@/components/app/wechat/wechat-accounts-panel";
 import { EmailAccountsPanel } from "@/components/app/email/email-accounts-panel";
 import { SmsAccountsPanel } from "@/components/app/sms/sms-accounts-panel";
 import { WhatsAppFormsPanel } from "@/components/app/whatsapp/whatsapp-forms-panel";
@@ -162,6 +165,9 @@ const PANELS: Record<string, React.ComponentType> = {
   "tiktok-dm": TikTokDmPanel,
   "tiktok-bot": TikTokChatbotPanel,
   telegram: TelegramAccountsPanel,
+  viber: ViberAccountsPanel,
+  line: LineAccountsPanel,
+  wechat: WeChatAccountsPanel,
   email: EmailAccountsPanel,
   sms: SmsAccountsPanel,
   "wa-forms": WhatsAppFormsPanel,
@@ -199,6 +205,9 @@ const NAV_GROUPS: { label: string; ids: string[] }[] = [
   { label: "Social Inbox", ids: ["facebook-comments", "youtube", "linkedin"] },
   { label: "TikTok", ids: ["tiktok", "tiktok-dm", "tiktok-bot"] },
   { label: "Telegram", ids: ["telegram"] },
+  { label: "Viber", ids: ["viber"] },
+  { label: "LINE", ids: ["line"] },
+  { label: "WeChat", ids: ["wechat"] },
   { label: "Email & SMS", ids: ["email", "sms"] },
 ];
 

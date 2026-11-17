@@ -129,7 +129,7 @@ export function TemplateManager({
               <Button
                 size="icon"
                 variant="secondary"
-                className="h-8 w-8 shrink-0"
+                className="shrink-0"
                 onClick={startNew}
                 aria-label="New template"
               >

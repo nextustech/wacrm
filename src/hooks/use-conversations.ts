@@ -94,6 +94,9 @@ export type InboxChannel =
   | "instagram"
   | "messenger"
   | "telegram"
+  | "viber"
+  | "line"
+  | "wechat"
   | "facebook"
   | "youtube"
   | "linkedin"
@@ -144,6 +147,11 @@ export type ConversationRow = {
   last_message_at: string | null;
   last_message_preview: string | null;
   last_message_from: string | null;
+  /**
+   * Status of the last outbound message — drives the tick colour in the list.
+   * Absent until migration 20261105140000 has been applied.
+   */
+  last_message_status?: "queued" | "sent" | "delivered" | "read" | "failed" | null;
   unread_count: number;
   assigned_to: string | null;
   assigned_at: string | null;
@@ -176,6 +184,24 @@ export type ConversationRow = {
 
 // Erase select-string literal types to keep tsc fast.
 const sel = (s: string): string => s;
+
+/**
+ * `conversations.last_message_status` arrives with migration
+ * 20261105140000. Asking for a column the database does not have fails the
+ * whole list query, so an installation that has not run the migration yet
+ * would lose its inbox entirely. Probe once per tab and drop the column when
+ * it is absent; nothing else changes, the receipt tick just stays grey.
+ */
+let lastMessageStatusColumn: boolean | null = null;
+async function hasLastMessageStatus(): Promise<boolean> {
+  if (lastMessageStatusColumn !== null) return lastMessageStatusColumn;
+  const { error } = await supabase
+    .from("conversations")
+    .select(sel("last_message_status"))
+    .limit(1);
+  lastMessageStatusColumn = !(error && /last_message_status/i.test(error.message));
+  return lastMessageStatusColumn;
+}
 
 const PAGE_SIZE = 30;
 
@@ -248,9 +274,10 @@ export function useConversations(params: ListParams) {
     queryFn: async ({ pageParam }) => {
       const param = (pageParam as PageParam) ?? { kind: "initial" };
 
+      const statusCol = (await hasLastMessageStatus()) ? " last_message_status," : "";
       let q = supabase.from("conversations").select(
         sel(`id, workspace_id, inbox_id, contact_id, channel, channel_account_id, status, priority,
-           subject, last_message_at, last_message_preview, last_message_from,
+           subject, last_message_at, last_message_preview, last_message_from,${statusCol}
            unread_count, assigned_to, assigned_at, first_response_at,
            resolved_at, snoozed_until, is_archived, metadata, ai_summary,
            created_at, updated_at,

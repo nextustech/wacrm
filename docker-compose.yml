@@ -1,12 +1,7 @@
-# WACRM — Dokploy-ready compose stack.
-# Dokploy manages its own reverse proxy (Traefik) + TLS, so this file does NOT
-# bind host ports 80/443 and does NOT ship an nginx proxy. Assign a domain to
-# the `app` service (port 3000) and, optionally, to `qr-worker` (port 8787)
-# from the Dokploy "Domains" tab.
-#
-# Bring up:  docker compose --env-file .env up -d   (or let Dokploy inject env)
-# Env vars:  copy .env.example -> .env and fill in, OR set them in Dokploy UI.
-# Supabase is assumed to be installed externally — point SUPABASE_* at it.
+# WACRM — production compose stack.
+# Bring up with:  docker compose --env-file .env.production up -d
+# Scale app:      docker compose up -d --scale app=4
+# Requires: .env.production with VITE_*, SUPABASE_*, GEMINI_API_KEY, session secret, etc.
 
 x-app-env: &app-env
   NODE_ENV: production
@@ -22,23 +17,12 @@ x-app-env: &app-env
   WEBHOOK_SECRET: ${WEBHOOK_SECRET}
   WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET}
   WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN}
-  WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN}
   APP_ORIGIN: ${APP_ORIGIN}
   LOG_LEVEL: ${LOG_LEVEL:-info}
-  APP_MODE: ${APP_MODE:-production}
-  VITE_APP_MODE: ${VITE_APP_MODE:-production}
-  VITE_BRAND_NAME: ${VITE_BRAND_NAME:-WACRM}
-  VITE_BRAND_SLUG: ${VITE_BRAND_SLUG:-wacrm}
-  VITE_BRAND_API_HOST: ${VITE_BRAND_API_HOST:-api.wacrm.io}
-  # WhatsApp QR worker (optional) — internal docker DNS name:
-  WA_QR_WORKER_URL: http://qr-worker:8787
-  WA_QR_WORKER_TOKEN: ${WA_QR_WORKER_TOKEN}
-  WA_QR_WORKER_SIGNING_SECRET: ${WA_QR_WORKER_SIGNING_SECRET}
-  WA_QR_WEBHOOK_SECRET: ${WA_QR_WEBHOOK_SECRET}
 
 services:
   app:
-    image: wacrm/app:${WACRM_VERSION:-6.8.9}
+    image: wacrm/app:${WACRM_VERSION:-7.3.4}
     build:
       context: .
       dockerfile: Dockerfile
@@ -46,19 +30,30 @@ services:
         VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
         VITE_SUPABASE_PUBLISHABLE_KEY: ${VITE_SUPABASE_PUBLISHABLE_KEY}
         VITE_APP_ENV: production
-        VITE_APP_MODE: ${VITE_APP_MODE:-production}
-        VITE_BRAND_NAME: ${VITE_BRAND_NAME:-WACRM}
-        VITE_BRAND_SLUG: ${VITE_BRAND_SLUG:-wacrm}
-        APP_VERSION: ${WACRM_VERSION:-6.8.9}
+        APP_VERSION: ${WACRM_VERSION:-7.3.4}
     environment: *app-env
+    env_file:
+      - .env.production
     restart: unless-stopped
     expose:
       - "3000"
+    deploy:
+      replicas: ${APP_REPLICAS:-2}
+      resources:
+        limits:
+          cpus: "1.5"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        max_attempts: 5
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/public/health"]
       interval: 30s
       timeout: 5s
-      start_period: 30s
+      start_period: 20s
       retries: 3
     networks:
       - wacrm-net
@@ -68,44 +63,30 @@ services:
         max-size: "10m"
         max-file: "5"
 
-  qr-worker:
-    image: wacrm/wa-qr-worker:${WACRM_VERSION:-6.8.9}
-    build:
-      context: ./qr-worker
-      dockerfile: Dockerfile
-    environment:
-      NODE_ENV: production
-      PORT: 8787
-      HOST: 0.0.0.0
-      WA_QR_WORKER_TOKEN: ${WA_QR_WORKER_TOKEN}
-      WA_QR_WORKER_SIGNING_SECRET: ${WA_QR_WORKER_SIGNING_SECRET}
-      WA_QR_WEBHOOK_SECRET: ${WA_QR_WEBHOOK_SECRET}
-      WACRM_WEBHOOK_URL: ${WACRM_WEBHOOK_URL:-http://app:3000/api/public/whatsapp/qr-webhook}
-      WA_AUTH_DIR: /app/data/auth
-      LOG_LEVEL: ${LOG_LEVEL:-info}
+  proxy:
+    image: nginx:1.27-alpine
     restart: unless-stopped
-    expose:
-      - "8787"
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
-      - wa-auth:/app/data
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./deploy/certs:/etc/nginx/certs:ro
+      - nginx-cache:/var/cache/nginx
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8787/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
       interval: 30s
       timeout: 5s
-      start_period: 15s
       retries: 3
     networks:
       - wacrm-net
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "5"
 
 networks:
   wacrm-net:
     driver: bridge
 
 volumes:
-  wa-auth:
-    driver: local
+  nginx-cache:

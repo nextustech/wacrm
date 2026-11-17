@@ -360,7 +360,7 @@ function CampaignDashboardPage() {
                 {filteredCampaigns.length} of {campaigns.length}
               </span>
               {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={resetFilters} className="rounded-control">
+                <Button variant="ghost" size="sm" onClick={resetFilters}>
                   <X className="mr-1 h-3.5 w-3.5" /> Clear
                 </Button>
               )}

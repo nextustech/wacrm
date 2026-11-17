@@ -46,6 +46,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { ConversationRow, InboxChannel } from "@/hooks/use-conversations";
 import { channelLabel } from "@/lib/inbox/channel-capabilities";
+import { resolveCountry } from "@/lib/geo/country";
 import { useCustomerProfile } from "@/hooks/use-customer-profile";
 import {
   resolveContactDisplayName,
@@ -173,6 +174,16 @@ export function ConversationHeader({
     [contact, conversation.contact],
   );
   const isUnknownContact = displayName === "Unknown contact";
+  // Free, offline guess: dial code first, then the device's locale/timezone.
+  const country = useMemo(
+    () =>
+      resolveCountry({
+        phone: contact?.phone ?? conversation.contact?.phone ?? null,
+        locale: contact?.locale ?? null,
+        timezone: contact?.timezone ?? null,
+      }),
+    [contact?.phone, contact?.locale, contact?.timezone, conversation.contact?.phone],
+  );
 
   type MenuAction = {
     key: string;
@@ -400,7 +411,7 @@ export function ConversationHeader({
       >
         {onBack && (
           <Button
-            variant="ghost"
+            variant="outline"
             size="icon"
             className="shrink-0 min-[992px]:hidden"
             onClick={onBack}
@@ -489,6 +500,14 @@ export function ConversationHeader({
             <dl className="space-y-1.5 text-xs">
               {phoneSubtitle && <DetailRow label="Phone" value={phoneSubtitle} />}
               {contact?.email && <DetailRow label="Email" value={contact.email} />}
+              {country && (
+                <DetailRow
+                  label="Location"
+                  value={`${country.flag} ${country.name}${
+                    country.source === "phone" ? "" : " (approx.)"
+                  }`}
+                />
+              )}
               <DetailRow label="Channel" value={channelLabel(conversation.channel)} />
               {conversation.subject && <DetailRow label="Subject" value={conversation.subject} />}
               <DetailRow label="Status" value={conversation.status} capitalize />
@@ -509,9 +528,9 @@ export function ConversationHeader({
           <Popover open={controlsOpen} onOpenChange={setControlsOpen}>
             <PopoverTrigger asChild>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="icon"
-                className="h-8 w-8 border border-border @lg:hidden"
+                className="@lg:hidden"
                 aria-label="Conversation controls"
                 title="Conversation controls"
               >
@@ -595,9 +614,8 @@ export function ConversationHeader({
 
             {onPanelToggle && (
               <Button
-                variant={panel === "customer" ? "secondary" : "ghost"}
+                variant={panel === "customer" ? "secondary" : "outline"}
                 size="icon"
-                className="h-8 w-8 border border-border"
                 onClick={() => onPanelToggle("customer")}
                 aria-label={
                   panel === "customer" ? "Hide customer profile" : "Show customer profile"
@@ -616,12 +634,7 @@ export function ConversationHeader({
 
           <DropdownMenu open={menuOpen} onOpenChange={handleMenuOpenChange}>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 border border-border"
-                aria-label="More actions"
-              >
+              <Button variant="outline" size="icon" aria-label="More actions">
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -633,9 +646,8 @@ export function ConversationHeader({
                     className="flex items-center gap-2 p-2 mb-1 border-b border-border min-[992px]:hidden"
                   >
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="icon"
-                      className="h-9 w-9"
                       onClick={onBack}
                       aria-label="Back to conversations"
                     >
@@ -659,9 +671,9 @@ export function ConversationHeader({
                     className="flex items-center gap-1 p-1 mb-1 border-b border-border"
                   >
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-2 gap-1 text-muted-foreground"
+                      variant="outline"
+                      size="xs"
+                      className="gap-1 text-muted-foreground"
                       onClick={(e) => {
                         e.preventDefault();
                         setActiveMenuGroup(null);

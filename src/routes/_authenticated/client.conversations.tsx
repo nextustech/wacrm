@@ -687,9 +687,9 @@ function ConversationView({
         />
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           size="icon"
-          className="h-10 w-10 shrink-0"
+          className="shrink-0"
           onClick={() => fileInputRef.current?.click()}
           disabled={attachments.items.length >= 10}
           aria-label="Attach files"

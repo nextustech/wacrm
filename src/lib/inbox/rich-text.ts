@@ -7,6 +7,12 @@
  * we only change how the text is *shown* in bubbles and how the composer
  * helps you type the markers.
  *
+ * AI replies (chatbot answers grounded on the knowledge base) and anything
+ * pasted from elsewhere write standard Markdown instead — `**bold**` and
+ * `[text](url)` links — so both conventions are parsed here. A `**` pair is
+ * tried first; a lone `*` still means WhatsApp bold wherever no `**` match is
+ * found, so real WhatsApp messages render exactly as before.
+ *
  * Everything here is pure so it can be unit-tested and reused by the composer
  * (toggling markers around a selection) and the bubble (rendering).
  */
@@ -56,6 +62,9 @@ function isBoundaryAfter(text: string, index: number): boolean {
 const URL_RE =
   /(https?:\/\/[^\s<>()[\]]+[^\s<>()[\].,;:!?'"]|(?:^|(?<=\s))www\.[^\s<>()[\]]+[^\s<>()[\].,;:!?'"])/gi;
 
+/** `[display text](https://url)` — Markdown's link syntax. */
+const MD_LINK_RE = /^\[([^\]\n]+)\]\((https?:\/\/[^\s)]+|www\.[^\s)]+)\)/;
+
 /** Splits a plain run of text into text + autolinked URL nodes. */
 function linkify(value: string): InlineNode[] {
   const out: InlineNode[] = [];
@@ -94,6 +103,21 @@ function findClosing(text: string, marker: string, start: number): number {
   return -1;
 }
 
+/**
+ * Same idea as {@link findClosing}, for Markdown's double-star `**bold**`.
+ * `start` is the index of the first `*` of the opening pair. Returns the
+ * index of the first `*` of the closing pair, or -1.
+ */
+function findClosingDouble(text: string, start: number): number {
+  for (let i = start + 2; i < text.length - 1; i++) {
+    if (text[i] !== "*" || text[i + 1] !== "*") continue;
+    // Empty content (`****`) is not formatting.
+    if (i === start + 2) return -1;
+    if (isBoundaryAfter(text, i + 2)) return i;
+  }
+  return -1;
+}
+
 /** Parses one line (no newlines) into inline nodes. */
 export function parseInline(text: string): InlineNode[] {
   const nodes: InlineNode[] = [];
@@ -108,6 +132,38 @@ export function parseInline(text: string): InlineNode[] {
 
   while (i < text.length) {
     const ch = text[i]!;
+
+    // Markdown's `**bold**` takes priority over WhatsApp's `*bold*` so AI /
+    // knowledge-base replies render correctly. A lone `*` with no `**` match
+    // still falls through to the WhatsApp rule below, so real WhatsApp
+    // messages are unaffected.
+    if (ch === "*" && text[i + 1] === "*" && isBoundaryBefore(text, i)) {
+      const close = findClosingDouble(text, i);
+      if (close > i) {
+        const inner = text.slice(i + 2, close);
+        flush();
+        nodes.push({ type: "bold", children: parseInline(inner) });
+        i = close + 2;
+        continue;
+      }
+    }
+
+    // Markdown's `[text](url)` link syntax.
+    if (ch === "[") {
+      const linkMatch = MD_LINK_RE.exec(text.slice(i));
+      if (linkMatch) {
+        const [whole, label, rawHref] = linkMatch as unknown as [string, string, string];
+        flush();
+        nodes.push({
+          type: "link",
+          href: rawHref.startsWith("www.") ? `https://${rawHref}` : rawHref,
+          value: label,
+        });
+        i += whole.length;
+        continue;
+      }
+    }
+
     const kind = MARKERS[ch as FormatMarker];
     if (kind && isBoundaryBefore(text, i)) {
       const close = findClosing(text, ch, i);
